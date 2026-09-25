@@ -1,6 +1,7 @@
 public class UserListDto
 {
     public Guid Id { get; set; }
+    public string? EntraObjectId { get; set; }
     public string Email { get; set; } = "";
     public string DisplayName { get; set; } = "";
     public Guid? EmployeeId { get; set; }
@@ -8,21 +9,19 @@ public class UserListDto
     public bool IsActive { get; set; }
     public bool IsEntra { get; set; }
     public DateTime? LastLoginAt { get; set; }
-    public List<string> Roles { get; set; } = new();
+    public string CreatedBy { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public string UpdatedBy { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }
 
-public class CreateLocalUserDto
+public class CreateUserDto
 {
-    public string Email { get; set; } = "";
-    public string DisplayName { get; set; } = "";
-    public string? EmployeeCode { get; set; }
-}
-
-public class UpdateUserDto
-{
-    public string? Email { get; set; }             // ใช้เฉพาะ User local
-    public string? DisplayName { get; set; }       // ใช้เฉพาะ User local
-    public string? EmployeeCode { get; set; }
+    public string? EntraObjectId { get; set; }
+    public string Email { get; set; }
+    public string DisplayName { get; set; }
+    public string EmployeeCode { get; set; }
+    public Guid EmployeeId { get; set; }
     public bool IsActive { get; set; }
 }
 
@@ -37,6 +36,7 @@ public class EntraSyncResultDto
 
 public class UserDto
 {
+    public Guid Id { get; set; }
     public string? EntraObjectId { get; set; }
 
     public string Email { get; set; }
@@ -46,6 +46,10 @@ public class UserDto
     public string? EmployeeCode { get; set; }
 
     public bool IsActive { get; set; }
+    public string CreatedBy { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public string UpdatedBy { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }
 public class UserLookupDto
 {

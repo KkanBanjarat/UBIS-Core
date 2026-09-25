@@ -2,12 +2,15 @@ using UBIS.Access.Application.Dtos;
 public interface IUserService
 {
     Task<List<UserListDto>> GetAllAsync();
-    Task<UserListDto?> CreateAsync(CreateLocalUserDto dto, string by);
-    Task<UserListDto?> UpdateAsync(Guid id, UpdateUserDto dto, string by);
-    Task<bool> DeleteAsync(Guid id, string by);
+    Task<UserDto?> GetByIdAsync(Guid id);
+    Task<UserDto?> CreateAsync(CreateUserDto data);
+    Task<UserDto?> UpdateAsync(Guid id, CreateUserDto data);
+    Task<bool> DeleteAsync(Guid id);
+
+    Task SyncUsersAsync(List<UserDto> users);
 }
 
-public interface IEntraUserSyncService
-{
-    Task<EntraSyncResultDto> SyncAsync(string by);
-}
+// public interface IEntraUserSyncService
+// {
+//     Task<EntraSyncResultDto> SyncAsync(List<UserDto> users);
+// }
