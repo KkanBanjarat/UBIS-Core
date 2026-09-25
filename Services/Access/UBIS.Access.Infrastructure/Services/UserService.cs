@@ -212,8 +212,7 @@ public class UserService : IUserService
 
             var existingUsers = await _repos.FindAsync(x => x.EntraObjectId != null && entraIds.Contains(x.EntraObjectId));
 
-            var existingDict = existingUsers.Where(x => x.EntraObjectId != null)
-                .ToDictionary(x => x.EntraObjectId!);
+            var existingDict = existingUsers.Where(x => x.EntraObjectId != null).ToDictionary(x => x.EntraObjectId!);
 
             var insertUsers = new List<TbUser>();
             var currentUser = _currentUser.GetCurrentUserEmail();
