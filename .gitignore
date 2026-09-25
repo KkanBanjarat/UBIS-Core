@@ -1,0 +1,28 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Environment & Secrets
+.env
+.env.local
+appsettings.Development.json
+appsettings.Production.json
+
+# IDE
+.vs/
+.idea/
+*.swp
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Uploads
+uploads/
