@@ -1,0 +1,11 @@
+D:\UBIS-Core\Services\HR\UBIS.HR.Domain\bin\Debug\net10.0\UBIS.HR.Domain.deps.json
+D:\UBIS-Core\Services\HR\UBIS.HR.Domain\bin\Debug\net10.0\UBIS.HR.Domain.dll
+D:\UBIS-Core\Services\HR\UBIS.HR.Domain\bin\Debug\net10.0\UBIS.HR.Domain.pdb
+D:\UBIS-Core\Services\HR\UBIS.HR.Domain\obj\Debug\net10.0\UBIS.HR.Domain.GeneratedMSBuildEditorConfig.editorconfig
+D:\UBIS-Core\Services\HR\UBIS.HR.Domain\obj\Debug\net10.0\UBIS.HR.Domain.AssemblyInfoInputs.cache
+D:\UBIS-Core\Services\HR\UBIS.HR.Domain\obj\Debug\net10.0\UBIS.HR.Domain.AssemblyInfo.cs
+D:\UBIS-Core\Services\HR\UBIS.HR.Domain\obj\Debug\net10.0\UBIS.HR.Domain.csproj.CoreCompileInputs.cache
+D:\UBIS-Core\Services\HR\UBIS.HR.Domain\obj\Debug\net10.0\UBIS.HR.Domain.dll
+D:\UBIS-Core\Services\HR\UBIS.HR.Domain\obj\Debug\net10.0\refint\UBIS.HR.Domain.dll
+D:\UBIS-Core\Services\HR\UBIS.HR.Domain\obj\Debug\net10.0\UBIS.HR.Domain.pdb
+D:\UBIS-Core\Services\HR\UBIS.HR.Domain\obj\Debug\net10.0\ref\UBIS.HR.Domain.dll

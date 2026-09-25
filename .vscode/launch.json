@@ -1,0 +1,46 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "BeHr",
+            "type": "dotnet",
+            "request": "launch",
+            "projectPath": "${workspaceFolder}/Services/HR/UBIS.HR.Api/UBIS.HR.Api.csproj",
+            "preLaunchTask": "build: BeHr"
+        },
+        {
+            "name": "BeAccess",
+            "type": "dotnet",
+            "request": "launch",
+            "projectPath": "${workspaceFolder}/Services/Access/UBIS.Access.Api/UBIS.Access.Api.csproj",
+            "preLaunchTask": "build: BeAccess"
+        },
+        {
+            "name": "FeWeb",
+            "type": "chrome",
+            "request": "launch",
+            "url": "http://localhost:5173",
+            "webRoot": "${workspaceFolder}/Frontend/ubis-hr-web",
+            "preLaunchTask": "frontend: dev"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Backend All",
+            "configurations": [
+                "BeHr",
+                "BeAccess"
+            ],
+            "stopAll": true
+        },
+        {
+            "name": "Full Stack",
+            "configurations": [
+                "BeHr",
+                "BeAccess",
+                "FeWeb"
+            ],
+            "stopAll": true
+        }
+    ]
+}

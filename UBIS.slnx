@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/Services/" />
+  <Folder Name="/Services/Access/">
+    <Project Path="Services/Access/UBIS.Access.Api/UBIS.Access.Api.csproj" />
+    <Project Path="Services/Access/UBIS.Access.Application/UBIS.Access.Application.csproj" />
+    <Project Path="Services/Access/UBIS.Access.Domain/UBIS.Access.Domain.csproj" />
+    <Project Path="Services/Access/UBIS.Access.Infrastructure/UBIS.Access.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Services/HR/">
+    <Project Path="Services/HR/UBIS.HR.Api/UBIS.HR.Api.csproj" />
+    <Project Path="Services/HR/UBIS.HR.Application/UBIS.HR.Application.csproj" />
+    <Project Path="Services/HR/UBIS.HR.Domain/UBIS.HR.Domain.csproj" />
+    <Project Path="Services/HR/UBIS.HR.Infrastructure/UBIS.HR.Infrastructure.csproj" />
+  </Folder>
+</Solution>

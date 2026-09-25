@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+@plugin "daisyui" {
+  themes: corporate --default;
+}
+
+@plugin "daisyui/theme" {
+  name: "ubiscore";
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+
+  --color-base-100: #ffffff;
+  --color-base-200: #f7f8fa;
+  --color-base-300: #e7e9ec;
+  --color-base-content: #2b3033;
+
+  --color-primary: #16a34a;
+  --color-primary-content: #ffffff;
+
+  --color-secondary: #3fa383;
+  --color-secondary-content: #ffffff;
+
+  --color-accent: #bbf7d0;
+  --color-accent-content: #14532d;
+
+  --color-neutral: #383f45;
+  --color-neutral-content: #f5f6f7;
+
+  --color-info: #3b82f6;
+  --color-info-content: #ffffff;
+
+  --color-success: #16a34a;
+  --color-success-content: #ffffff;
+
+  --color-warning: #f59e0b;
+  --color-warning-content: #451a03;
+
+  --color-error: #ef4444;
+  --color-error-content: #ffffff;
+
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.875rem;
+
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+@font-face {
+  font-family: "Noto Sans Thai";
+  src: url("/fonts/NotoSansThai-VariableFont_wdth,wght.ttf") format("truetype-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+html,
+body,
+#app {
+  font-family: "Noto Sans Thai", sans-serif;
+}
+
+body {
+  @apply bg-base-200 text-base-content;
+}

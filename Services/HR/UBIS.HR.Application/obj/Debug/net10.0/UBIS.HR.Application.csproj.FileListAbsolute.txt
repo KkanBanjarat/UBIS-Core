@@ -1,0 +1,15 @@
+D:\UBIS-Core\Services\HR\UBIS.HR.Application\bin\Debug\net10.0\UBIS.HR.Application.deps.json
+D:\UBIS-Core\Services\HR\UBIS.HR.Application\bin\Debug\net10.0\UBIS.HR.Application.dll
+D:\UBIS-Core\Services\HR\UBIS.HR.Application\bin\Debug\net10.0\UBIS.HR.Application.pdb
+D:\UBIS-Core\Services\HR\UBIS.HR.Application\bin\Debug\net10.0\UBIS.HR.Domain.dll
+D:\UBIS-Core\Services\HR\UBIS.HR.Application\bin\Debug\net10.0\UBIS.HR.Domain.pdb
+D:\UBIS-Core\Services\HR\UBIS.HR.Application\obj\Debug\net10.0\UBIS.HR.Application.csproj.AssemblyReference.cache
+D:\UBIS-Core\Services\HR\UBIS.HR.Application\obj\Debug\net10.0\UBIS.HR.Application.GeneratedMSBuildEditorConfig.editorconfig
+D:\UBIS-Core\Services\HR\UBIS.HR.Application\obj\Debug\net10.0\UBIS.HR.Application.AssemblyInfoInputs.cache
+D:\UBIS-Core\Services\HR\UBIS.HR.Application\obj\Debug\net10.0\UBIS.HR.Application.AssemblyInfo.cs
+D:\UBIS-Core\Services\HR\UBIS.HR.Application\obj\Debug\net10.0\UBIS.HR.Application.csproj.CoreCompileInputs.cache
+D:\UBIS-Core\Services\HR\UBIS.HR.Application\obj\Debug\net10.0\UBIS.HR..650D5EC8.Up2Date
+D:\UBIS-Core\Services\HR\UBIS.HR.Application\obj\Debug\net10.0\UBIS.HR.Application.dll
+D:\UBIS-Core\Services\HR\UBIS.HR.Application\obj\Debug\net10.0\refint\UBIS.HR.Application.dll
+D:\UBIS-Core\Services\HR\UBIS.HR.Application\obj\Debug\net10.0\UBIS.HR.Application.pdb
+D:\UBIS-Core\Services\HR\UBIS.HR.Application\obj\Debug\net10.0\ref\UBIS.HR.Application.dll
