@@ -102,14 +102,13 @@ public class AuthService : IAuthService
             var entraIds = users
                 .Select(x => x.EntraObjectId)
                 .Where(x => !string.IsNullOrEmpty(x))
+                .Select(x => x!)
                 .Distinct()
                 .ToList();
 
-            // ✅ ใช้ repository
-            var existingUsers = await _userRepos.FindAsync(x =>
-                entraIds.Contains(x.EntraObjectId));
+            var existingUsers = await _userRepos.FindAsync(x => x.EntraObjectId != null && entraIds.Contains(x.EntraObjectId));
 
-            var existingDict = existingUsers.ToDictionary(x => x.EntraObjectId);
+            var existingDict = existingUsers.Where(x => x.EntraObjectId != null).ToDictionary(x => x.EntraObjectId!);
 
             var insertUsers = new List<TbUser>();
 
