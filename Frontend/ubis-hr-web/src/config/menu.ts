@@ -69,6 +69,7 @@ export const menuGroups: MenuGroup[] = [
         children: [
           { path: "/settings/approve-routes", label: "สายอนุมัติเอกสาร" },
           { path: "/settings/branch-admins", label: "ผู้ดูแลสาขา" },
+          { path: "/settings/users", label: "ผู้ใช้งาน" },
         ],
       },
     ],

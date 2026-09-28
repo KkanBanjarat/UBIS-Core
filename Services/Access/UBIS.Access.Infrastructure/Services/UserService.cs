@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using UBIS.Access.Application.Dtos;
 using UBIS.Access.Application.Interfaces;
 using UBIS.Access.Domain.Entities;
 using UBIS.Access.Infrastructure.Repositories.Interfaces;
@@ -11,21 +12,143 @@ public class UserService : IUserService
     private readonly ILogger<UserService> _logger;
     private readonly ICurrentUserService _currentUser;
 
-    public UserService(IUserRepos repos,
-    ILogger<UserService> logger,
-    ICurrentUserService currentUser)
+    public UserService(IUserRepos repos, ILogger<UserService> logger, ICurrentUserService currentUser)
     {
         _repos = repos;
         _logger = logger;
         _currentUser = currentUser;
     }
+
+    private string Actor
+    {
+        get
+        {
+            var email = _currentUser.GetCurrentUserEmail();
+            return string.IsNullOrWhiteSpace(email) ? "System" : email;
+        }
+    }
+
+    private bool IsSelf(TbUser u) => string.Equals(u.Email, Actor, StringComparison.OrdinalIgnoreCase);
+    private static string? Clean(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+    private static bool IsBusinessError(Exception ex) => ex is InvalidOperationException or ArgumentException;
+
+    private static UserDto ToDto(TbUser u) => new()
+    {
+        Id = u.Id,
+        EntraObjectId = u.EntraObjectId,
+        DisplayName = u.DisplayName,
+        IsActive = u.IsActive,
+        Email = u.Email,
+        EmployeeCode = u.EmployeeCode,
+        CreatedAt = u.CreatedAt,
+        CreatedBy = u.CreatedBy,
+        UpdatedAt = u.UpdatedAt,
+        UpdatedBy = u.UpdatedBy,
+    };
+
     public async Task<List<UserListDto>> GetAllAsync()
     {
         try
         {
-            var user = await _repos.GetAllAsync();
+            var users = await _repos.GetAllAsync();
+            return users
+                .Where(s => !s.IsDelete)
+                .OrderBy(s => s.DisplayName)
+                .Select(s => new UserListDto
+                {
+                    Id = s.Id,
+                    EntraObjectId = s.EntraObjectId,
+                    DisplayName = s.DisplayName,
+                    IsActive = s.IsActive,
+                    Email = s.Email,
+                    EmployeeCode = s.EmployeeCode,
+                    EmployeeId = s.EmployeeId,
+                    IsEntra = !string.IsNullOrEmpty(s.EntraObjectId),
+                    LastLoginAt = s.LastLoginAt,
+                    CreatedAt = s.CreatedAt,
+                    CreatedBy = s.CreatedBy,
+                    UpdatedAt = s.UpdatedAt,
+                    UpdatedBy = s.UpdatedBy,
+                }).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "เกิดข้อผิดพลาดในการดึงข้อมูล User: {Message}", ex.Message);
+            throw;
+        }
+    }
 
-            return user.Select(s => new UserListDto
+    public async Task<UserDto?> GetByIdAsync(Guid id)
+    {
+        try
+        {
+            var user = await _repos.GetByIdAsync(id);
+            return user == null || user.IsDelete ? null : ToDto(user);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "เกิดข้อผิดพลาดในการดึงข้อมูล User: {Message}", ex.Message);
+            throw;
+        }
+    }
+
+    public async Task<UserDto?> CreateAsync(CreateUserDto data)
+    {
+        try
+        {
+            var email = (data.Email ?? "").Trim().ToLowerInvariant();
+            var name = (data.DisplayName ?? "").Trim();
+            var code = Clean(data.EmployeeCode);
+
+            if (!email.Contains('@')) throw new ArgumentException("รูปแบบอีเมลไม่ถูกต้อง");
+            if (name == "") throw new ArgumentException("กรุณากรอกชื่อแสดงผล");
+            if (string.IsNullOrWhiteSpace(data.Password) || data.Password.Length < 8)
+                throw new ArgumentException("รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร");
+
+            var dup = new List<string>();
+            // Email เช็ครวมที่ถูกลบแล้วด้วย เผื่อมี Unique Index
+            if (await _repos.AnyAsync(x => x.Email.ToLower() == email)) dup.Add("Email");
+            if (code != null && await _repos.AnyAsync(x => x.EmployeeCode == code && !x.IsDelete))
+                dup.Add("EmployeeCode");
+            if (data.EmployeeId.HasValue &&
+                await _repos.AnyAsync(x => x.EmployeeId == data.EmployeeId && !x.IsDelete))
+                dup.Add("EmployeeId");
+            if (dup.Count > 0)
+                throw new InvalidOperationException($"ข้อมูลซ้ำในช่อง: {string.Join(", ", dup)}");
+
+            var now = DateTime.Now;
+            var entity = new TbUser
+            {
+                Email = email,
+                DisplayName = name,
+                EmployeeCode = code,
+                EmployeeId = data.EmployeeId,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(data.Password),
+                IsActive = data.IsActive,
+                IsDelete = false,
+                CreatedAt = now,
+                CreatedBy = Actor,
+                UpdatedAt = now,
+                UpdatedBy = Actor,
+            };
+
+            await _repos.AddAsync(entity);
+            await _repos.SaveChangesAsync();
+            return ToDto(entity);
+        }
+        catch (Exception ex) when (!IsBusinessError(ex))
+        {
+            _logger.LogError(ex, "เกิดข้อผิดพลาดในการเพิ่มข้อมูล User: {Message}", ex.Message);
+            throw;
+        }
+    }
+    public async Task<PagedResultDto<UserListDto>> GetAllAsync(UserFilterDto filter)
+    {
+        try
+        {
+            var (users, totalCount) = await _repos.GetFilteredPagedAsync(filter);
+
+            var items = users.Select(s => new UserListDto
             {
                 Id = s.Id,
                 EntraObjectId = s.EntraObjectId,
@@ -35,136 +158,70 @@ public class UserService : IUserService
                 EmployeeCode = s.EmployeeCode,
                 EmployeeId = s.EmployeeId,
                 IsEntra = !string.IsNullOrEmpty(s.EntraObjectId),
+                LastLoginAt = s.LastLoginAt,
                 CreatedAt = s.CreatedAt,
                 CreatedBy = s.CreatedBy,
                 UpdatedAt = s.UpdatedAt,
                 UpdatedBy = s.UpdatedBy,
             }).ToList();
+
+            return new PagedResultDto<UserListDto> { Items = items, TotalCount = totalCount };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "เกิดข้อผิดพลาดในการดึงข้อมูล Position: {Message}", ex.Message);
+            _logger.LogError(ex, "เกิดข้อผิดพลาดในการดึงข้อมูล User: {Message}", ex.Message);
             throw;
         }
     }
-    public async Task<UserDto?> GetByIdAsync(Guid id)
+    public async Task<UserDto?> UpdateAsync(Guid id, UpdateUserDto data)
     {
         try
         {
-            var user = await _repos.FirstOrDefaultAsync(w => w.Id == id);
-            if (user == null)
-                throw new KeyNotFoundException($"ไม่พบข้อมูล");
+            var entity = await _repos.GetByIdAsync(id);
+            if (entity == null || entity.IsDelete) return null;
 
-            return new UserDto
+            if (!data.IsActive && IsSelf(entity))
+                throw new InvalidOperationException("ไม่สามารถปิดการใช้งานบัญชีของตัวเองได้");
+
+            var code = Clean(data.EmployeeCode);
+            var dup = new List<string>();
+            if (code != null && await _repos.AnyAsync(x => x.Id != id && x.EmployeeCode == code && !x.IsDelete))
+                dup.Add("EmployeeCode");
+            if (data.EmployeeId.HasValue &&
+                await _repos.AnyAsync(x => x.Id != id && x.EmployeeId == data.EmployeeId && !x.IsDelete))
+                dup.Add("EmployeeId");
+
+            // อีเมล/ชื่อ แก้ได้เฉพาะ User local (User Entra ให้ Entra เป็นเจ้าของข้อมูล)
+            if (entity.EntraObjectId == null)
             {
-                Id = user.Id,
-                EntraObjectId = user.EntraObjectId,
-                DisplayName = user.DisplayName,
-                IsActive = user.IsActive,
-                Email = user.Email,
-                EmployeeCode = user.EmployeeCode,
-                CreatedAt = user.CreatedAt,
-                CreatedBy = user.CreatedBy,
-                UpdatedAt = user.UpdatedAt,
-                UpdatedBy = user.UpdatedBy,
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "เกิดข้อผิดพลาดในการดึงข้อมูล Position: {Message}", ex.Message);
-            throw;
-        }
-    }
-    public async Task<UserDto?> CreateAsync(CreateUserDto data)
-    {
-        try
-        {
-            var duplicateFields = new List<string>();
-
-            if (await _repos.AnyAsync(x => x.EmployeeCode == data.EmployeeCode && !x.IsDelete))
-                duplicateFields.Add("EmployeeCode");
-
-            if (await _repos.AnyAsync(x => x.EmployeeId == data.EmployeeId && !x.IsDelete))
-                duplicateFields.Add("EmployeeId");
-
-            if (duplicateFields.Count > 0)
-            {
-                var message = $"ข้อมูลซ้ำในช่อง: {string.Join(", ", duplicateFields)}";
-                throw new InvalidOperationException(message);
+                if (!string.IsNullOrWhiteSpace(data.Email))
+                {
+                    var email = data.Email.Trim().ToLowerInvariant();
+                    if (!email.Contains('@')) throw new ArgumentException("รูปแบบอีเมลไม่ถูกต้อง");
+                    if (await _repos.AnyAsync(x => x.Id != id && x.Email.ToLower() == email))
+                        dup.Add("Email");
+                    else
+                        entity.Email = email;
+                }
+                if (!string.IsNullOrWhiteSpace(data.DisplayName))
+                    entity.DisplayName = data.DisplayName.Trim();
             }
 
-            var newEntity = new TbUser
-            {
-                DisplayName = data.DisplayName,
-                EmployeeCode = data.EmployeeCode,
-                EmployeeId = data.EmployeeId,
-                EntraObjectId = data.EntraObjectId,
-                Email = data.Email,
-                IsActive = data.IsActive,
-                CreatedAt = DateTime.Now,
-                CreatedBy = _currentUser.GetCurrentUserEmail(),
-                UpdatedAt = DateTime.Now,
-                UpdatedBy = _currentUser.GetCurrentUserEmail(),
-                IsDelete = false
-            };
+            if (dup.Count > 0)
+                throw new InvalidOperationException($"ข้อมูลซ้ำในช่อง: {string.Join(", ", dup)}");
 
-            await _repos.AddAsync(newEntity);
-            await _repos.SaveChangesAsync();
-
-            return await GetByIdAsync(newEntity.Id);
-        }
-        catch (InvalidOperationException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "เกิดข้อผิดพลาดในการเพิ่มข้อมูล Position : {Message}", ex.Message);
-            throw;
-        }
-    }
-
-    public async Task<UserDto?> UpdateAsync(Guid id, CreateUserDto data)
-    {
-        try
-        {
-            var existingEntity = await _repos.GetByIdAsync(id);
-            if (existingEntity == null)
-                return null;
-
-            var duplicateFields = new List<string>();
-
-            if (await _repos.AnyAsync(x => x.EmployeeCode == data.EmployeeCode && x.Id != id && !x.IsDelete))
-                duplicateFields.Add("EmployeeCode");
-
-            if (await _repos.AnyAsync(x => x.EntraObjectId == data.EntraObjectId && x.Id != id && !x.IsDelete))
-                duplicateFields.Add("EntraObjectId");
-
-            if (duplicateFields.Count > 0)
-            {
-                var message = $"ข้อมูลซ้ำในช่อง: {string.Join(", ", duplicateFields)}";
-                throw new InvalidOperationException(message);
-            }
-
-            existingEntity.EmployeeCode = data.EmployeeCode;
-            existingEntity.Email = data.Email;
-            existingEntity.IsActive = data.IsActive;
-            existingEntity.EntraObjectId = data.EntraObjectId;
-            existingEntity.EmployeeId = data.EmployeeId;
-            existingEntity.UpdatedAt = DateTime.Now;
-            existingEntity.UpdatedBy = _currentUser.GetCurrentUserEmail();
+            entity.EmployeeCode = code;
+            entity.EmployeeId = data.EmployeeId;
+            entity.IsActive = data.IsActive;
+            entity.UpdatedAt = DateTime.Now;
+            entity.UpdatedBy = Actor;
 
             await _repos.SaveChangesAsync();
-
-            return await GetByIdAsync(id);
+            return ToDto(entity);
         }
-        catch (InvalidOperationException)
+        catch (Exception ex) when (!IsBusinessError(ex))
         {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "เกิดข้อผิดพลาดในการเพิ่มข้อมูล Position: {Message}", ex.Message);
+            _logger.LogError(ex, "เกิดข้อผิดพลาดในการแก้ไขข้อมูล User: {Message}", ex.Message);
             throw;
         }
     }
@@ -173,97 +230,150 @@ public class UserService : IUserService
     {
         try
         {
-            var existingEntity = await _repos.GetByIdAsync(id);
-            if (existingEntity == null)
-                return false;
+            var entity = await _repos.GetByIdAsync(id);
+            if (entity == null || entity.IsDelete) return false;
 
+            if (IsSelf(entity))
+                throw new InvalidOperationException("ไม่สามารถลบบัญชีของตัวเองได้");
 
-            existingEntity.IsDelete = true;
-            existingEntity.DeletedBy = _currentUser.GetCurrentUserEmail();
-            existingEntity.DeletedAt = DateTime.Now;
+            var now = DateTime.Now;
+            entity.IsDelete = true;
+            entity.IsActive = false;
+            entity.DeletedBy = Actor;
+            entity.DeletedAt = now;
+            entity.UpdatedBy = Actor;
+            entity.UpdatedAt = now;
 
             await _repos.SaveChangesAsync();
-
             return true;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (!IsBusinessError(ex))
         {
-            _logger.LogError(ex, "เกิดข้อผิดพลาดในการลบข้อมูล Users: {Message}", ex.Message);
+            _logger.LogError(ex, "เกิดข้อผิดพลาดในการลบข้อมูล User: {Message}", ex.Message);
             throw;
         }
     }
 
-    public async Task SyncUsersAsync(List<UserDto> users)
+    public async Task<bool> ResetPasswordAsync(Guid id, string newPassword)
     {
         try
         {
-            if (users == null || users.Count == 0)
-                return;
+            var entity = await _repos.GetByIdAsync(id);
+            if (entity == null || entity.IsDelete) return false;
 
-            var entraIds = users
-                .Select(x => x.EntraObjectId)
-                .Where(x => !string.IsNullOrEmpty(x))
-                .Select(x => x)
-                .Distinct()
-                .ToList();
+            if (entity.EntraObjectId != null)
+                throw new InvalidOperationException("ผู้ใช้จาก Entra ใช้ SSO ไม่มีรหัสผ่านในระบบนี้");
+            if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 8)
+                throw new ArgumentException("รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร");
 
-            if (entraIds.Count == 0)
-                return;
-
-            var existingUsers = await _repos.FindAsync(x => x.EntraObjectId != null && entraIds.Contains(x.EntraObjectId));
-
-            var existingDict = existingUsers.Where(x => x.EntraObjectId != null).ToDictionary(x => x.EntraObjectId!);
-
-            var insertUsers = new List<TbUser>();
-            var currentUser = _currentUser.GetCurrentUserEmail();
-            var now = DateTime.Now;
-
-            foreach (var user in users)
-            {
-                if (string.IsNullOrEmpty(user.EntraObjectId))
-                    continue;
-
-                if (existingDict.TryGetValue(
-                    user.EntraObjectId,
-                    out var existingUser))
-                {
-                    existingUser.DisplayName = user.DisplayName;
-                    existingUser.Email = user.Email;
-                    existingUser.IsActive = user.IsActive;
-                    existingUser.EmployeeCode = user.EmployeeCode;
-                    existingUser.UpdatedAt = now;
-                    existingUser.UpdatedBy = currentUser;
-                }
-                else
-                {
-                    insertUsers.Add(new TbUser
-                    {
-                        EntraObjectId = user.EntraObjectId,
-                        DisplayName = user.DisplayName,
-                        Email = user.Email,
-                        IsActive = user.IsActive,
-                        EmployeeCode = user.EmployeeCode,
-                        CreatedAt = now,
-                        CreatedBy = currentUser,
-                        UpdatedAt = now,
-                        UpdatedBy = currentUser,
-                        IsDelete = false
-                    });
-                }
-            }
-
-            if (insertUsers.Count > 0)
-                await _repos.AddRangeAsync(insertUsers);
+            entity.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            entity.UpdatedAt = DateTime.Now;
+            entity.UpdatedBy = Actor;
 
             await _repos.SaveChangesAsync();
+            return true;
+        }
+        catch (Exception ex) when (!IsBusinessError(ex))
+        {
+            _logger.LogError(ex, "เกิดข้อผิดพลาดในการตั้งรหัสผ่าน: {Message}", ex.Message);
+            throw;
+        }
+    }
+
+    public async Task<EntraSyncResultDto> SyncUsersAsync(List<UserDto> users)
+    {
+        try
+        {
+            var result = new EntraSyncResultDto { Total = users?.Count ?? 0 };
+            if (users == null || users.Count == 0) return result;
+
+            var now = DateTime.Now;
+            var existing = (await _repos.GetAllAsync()).ToList();   // ต้องรวมที่ถูกลบด้วย (ดูหมายเหตุท้ายคำตอบ)
+
+            var byEntraId = existing.Where(u => u.EntraObjectId != null)
+                .GroupBy(u => u.EntraObjectId!).ToDictionary(g => g.Key, g => g.First());
+            var byEmail = existing.GroupBy(u => u.Email.ToLower())
+                .ToDictionary(g => g.Key, g => g.First());
+            var codes = existing.Where(u => u.EmployeeCode != null)
+                .Select(u => u.EmployeeCode!).ToHashSet();
+
+            var newUsers = new List<TbUser>();
+
+            foreach (var eu in users)
+            {
+                var entraId = eu.EntraObjectId;
+                var email = (eu.Email ?? "").Trim().ToLowerInvariant();
+                if (string.IsNullOrEmpty(entraId) || email == "") { result.Skipped++; continue; }
+
+                var name = string.IsNullOrWhiteSpace(eu.DisplayName) ? email : eu.DisplayName.Trim();
+                var code = Clean(eu.EmployeeCode);
+
+                TbUser? user = null;
+                var isLink = false;
+
+                if (byEntraId.TryGetValue(entraId, out var u1))
+                {
+                    user = u1;
+                }
+                else if (byEmail.TryGetValue(email, out var u2))
+                {
+                    if (u2.EntraObjectId == null) { user = u2; isLink = true; }   // User local → ผูกเข้า Entra
+                    else { result.Skipped++; continue; }                          // อีเมลนี้เป็นของ Entra อีกบัญชี
+                }
+
+                if (user == null)
+                {
+                    var created = new TbUser
+                    {
+                        EntraObjectId = entraId,
+                        Email = email,
+                        DisplayName = name,
+                        EmployeeCode = code != null && codes.Add(code) ? code : null,
+                        IsActive = eu.IsActive,
+                        IsDelete = false,
+                        CreatedAt = now,
+                        CreatedBy = Actor,
+                        UpdatedAt = now,
+                        UpdatedBy = Actor,
+                    };
+                    newUsers.Add(created);
+                    byEntraId[entraId] = created;
+                    byEmail[email] = created;
+                    result.Created++;
+                    continue;
+                }
+
+                if (user.IsDelete) { result.Skipped++; continue; }   // Admin ลบไว้ ไม่ปลุกกลับมา
+
+                var changed = false;
+                if (user.EntraObjectId != entraId) { user.EntraObjectId = entraId; changed = true; }
+                if (user.DisplayName != name) { user.DisplayName = name; changed = true; }
+                if (user.Email != email && (!byEmail.TryGetValue(email, out var other) || other.Id == user.Id))
+                {
+                    user.Email = email;
+                    changed = true;
+                }
+                if (user.EmployeeCode == null && code != null && codes.Add(code))   // เติมเฉพาะที่ยังว่าง
+                {
+                    user.EmployeeCode = code;
+                    changed = true;
+                }
+                if (!eu.IsActive && user.IsActive) { user.IsActive = false; changed = true; }   // ปิดตาม Entra แต่ไม่เปิดคืน
+
+                if (!changed) { result.Unchanged++; continue; }
+
+                user.UpdatedAt = now;
+                user.UpdatedBy = Actor;
+                if (isLink) result.Linked++; else result.Updated++;
+            }
+
+            if (newUsers.Count > 0) await _repos.AddRangeAsync(newUsers);
+            await _repos.SaveChangesAsync();
+            return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(
-                ex,
-                "เกิดข้อผิดพลาดในการ Sync User : {Message}",
-                ex.Message);
-
+            _logger.LogError(ex, "เกิดข้อผิดพลาดในการ Sync User: {Message}", ex.Message);
             throw;
         }
     }

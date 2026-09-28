@@ -63,12 +63,6 @@ const routes = [
         meta: { requiresPermission: "employee.write" },
       },
       {
-        path: "position-levels",
-        name: "position-levels",
-        component: () => import("../views/master-data/PositionLevelView.vue"),
-        meta: { requiresPermission: "employee.write" },
-      },
-      {
         path: "settings/approve-routes",
         name: "approve-routes",
         component: () => import("../views/settings/ApproveRouteView.vue"),
@@ -78,6 +72,11 @@ const routes = [
         path: "settings/branch-admins",
         name: "branch-admins",
         component: () => import("../views/settings/BranchAdminView.vue"),
+        meta: { requiresPermission: "system.admin" },
+      },
+      {
+        path: "/settings/users",
+        component: () => import("../views/settings/UserView.vue"),
         meta: { requiresPermission: "system.admin" },
       },
     ],
