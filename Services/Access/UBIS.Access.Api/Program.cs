@@ -1,8 +1,8 @@
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using UBIS.Access.Application.Interfaces;
 using UBIS.Access.Infrastructure.Services;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using UBIS.Access.Api.Services;
 using UBIS.Access.Infrastructure.Data;
 using UBIS.Access.Infrastructure.Repositories.Interfaces;
@@ -25,31 +25,51 @@ builder.Services.AddScoped<IUserRoleRepos, UserRoleRepos>();
 
 // ✅ Services 
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IEntraGraphService, EntraGraphService>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IRolePermissionService, RolePermissionService>();
 builder.Services.AddScoped<IUserRoleService, UserRoleService>();
 
-builder.Services.AddAuthentication().AddJwtBearer("EntraID", options =>
+var jwtSecret = builder.Configuration["Jwt:Secret"]
+    ?? throw new InvalidOperationException("Jwt:Secret ยังไม่ได้ตั้งค่า");
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                System.Text.Encoding.UTF8.GetBytes(jwtSecret))
+        };
+    })
+    .AddJwtBearer("EntraID", options =>
+    {
+        options.Authority = $"https://login.microsoftonline.com/{builder.Configuration["Azure:TenantId"]}/v2.0";
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidAudience = builder.Configuration["Azure:ClientId"]
+        };
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = context => Task.CompletedTask,
+            OnTokenValidated = context => Task.CompletedTask
+        };
+    });
+
+builder.Services.AddAuthorization(options =>
 {
-    options.Authority = $"https://login.microsoftonline.com/{builder.Configuration["Azure:TenantId"]}/v2.0";
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidAudience = builder.Configuration["Azure:ClientId"]
-    };
-    options.Events = new JwtBearerEvents
-    {
-        OnAuthenticationFailed = context =>
-        {
-            return Task.CompletedTask;
-        },
-        OnTokenValidated = context =>
-        {
-            return Task.CompletedTask;
-        }
-    };
+    options.AddPolicy("system.admin", policy => policy.RequireAssertion(ctx =>
+        ctx.User.HasClaim(c => c.Type == "perm" &&
+            (c.Value == "*" || c.Value.StartsWith("*:") ||
+             c.Value == "system.admin" || c.Value.StartsWith("system.admin:")))));
 });
 
 builder.Services.AddHttpContextAccessor();

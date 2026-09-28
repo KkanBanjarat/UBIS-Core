@@ -1,6 +1,6 @@
 // src/auth/msalConfig.ts
-import { PublicClientApplication ,LogLevel} from '@azure/msal-browser'
-import type { Configuration } from '@azure/msal-browser'
+import { PublicClientApplication, LogLevel } from "@azure/msal-browser";
+import type { Configuration } from "@azure/msal-browser";
 
 const msalConfig: Configuration = {
   auth: {
@@ -9,7 +9,7 @@ const msalConfig: Configuration = {
     redirectUri: window.location.origin,
   },
   cache: {
-    cacheLocation: 'sessionStorage',
+    cacheLocation: "sessionStorage",
   },
   system: {
     loggerOptions: {
@@ -17,18 +17,30 @@ const msalConfig: Configuration = {
       logLevel: LogLevel.Warning,
     },
   },
-}
+};
 
-export const msalInstance = new PublicClientApplication(msalConfig)
+export const msalInstance = new PublicClientApplication(msalConfig);
 
-let initPromise: Promise<Awaited<ReturnType<typeof msalInstance.handleRedirectPromise>>> | null = null
+let initPromise: Promise<
+  Awaited<ReturnType<typeof msalInstance.handleRedirectPromise>>
+> | null = null;
 
 export async function ensureMsalInitialized() {
   if (!initPromise) {
     initPromise = (async () => {
-      await msalInstance.initialize()
-      return msalInstance.handleRedirectPromise()
-    })()
+      await msalInstance.initialize();
+      try {
+        return await msalInstance.handleRedirectPromise();
+      } catch (err: any) {
+        if (err?.errorCode === "no_token_request_cache_error") {
+          // Cache เก่าค้างจาก Redirect ที่ไม่สมบูรณ์ — เคลียร์แล้วถือว่าไม่มี Redirect เกิดขึ้น
+          console.warn("MSAL: เจอ Cache ค้างจาก Redirect เก่า เคลียร์และไปต่อ");
+          sessionStorage.clear();
+          return null;
+        }
+        throw err; // Error อื่นที่ไม่ใช่กรณีนี้ ให้ throw ต่อตามปกติ
+      }
+    })();
   }
-  return initPromise
+  return initPromise;
 }
