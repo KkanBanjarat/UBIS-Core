@@ -5,7 +5,7 @@ public interface IEmployeeService
 {
     Task<PagedResultDto<EmployeeDto>> GetAllAsync(EmployeeFilterDto filter);
     Task<EmployeeDetailDto?> GetByIdAsync(Guid id, bool includeOrgChart = true);
-    Task<EmployeeDetailDto?> GetByEmployeeCodeAsync(string employeeCode);
+    Task<EmployeeDetailDto?> GetByEmployeeCodeAsync(string employeeCode, bool includeOrgChart = true);
     Task<List<AllowedEmployeeDto>> GetAllowedEmployeesForDocumentAsync();
     Task<PagedResultDto<EmployeeSearchDto>> SearchEmployeesAsync(SearchEmployeeRequestDto request);
     Task<EmployeeDto> CreateAsync(CreateEmployeeDto data);

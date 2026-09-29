@@ -38,9 +38,12 @@ export async function ensureMsalInitialized() {
           sessionStorage.clear();
           return null;
         }
-        throw err; // Error อื่นที่ไม่ใช่กรณีนี้ ให้ throw ต่อตามปกติ
+        throw err;
       }
-    })();
+    })().catch((err) => {
+      initPromise = null; // ล้มเหลวแล้วต้องไม่ Cache ไว้ ให้เรียกใหม่ได้
+      throw err;
+    });
   }
   return initPromise;
 }

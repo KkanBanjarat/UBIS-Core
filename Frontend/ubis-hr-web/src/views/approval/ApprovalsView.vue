@@ -24,7 +24,7 @@
 
       <!-- Summary -->
       <div
-        v-if="!isLoading"
+        v-if="!isLoading && !errorMessage"
         class="flex items-center gap-2 self-start rounded-xl
                border border-base-200 bg-base-100 px-3 py-2 sm:self-auto"
       >
@@ -66,8 +66,16 @@
           </div>
         </div>
       </div>
+        </div>
+        <div
+      v-else-if="errorMessage"
+      class="flex flex-col items-center gap-3 py-16 text-center"
+    >
+      <p class="text-sm font-medium text-error">{{ errorMessage }}</p>
+      <button class="btn btn-sm btn-primary" @click="approvalStore.fetchMyPending()">
+        ลองใหม่
+      </button>
     </div>
-
 
     <!-- Empty -->
     <div
@@ -438,7 +446,7 @@ import {
 
 const approvalStore = useApprovalStore()
 
-const { items, isLoading } = storeToRefs(approvalStore)
+const { items, isLoading, errorMessage } = storeToRefs(approvalStore)
 
 const rejectDialogRef = ref<HTMLDialogElement>()
 const rejectReason = ref('')

@@ -1,4 +1,3 @@
-```vue
 <template>
   <!-- Loading -->
   <div
@@ -14,7 +13,18 @@
       </span>
     </div>
   </div>
-
+  <div
+    v-else-if="loadError"
+    class="mx-auto max-w-md rounded-2xl border border-amber-100 bg-amber-50 p-8 text-center"
+  >
+    <p class="text-sm font-semibold text-amber-700">โหลดข้อมูลไม่สำเร็จ</p>
+    <p class="mt-1 text-xs text-amber-600">
+      ระบบตอบกลับช้าหรือเชื่อมต่อไม่ได้ กรุณาลองใหม่อีกครั้ง
+    </p>
+    <button class="btn btn-sm btn-primary mt-4" @click="loadEmployee">
+      ลองใหม่
+    </button>
+  </div>
   <!-- Dashboard -->
   <div v-else-if="employee"
     class="mx-auto max-w-[1500px] space-y-5 pb-10">
@@ -680,11 +690,16 @@
             </p>
           </div>
         </div>
+        <div v-if="orgChartLoading" class="flex items-center justify-center py-16">
+          <span class="loading loading-spinner loading-md text-emerald-500"></span>
+        </div>
 
-        <div
-          v-if="employee.orgChart"
-          class="overflow-x-auto p-6"
-        >
+        <div v-else-if="orgChartError" class="flex flex-col items-center gap-3 py-16 text-center">
+          <p class="text-sm font-medium text-red-500">โหลดสายการบังคับบัญชาไม่สำเร็จ</p>
+          <button class="btn btn-sm btn-primary" @click="loadOrgChart">ลองใหม่</button>
+        </div>
+        <div v-if="employee.orgChart"
+          class="overflow-x-auto p-6">
           <div class="flex min-w-fit justify-center py-4">
             <OrgChartNode
               :node="employee.orgChart"
@@ -765,17 +780,23 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useAuthStore } from "../stores/authStore.ts";
+import { useEmployeeStore } from "../stores/employeeStore.ts";
 import type { Employee } from "../types/Employee";
 import OrgChartNode from "../components/employee/OrgChartNode.vue";
 
 const authStore = useAuthStore();
+const employeeStore = useEmployeeStore();
+
+const orgChartLoading = ref(false);
+const orgChartLoaded = ref(false);
+const orgChartError = ref(false);
 
 const employee = ref<Employee | null>(null);
 
 const loading = ref(true);
-
+const loadError = ref<"network" | null>(null);
 const activeTab = ref("profile");
 
 const initials = computed(
@@ -794,21 +815,40 @@ const formatDate = (
     day: "numeric",
   });
 };
-
-onMounted(async () => {
+async function loadEmployee() {
+  loading.value = true;
+  loadError.value = null;
+  orgChartLoaded.value = false;
+  orgChartError.value = false;
   try {
-    loading.value = true;
-
-    const emp = await authStore.fetchCurrentEmployee();
-
-    if (emp) {
-      employee.value = emp;
-    }
-  } catch (error) {
+    employee.value = await authStore.fetchCurrentEmployee(false); // ไม่ขอ Org Chart ตอนเปิดหน้า
+  } catch (error: any) {
+    employee.value = null;
+    if (error?.response?.status !== 404) loadError.value = "network";
     console.error("Failed to fetch employee:", error);
   } finally {
     loading.value = false;
   }
+}
+async function loadOrgChart() {
+  if (!employee.value || orgChartLoading.value || orgChartLoaded.value) return;
+  orgChartLoading.value = true;
+  orgChartError.value = false;
+  try {
+    const detail = await employeeStore.getById(employee.value.id, true);
+    employee.value.orgChart = detail.orgChart ?? null;
+    orgChartLoaded.value = true;
+  } catch (err) {
+    orgChartError.value = true;
+    console.error("Failed to load org chart:", err);
+  } finally {
+    orgChartLoading.value = false;
+  }
+}
+
+watch(activeTab, (tab) => {
+  if (tab === "team") loadOrgChart();
 });
+onMounted(loadEmployee);
 </script>
-```
+

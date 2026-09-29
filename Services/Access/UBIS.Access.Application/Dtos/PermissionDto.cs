@@ -1,4 +1,5 @@
 namespace UBIS.Access.Application.Dtos;
+
 public class PermissionDto
 {
     public Guid Id { get; set; }
@@ -25,8 +26,8 @@ public class CreatePermissionDto
 
 public class PermissionSummaryDto
 {
-     public Guid Id { get; set; }
-     public string Code { get; set; }
-
+    public Guid Id { get; set; }
+    public string Code { get; set; }
     public string? Description { get; set; }
+    public Guid? RolePermissionId { get; set; }
 }

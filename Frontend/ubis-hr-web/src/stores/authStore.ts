@@ -119,19 +119,14 @@ export const useAuthStore = defineStore("auth", {
       }
     },
 
-    // เพิ่ม method นี้
-    async fetchCurrentEmployee() {
+    async fetchCurrentEmployee(includeOrgChart = true) {
       if (!this.token) return null;
-      try {
-        const response = await hrApi.get("/employees/me", {
-          headers: { Authorization: `Bearer ${this.token}` },
-        });
-        this.employee = response.data;
-        return response.data;
-      } catch (error) {
-        console.error("Failed to fetch employee:", error);
-        return null;
-      }
+      const response = await hrApi.get("/employees/me", {
+        params: { includeOrgChart },
+        headers: { Authorization: `Bearer ${this.token}` },
+      });
+      this.employee = response.data;
+      return response.data;
     },
   },
 });

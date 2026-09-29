@@ -261,8 +261,9 @@ public class UserService : IUserService
             var entity = await _repos.GetByIdAsync(id);
             if (entity == null || entity.IsDelete) return false;
 
-            if (entity.EntraObjectId != null)
-                throw new InvalidOperationException("ผู้ใช้จาก Entra ใช้ SSO ไม่มีรหัสผ่านในระบบนี้");
+            // if (entity.EntraObjectId != null)
+            //     throw new InvalidOperationException("ผู้ใช้จาก Entra ใช้ SSO ไม่มีรหัสผ่านในระบบนี้");
+
             if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 8)
                 throw new ArgumentException("รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร");
 

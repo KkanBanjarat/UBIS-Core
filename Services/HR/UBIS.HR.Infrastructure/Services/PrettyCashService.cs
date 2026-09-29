@@ -297,7 +297,18 @@ public class PrettyCashService : IPrettyCashService
 
         return (entity.DocDate, employeeName, DocDetail);
     }
+    public async Task<Dictionary<string, (DateTime DocDate, string EmployeeNameTh, string? DocumentDetail)>> GetSummariesAsync(IEnumerable<string> docNumbers)
+    {
+        var entities = await _repos.GetSummariesByDocNumsAsync(docNumbers);
 
+        return entities.ToDictionary(
+            e => e.DocNum,   // DocNum มี Unique Index (ux_pretty_cash_docnum) จึงไม่ซ้ำ
+            e => (
+                e.DocDate,
+                e.Employee != null ? $"{e.Employee.FnameTh} {e.Employee.LnameTh}" : "-",
+                (string?)$"เอกสารเบิกสวัสดิการ หรือ เงินสดย่อย จำนวนเงินรวม {e.TotalAmount} บาท"
+            ));
+    }
     public async Task MarkApprovedAsync(string docNumber)
     {
         var entity = await _repos.GetByDocNumAsync(docNumber);

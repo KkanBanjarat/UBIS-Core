@@ -79,13 +79,29 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
+        policy.WithOrigins(
+                  "http://localhost:5173",
+                  "http://127.0.0.1:5173")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<AccessDbContext>();
+        _ = db.Model;
+        await db.Database.ExecuteSqlRawAsync("SELECT 1");
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "Warm-up ไม่สำเร็จ (ข้ามไป)");
+    }
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -98,9 +114,10 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+    app.UseHttpsRedirection();
+
 app.UseCors("AllowFrontend");
-// ตรวจ API Key ก่อน Authentication — ถ้าไม่มี Key ก็ไม่ต้องเสียเวลา Validate Token
 app.UseMiddleware<ApiKeyMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();

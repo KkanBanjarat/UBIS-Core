@@ -149,7 +149,7 @@ public class EmployeeService : IEmployeeService
         }
     }
 
-    public async Task<EmployeeDetailDto?> GetByEmployeeCodeAsync(string employeeCode)
+    public async Task<EmployeeDetailDto?> GetByEmployeeCodeAsync(string employeeCode, bool includeOrgChart = true)
     {
         try
         {
@@ -157,7 +157,8 @@ public class EmployeeService : IEmployeeService
             if (s == null) return null;
 
             var dto = MapToDetailDto(s);
-            dto.OrgChart = await BuildOrgChartAsync(s.Id);
+            if (includeOrgChart)
+                dto.OrgChart = await BuildOrgChartAsync(s.Id);
             return dto;
         }
         catch (Exception ex)
@@ -166,7 +167,6 @@ public class EmployeeService : IEmployeeService
             throw;
         }
     }
-
     public async Task<PagedResultDto<EmployeeSearchDto>> SearchEmployeesAsync(SearchEmployeeRequestDto request)
     {
         var (emps, totalCount) = await _repos.SearchAsync(request);

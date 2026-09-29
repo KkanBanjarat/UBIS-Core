@@ -31,21 +31,20 @@ public class EmployeesController : ControllerBase
     }
 
     [HttpGet("me")]
-    public async Task<IActionResult> GetCurrentEmployee()
+    public async Task<IActionResult> GetCurrentEmployee([FromQuery] bool includeOrgChart = true)
     {
         var employeeCode = User.FindFirst("employeeCode")?.Value;
 
         if (string.IsNullOrEmpty(employeeCode))
-            return Unauthorized(new { message = "ไม่พบรหัสพนักงาน" });
+            return NotFound(new { message = "บัญชีนี้ยังไม่ได้ผูกรหัสพนักงาน กรุณาติดต่อฝ่าย IT" });
 
-        var employee = await _service.GetByEmployeeCodeAsync(employeeCode);
+        var employee = await _service.GetByEmployeeCodeAsync(employeeCode, includeOrgChart);
 
         if (employee == null)
             return NotFound(new { message = "ไม่พบข้อมูลพนักงาน" });
 
         return Ok(employee);
     }
-
     // [Authorize(Policy = "employee.read")]
     [HttpPost("employee-list")]
     public async Task<ActionResult<PagedResultDto<EmployeeDto>>> GetAll(EmployeeFilterDto filter)

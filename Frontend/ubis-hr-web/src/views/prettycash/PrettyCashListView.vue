@@ -42,7 +42,10 @@
       <div v-if="isLoading" class="p-5 space-y-2">
         <div v-for="i in 5" :key="i" class="skeleton h-14 w-full rounded-lg"></div>
       </div>
-
+      <div v-else-if="errorMessage" class="flex flex-col items-center gap-3 py-16 text-center">
+        <p class="text-sm font-medium text-error">{{ errorMessage }}</p>
+        <button class="btn btn-sm btn-primary" @click="fetchList">ลองใหม่</button>
+      </div>
       <template v-else>
         <div v-if="items.length === 0" class="flex flex-col items-center gap-2 py-16 text-center">
           <div class="flex size-12 items-center justify-center rounded-full bg-base-200 text-base-content/30">
@@ -284,7 +287,7 @@ interface OptionItem {
 
 const authStore = useAuthStore()
 const prettyCashStore = usePrettyCashStore()
-const { items, totalCount, isLoading, benefitOptions, allowedEmployees, myEmployeeId, myEmployeeName } = storeToRefs(prettyCashStore)
+const { items, totalCount, isLoading, errorMessage, benefitOptions, allowedEmployees, myEmployeeId, myEmployeeName } = storeToRefs(prettyCashStore)
 const detailModalRef = ref<InstanceType<typeof ApprovalDetailModal>>()
 const expandedRows = ref<Set<string>>(new Set())
 
@@ -464,18 +467,24 @@ async function confirmRecall(item: PrettyCash) {
   }
 }
 
-onMounted(async () => {
-  try {
-    await prettyCashStore.fetchInitData()
+onMounted(() => {
+  // ตารางหลักไม่ต้องรอใคร ยิงทันที
+  fetchList()
 
-    const empRes = await authStore.fetchCurrentEmployee()
-    if (empRes) {
-      prettyCashStore.setMyEmployee(empRes.id, `${empRes.fNameTh} ${empRes.lNameTh}`)
-    }
-  } catch (err) {
-    console.error(err)
-  }
+  // ข้อมูลสำหรับฟอร์มสร้าง/แก้ไข โหลดคู่ขนานไปเบื้องหลัง
+  prettyCashStore.fetchInitData().catch((err) => {
+    console.error('Failed to load init data:', err)
+  })
 
-  await fetchList()
+  authStore
+    .fetchCurrentEmployee(false)
+    .then((emp) => {
+      if (emp) {
+        prettyCashStore.setMyEmployee(emp.id, `${emp.fNameTh} ${emp.lNameTh}`)
+      }
+    })
+    .catch((err) => {
+      console.error('Failed to load current employee:', err)
+    })
 })
 </script>

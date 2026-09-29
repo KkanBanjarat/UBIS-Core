@@ -8,7 +8,11 @@ namespace UBIS.Access.Infrastructure.Repositories.Implementations;
 public class UserRepos : BaseRepos<TbUser>, IUserRepos
 {
     public UserRepos(AccessDbContext context) : base(context) { }
-
+    private static string LikePattern(string term) =>
+    "%" + term.Trim()
+        .Replace("\\", "\\\\")
+        .Replace("%", "\\%")
+        .Replace("_", "\\_") + "%";
     public async Task<TbUser?> GetByEmailAsync(string email)
     {
         return await _dbSet
@@ -31,10 +35,11 @@ public class UserRepos : BaseRepos<TbUser>, IUserRepos
 
         if (!string.IsNullOrWhiteSpace(filter.Search))
         {
-            var k = filter.Search.Trim().ToLower();
-            query = query.Where(u => u.DisplayName.ToLower().Contains(k)
-                                  || u.Email.ToLower().Contains(k)
-                                  || (u.EmployeeCode != null && u.EmployeeCode.ToLower().Contains(k)));
+            var pattern = LikePattern(filter.Search);
+            query = query.Where(u =>
+                EF.Functions.ILike(u.DisplayName, pattern)
+                || EF.Functions.ILike(u.Email, pattern)
+                || (u.EmployeeCode != null && EF.Functions.ILike(u.EmployeeCode, pattern)));
         }
 
         if (filter.Status == "active") query = query.Where(u => u.IsActive);

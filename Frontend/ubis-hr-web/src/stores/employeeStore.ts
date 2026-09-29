@@ -6,14 +6,15 @@ export interface OptionItem {
   id: string;
   label: string;
 }
-
+let listReqId = 0;
 export const useEmployeeStore = defineStore("employee", {
   state: () => ({
     // List
     employees: [] as Employee[],
     totalCount: 0,
-    isLoading: false,
-    errorMessage: "",
+    isLoading: true, // เดิม false
+    errorMessage: "", // ของรายชื่อเท่านั้น
+    optionsError: "", // เพิ่มใหม่ ของ Dropdown เท่านั้น
 
     // Master Data Options (โหลดครั้งเดียวพอ ใช้ซ้ำได้ทั้ง Session)
     positionOptions: [] as OptionItem[],
@@ -30,21 +31,25 @@ export const useEmployeeStore = defineStore("employee", {
 
   actions: {
     async fetchList(filter: EmployeeFilter) {
+      const reqId = ++listReqId;
       this.isLoading = true;
       this.errorMessage = "";
       try {
         const res = await hrApi.post("/Employees/employee-list", filter);
+        if (reqId !== listReqId) return; // ทิ้ง Response เก่าที่มาช้ากว่า
         this.employees = res.data.items;
         this.totalCount = res.data.totalCount;
       } catch (err) {
+        if (reqId !== listReqId) return;
         this.errorMessage = "โหลดข้อมูลพนักงานไม่สำเร็จ";
         console.error("Failed to fetch employees:", err);
       } finally {
-        this.isLoading = false;
+        if (reqId === listReqId) this.isLoading = false;
       }
     },
     async fetchOptions(force = false) {
       if (this.isOptionsLoaded && !force) return;
+      this.optionsError = "";
 
       try {
         const [posRes, lvlRes, typeRes, compRes, orgUnitRes, benefitPlanRes] =
@@ -102,7 +107,7 @@ export const useEmployeeStore = defineStore("employee", {
         this.isOptionsLoaded = true;
       } catch (err) {
         console.error("Failed to load options:", err);
-        this.errorMessage = "โหลดตัวเลือกไม่สำเร็จ";
+        this.optionsError = "โหลดตัวเลือกไม่สำเร็จ";
       }
     },
 

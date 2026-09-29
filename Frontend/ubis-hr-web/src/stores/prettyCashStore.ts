@@ -18,27 +18,34 @@ interface EmployeeOption {
   fullNameTh: string;
   positionNameTh?: string | null;
 }
-
+let listReqId = 0;
 export const usePrettyCashStore = defineStore("prettyCash", {
   state: () => ({
     items: [] as PrettyCash[],
     totalCount: 0,
-    isLoading: false,
+    isLoading: true, // เดิม false — กันเห็น "ไม่พบข้อมูล" วาบก่อนโหลด
+    errorMessage: "", // เพิ่มใหม่
     benefitOptions: [] as OptionItem[],
     allowedEmployees: [] as EmployeeOption[],
     myEmployeeId: "",
     myEmployeeName: "",
   }),
-
   actions: {
     async fetchList(filter: PrettyCashFilter) {
+      const reqId = ++listReqId;
       this.isLoading = true;
+      this.errorMessage = "";
       try {
         const res = await hrApi.post("/PrettyCash/pretty-cash-list", filter);
+        if (reqId !== listReqId) return; // มี Request ใหม่กว่าแล้ว ทิ้ง Response เก่า
         this.items = res.data.items;
         this.totalCount = res.data.totalCount;
+      } catch (err) {
+        if (reqId !== listReqId) return;
+        this.errorMessage = "โหลดรายการใบเบิกไม่สำเร็จ กรุณาลองใหม่";
+        console.error("Failed to load pretty cash list:", err);
       } finally {
-        this.isLoading = false;
+        if (reqId === listReqId) this.isLoading = false;
       }
     },
 

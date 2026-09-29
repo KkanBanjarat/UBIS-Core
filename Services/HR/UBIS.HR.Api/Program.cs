@@ -117,13 +117,29 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        policy.WithOrigins(
+          "http://localhost:5173",
+          "http://127.0.0.1:5173")
+        .AllowAnyHeader()
+        .AllowAnyMethod();
     });
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<HrDbContext>();
+        _ = db.Model;
+        await db.Database.ExecuteSqlRawAsync("SELECT 1");
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "Warm-up ไม่สำเร็จ (ข้ามไป)");
+    }
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -136,9 +152,41 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
-app.UseCors("AllowFrontend");
+if (!app.Environment.IsDevelopment())
+    app.UseHttpsRedirection();
 
+app.UseCors("AllowFrontend");
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+    {
+        // Browser ยกเลิก Request เอง (เช่น ปิดแท็บ) ไม่ต้องทำอะไร
+    }
+    catch (Exception ex) when (!context.Response.HasStarted)
+    {
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+
+        if (ex is UnauthorizedAccessException)
+        {
+            logger.LogWarning(ex, "Forbidden: {Method} {Path}",
+                context.Request.Method, context.Request.Path);
+
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await context.Response.WriteAsJsonAsync(new { message = ex.Message });
+            return;
+        }
+
+        logger.LogError(ex, "Unhandled exception: {Method} {Path}",
+            context.Request.Method, context.Request.Path);
+
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        await context.Response.WriteAsJsonAsync(new { message = "เกิดข้อผิดพลาดภายในระบบ กรุณาลองใหม่หรือติดต่อฝ่าย IT" });
+    }
+});
 // ตรวจ API Key ก่อน Authentication — ถ้าไม่มี Key ก็ไม่ต้องเสียเวลา Validate Token
 app.UseMiddleware<ApiKeyMiddleware>();
 

@@ -79,6 +79,12 @@ const routes = [
         component: () => import("../views/settings/UserView.vue"),
         meta: { requiresPermission: "system.admin" },
       },
+      {
+        path: "settings/roles",
+        name: "roles",
+        component: () => import("../views/settings/RolesView.vue"),
+        meta: { requiresPermission: "system.admin" },
+      },
     ],
   },
 ];

@@ -76,17 +76,29 @@ public class ApprovalService : IApprovalService
         var pendingSteps = await _approvalRepos.GetPendingByApproverAsync(currentEmployeeId.Value);
         var result = new List<MyApprovalDto>();
 
-        foreach (var step in pendingSteps)
+        // ดึงสรุปเอกสารเป็นชุดเดียวต่อ DocType แทนการยิงทีละใบ
+        var summaries = new Dictionary<(string DocType, string DocNumber),
+            (DateTime DocDate, string EmployeeNameTh, string? DocumentDetail)>();
+
+        foreach (var group in pendingSteps.GroupBy(s => s.DocType))
         {
-            var docService = TryGetDocumentService(step.DocType);
+            var docService = TryGetDocumentService(group.Key);
             if (docService == null)
             {
-                _logger.LogWarning("ไม่พบ Document Service สำหรับ DocType: {DocType} (DocNumber: {DocNumber}) ข้ามรายการนี้ไป", step.DocType, step.DocNumber);
+                _logger.LogWarning("ไม่พบ Document Service สำหรับ DocType: {DocType} ข้าม {Count} รายการ",
+                    group.Key, group.Count());
                 continue;
             }
 
-            var summary = await docService.GetSummaryAsync(step.DocNumber);
-            if (summary == null) continue;
+            var batch = await docService.GetSummariesAsync(group.Select(s => s.DocNumber));
+            foreach (var kv in batch)
+                summaries[(group.Key, kv.Key)] = kv.Value;
+        }
+
+        foreach (var step in pendingSteps)
+        {
+            if (!summaries.TryGetValue((step.DocType, step.DocNumber), out var summary))
+                continue;
 
             result.Add(new MyApprovalDto
             {
@@ -96,9 +108,9 @@ public class ApprovalService : IApprovalService
                 DocRev = step.DocRev,
                 Round = step.Round,
                 StepNo = step.StepNo,
-                DocDate = summary.Value.DocDate,
-                EmployeeNameTh = summary.Value.EmployeeNameTh,
-                DocumentDetail = summary.Value.DocumentDetail
+                DocDate = summary.DocDate,
+                EmployeeNameTh = summary.EmployeeNameTh,
+                DocumentDetail = summary.DocumentDetail
             });
         }
 

@@ -70,6 +70,7 @@ export const menuGroups: MenuGroup[] = [
           { path: "/settings/approve-routes", label: "สายอนุมัติเอกสาร" },
           { path: "/settings/branch-admins", label: "ผู้ดูแลสาขา" },
           { path: "/settings/users", label: "ผู้ใช้งาน" },
+          { path: "/settings/roles", label: "Role และสิทธิ์" },
         ],
       },
     ],

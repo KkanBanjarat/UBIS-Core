@@ -23,6 +23,15 @@ public class PrettyCashRepos : BaseRepos<TbPrettyCashRequest>, IPrettyCashRepos
         return await IncludeAll()
             .FirstOrDefaultAsync(x => x.DocNum == docNum && !x.IsDelete);
     }
+    public async Task<List<TbPrettyCashRequest>> GetSummariesByDocNumsAsync(IEnumerable<string> docNums)
+    {
+        var list = docNums.Distinct().ToList();
+        return await _dbSet
+            .AsNoTracking()
+            .Include(x => x.Employee)          // ไม่ Include Lines/Benefit เพราะหน้านี้ไม่ใช้
+            .Where(x => list.Contains(x.DocNum) && !x.IsDelete)
+            .ToListAsync();
+    }
     public async Task<TbPrettyCashRequest?> GetDetailByIdAsync(Guid id)
     {
         return await IncludeAll()

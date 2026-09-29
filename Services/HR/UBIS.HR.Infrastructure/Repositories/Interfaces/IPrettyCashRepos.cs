@@ -8,6 +8,7 @@ public interface IPrettyCashRepos : IBaseRepos<TbPrettyCashRequest>
 {
     Task<TbPrettyCashRequest?> GetDetailByIdAsync(Guid id);
     Task<TbPrettyCashRequest?> GetByDocNumAsync(string docNum);
+    Task<List<TbPrettyCashRequest>> GetSummariesByDocNumsAsync(IEnumerable<string> docNums);
     Task<(IEnumerable<TbPrettyCashRequest> Items, int TotalCount)> GetFilteredPagedAsync(
     PrettyCashFilterDto filter, Guid currentEmployeeId, string currentUserEmail, List<Guid> adminBranchIds);
     Task DeleteLinesAsync(Guid prettyCashId);
