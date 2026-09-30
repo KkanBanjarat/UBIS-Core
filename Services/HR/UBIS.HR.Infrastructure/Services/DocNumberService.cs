@@ -2,30 +2,30 @@ using Microsoft.EntityFrameworkCore;
 using UBIS.HR.Application.Interfaces;
 using UBIS.HR.Domain.Entities;
 using UBIS.HR.Infrastructure.Data;
+using UBIS.HR.Infrastructure.Repositories;
 
 namespace UBIS.HR.Infrastructure.Services;
 
 public class DocNumberService : IDocNumberService
 {
     private readonly HrDbContext _context;
+    private readonly IPrefixRepos _prefixRepos;
     private readonly ICurrentUserService _currentUser;
 
-    public DocNumberService(HrDbContext context, ICurrentUserService currentUser)
+    public DocNumberService(HrDbContext context, IPrefixRepos prefixRepos, ICurrentUserService currentUser)
     {
         _context = context;
+        _prefixRepos = prefixRepos;
         _currentUser = currentUser;
     }
 
     public async Task<string> GenerateAsync(string docType)
     {
-        for (int attempt = 0; attempt < 3; attempt++)
+        for (int attempt = 0; attempt < 5; attempt++)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var prefix = await _context.TbPrefixes
-                    .FromSqlInterpolated($"SELECT * FROM tb_prefix WHERE \"DocType\" = {docType} FOR UPDATE")
-                    .FirstOrDefaultAsync();
+                var prefix = await _prefixRepos.GetByDocTypeAsync(docType);
 
                 if (prefix == null)
                     throw new InvalidOperationException($"ไม่พบการตั้งค่าเลขที่เอกสารสำหรับ DocType: {docType}");
@@ -38,29 +38,29 @@ public class DocNumberService : IDocNumberService
                     ? prefix.LastRunningNumber + 1
                     : 1;
 
+                var user = _currentUser.GetCurrentUserEmail();
+
                 prefix.LastResetKey = currentKey;
                 prefix.LastRunningNumber = runningNumber;
                 prefix.UpdatedAt = DateTime.Now;
-                prefix.UpdatedBy = _currentUser.GetCurrentUserEmail();
+                prefix.UpdatedBy = user;
 
                 var docNumber = $"{prefix.Prefix}{currentKey}{runningNumber.ToString().PadLeft(prefix.RunningLength, '0')}";
 
-                _context.TbDocNumberLogs.Add(new TbDocNumberLog
+                _prefixRepos.AddDocNumberLog(new TbDocNumberLog
                 {
                     DocType = docType,
                     DocNumber = docNumber,
                     GeneratedAt = DateTime.Now,
-                    GeneratedBy = _currentUser.GetCurrentUserEmail()
+                    GeneratedBy = user
                 });
 
                 await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-
                 return docNumber;
             }
-            catch (DbUpdateException) when (attempt < 2)
+            catch (DbUpdateException) when (attempt < 4)
             {
-                await transaction.RollbackAsync();
+                _context.ChangeTracker.Clear();
             }
         }
 

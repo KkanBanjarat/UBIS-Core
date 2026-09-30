@@ -39,6 +39,16 @@
 
     <!-- Table Card -->
     <div class="bg-base-100 rounded-xl border border-base-200 shadow-sm overflow-hidden">
+    <div class="flex items-center gap-2 px-4 sm:px-5 py-3 border-b border-base-200 text-xs text-base-content/45">
+  <span>แสดง</span>
+  <select v-model.number="filter.pageSize" class="select select-bordered select-sm w-20">
+    <option :value="10">10</option>
+    <option :value="20">20</option>
+    <option :value="50">50</option>
+    <option :value="100">100</option>
+  </select>
+  <span>รายการต่อหน้า</span>
+</div>
       <div v-if="isLoading" class="p-5 space-y-2">
         <div v-for="i in 5" :key="i" class="skeleton h-14 w-full rounded-lg"></div>
       </div>
@@ -247,10 +257,35 @@
           </table>
         </div>
 
-        <div class="flex items-center justify-between px-4 sm:px-5 py-3 border-t border-base-200 bg-base-50/50">
-          <span class="text-xs text-base-content/40">{{ totalCount }} รายการทั้งหมด</span>
-          <span class="text-[11px] text-base-content/30">กดลูกศรเพื่อดูรายละเอียด</span>
-        </div>
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-5 py-3 border-t border-base-200">
+  <p class="text-xs text-base-content/45">
+    แสดง {{ totalCount === 0 ? 0 : (filter.page - 1) * filter.pageSize + 1 }}–{{ Math.min(filter.page * filter.pageSize, totalCount) }}
+    จาก {{ totalCount }} รายการ
+  </p>
+  <div class="join">
+    <button class="join-item btn btn-sm btn-ghost" :disabled="filter.page === 1" @click="goToPage(1)">
+      <ChevronsLeft class="size-4" />
+    </button>
+    <button class="join-item btn btn-sm btn-ghost" :disabled="filter.page === 1" @click="goToPage(filter.page - 1)">
+      <ChevronLeft class="size-4" />
+    </button>
+    <button
+      v-for="p in pageWindow"
+      :key="p"
+      class="join-item btn btn-sm"
+      :class="p === filter.page ? 'btn-primary' : 'btn-ghost'"
+      @click="goToPage(p)"
+    >
+      {{ p }}
+    </button>
+    <button class="join-item btn btn-sm btn-ghost" :disabled="filter.page >= totalPages" @click="goToPage(filter.page + 1)">
+      <ChevronRight class="size-4" />
+    </button>
+    <button class="join-item btn btn-sm btn-ghost" :disabled="filter.page >= totalPages" @click="goToPage(totalPages)">
+      <ChevronsRight class="size-4" />
+    </button>
+  </div>
+</div>
       </template>
     </div>
   </div>
@@ -268,7 +303,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch, onMounted } from 'vue'
+import { ref, reactive, watch, onMounted, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { usePrettyCashStore } from '../../stores/prettyCashStore.ts'
 import FormSelect from '../../components/ui/FormSelect.vue'
@@ -278,7 +313,7 @@ import AttachmentList from '../../components/attachment/AttachmentList.vue'
 import { notify, extractErrorMessage } from '../../utils/notify'
 import { useAuthStore } from '../../stores/authStore.ts'
 import type { PrettyCash, PrettyCashFilter } from '../../types/PrettyCash'
-import { Plus, Search, Receipt, Edit, Trash2, Send, ChevronDown, ChevronUp, MessageSquare, Gift, Wallet, Shuffle, Undo2, CircleAlertIcon, Eye } from 'lucide-vue-next'
+import { Plus, Search, Receipt, Edit, Trash2, Send, ChevronDown, ChevronUp, MessageSquare, Gift, Wallet, Shuffle, Undo2, CircleAlertIcon, Eye,ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-vue-next'
 
 interface OptionItem {
   id: string
@@ -381,6 +416,24 @@ function toggleExpand(id: string) {
   next.has(id) ? next.delete(id) : next.add(id)
   expandedRows.value = next
 }
+const totalPages = computed(() => Math.ceil(totalCount.value / filter.pageSize) || 1)
+const pageWindow = computed(() => {
+  const maxButtons = 5
+  let start = Math.max(1, filter.page - Math.floor(maxButtons / 2))
+  let end = start + maxButtons - 1
+  if (end > totalPages.value) {
+    end = totalPages.value
+    start = Math.max(1, end - maxButtons + 1)
+  }
+  const pages: number[] = []
+  for (let p = start; p <= end; p++) pages.push(p)
+  return pages
+})
+
+function goToPage(p: number) {
+  filter.page = p
+  fetchList()
+}
 
 async function fetchList() {
   await prettyCashStore.fetchList(filter)
@@ -397,7 +450,7 @@ function onSearchInput() {
   }, 300)
 }
 
-watch(() => filter.docStatus, () => {
+watch(() => filter.pageSize, () => {
   filter.page = 1
   fetchList()
 })
@@ -424,7 +477,8 @@ async function handleSave(payload: any, isCreate: boolean) {
     else await prettyCashStore.update(editingId.value!, payload)
 
     formModalRef.value?.close()
-    await fetchList()
+    if (isCreate) filter.page = 1
+      await fetchList()
     await notify.success(isCreate ? 'สร้างใบเบิกสำเร็จ' : 'บันทึกการแก้ไขสำเร็จ')
   } catch (err) {
     await notify.error(extractErrorMessage(err), 'เกิดข้อผิดพลาด', formModalRef.value?.getDialogEl())
@@ -437,7 +491,8 @@ async function confirmDelete(item: PrettyCash) {
   try {
     await prettyCashStore.remove(item.id)
     await notify.success('ลบสำเร็จ')
-    await fetchList()
+    if (items.value.length === 1 && filter.page > 1) filter.page -= 1 
+      await fetchList()
   } catch (err) {
     await notify.error(extractErrorMessage(err), 'ลบไม่สำเร็จ')
   }

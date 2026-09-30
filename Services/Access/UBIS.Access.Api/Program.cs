@@ -118,6 +118,33 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 
 app.UseCors("AllowFrontend");
+
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (UnauthorizedAccessException ex)
+    {
+        app.Logger.LogWarning(ex, "Forbidden: {Path}", context.Request.Path);
+        if (!context.Response.HasStarted)
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await context.Response.WriteAsJsonAsync(new { message = ex.Message });
+        }
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Unhandled exception: {Method} {Path}", context.Request.Method, context.Request.Path);
+        if (!context.Response.HasStarted)
+        {
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            await context.Response.WriteAsJsonAsync(new { message = "เกิดข้อผิดพลาดภายในระบบ กรุณาลองใหม่อีกครั้ง" });
+        }
+    }
+});
+
 app.UseMiddleware<ApiKeyMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();

@@ -2,7 +2,8 @@ import axios from "axios";
 
 const accessApi = axios.create({
   baseURL: import.meta.env.VITE_ACCESS_API_URL,
-  timeout: 15000,
+  // timeout: 15000,
+  timeout: import.meta.env.DEV ? 0 : 15000,
 });
 
 accessApi.interceptors.request.use((config) => {

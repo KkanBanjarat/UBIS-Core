@@ -30,8 +30,8 @@ export const useRoleStore = defineStore("role", {
     },
   },
   actions: {
-    async fetchAll() {
-      this.isLoading = true;
+    async fetchAll(silent = false) {
+      if (!silent) this.isLoading = true;
       this.errorMessage = "";
       try {
         const [roles, permissions, rolePermissions] = await Promise.all([
@@ -50,40 +50,46 @@ export const useRoleStore = defineStore("role", {
       }
     },
 
+    async fetchRolePermissions() {
+      const res =
+        await accessApi.get<RolePermissionGroup[]>("/RolePermissions");
+      this.rolePermissions = res.data;
+    },
+
     // ---------------- Role ----------------
     async createRole(payload: RoleFormPayload) {
       await accessApi.post("/Roles", payload);
-      await this.fetchAll();
+      await this.fetchAll(true);
     },
     async updateRole(id: string, payload: RoleFormPayload) {
       await accessApi.put(`/Roles/${id}`, payload);
-      await this.fetchAll();
+      await this.fetchAll(true);
     },
     async deleteRole(id: string) {
       await accessApi.delete(`/Roles/${id}`);
-      await this.fetchAll();
+      await this.fetchAll(true);
     },
 
     // ---------------- Permission ----------------
     async createPermission(payload: PermissionFormPayload) {
       await accessApi.post("/Permissions", payload);
-      await this.fetchAll();
+      await this.fetchAll(true);
     },
     async deletePermission(id: string) {
       await accessApi.delete(`/Permissions/${id}`);
-      await this.fetchAll();
+      await this.fetchAll(true);
     },
 
     // ---------------- Grant / Revoke ----------------
     // Grant: ยังไม่เคยติ๊ก -> ติ๊ก
     async grant(roleId: string, permissionId: string) {
       await accessApi.post("/RolePermissions", { roleId, permissionId });
-      await this.fetchAll();
+      await this.fetchRolePermissions();
     },
     // Revoke: ติ๊กอยู่ -> เอาออก
     async revoke(rolePermissionId: string) {
       await accessApi.delete(`/RolePermissions/${rolePermissionId}`);
-      await this.fetchAll();
+      await this.fetchRolePermissions();
     },
   },
 });
