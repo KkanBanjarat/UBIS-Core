@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import hrApi from "../services/hrApi";
-import type { PrettyCash, PrettyCashFilter } from "../types/PrettyCash";
+import type { PettyCash, PettyCashFilter } from "../types/PettyCash";
 
 interface OptionItem {
   id: string;
@@ -19,9 +19,9 @@ interface EmployeeOption {
   positionNameTh?: string | null;
 }
 let listReqId = 0;
-export const usePrettyCashStore = defineStore("prettyCash", {
+export const usePettyCashStore = defineStore("pettyCash", {
   state: () => ({
-    items: [] as PrettyCash[],
+    items: [] as PettyCash[],
     totalCount: 0,
     isLoading: true, // เดิม false — กันเห็น "ไม่พบข้อมูล" วาบก่อนโหลด
     errorMessage: "", // เพิ่มใหม่
@@ -31,19 +31,19 @@ export const usePrettyCashStore = defineStore("prettyCash", {
     myEmployeeName: "",
   }),
   actions: {
-    async fetchList(filter: PrettyCashFilter) {
+    async fetchList(filter: PettyCashFilter) {
       const reqId = ++listReqId;
       this.isLoading = true;
       this.errorMessage = "";
       try {
-        const res = await hrApi.post("/PrettyCash/pretty-cash-list", filter);
+        const res = await hrApi.post("/PettyCash/petty-cash-list", filter);
         if (reqId !== listReqId) return; // มี Request ใหม่กว่าแล้ว ทิ้ง Response เก่า
         this.items = res.data.items;
         this.totalCount = res.data.totalCount;
       } catch (err) {
         if (reqId !== listReqId) return;
         this.errorMessage = "โหลดรายการใบเบิกไม่สำเร็จ กรุณาลองใหม่";
-        console.error("Failed to load pretty cash list:", err);
+        console.error("Failed to load petty cash list:", err);
       } finally {
         if (reqId === listReqId) this.isLoading = false;
       }
@@ -73,23 +73,23 @@ export const usePrettyCashStore = defineStore("prettyCash", {
     },
 
     async create(payload: any) {
-      await hrApi.post("/PrettyCash", payload);
+      await hrApi.post("/PettyCash", payload);
     },
 
     async update(id: string, payload: any) {
-      await hrApi.put(`/PrettyCash/${id}`, payload);
+      await hrApi.put(`/PettyCash/${id}`, payload);
     },
 
     async remove(id: string) {
-      await hrApi.delete(`/PrettyCash/${id}`);
+      await hrApi.delete(`/PettyCash/${id}`);
     },
 
     async submit(id: string) {
-      await hrApi.post(`/PrettyCash/${id}/submit`);
+      await hrApi.post(`/PettyCash/${id}/submit`);
     },
 
     async recall(id: string) {
-      await hrApi.post(`/PrettyCash/${id}/recall`);
+      await hrApi.post(`/PettyCash/${id}/recall`);
     },
 
     async getBenefitLimitsFor(
@@ -111,8 +111,12 @@ export const usePrettyCashStore = defineStore("prettyCash", {
       return limits;
     },
 
-    async getByDocNum(docNum: string): Promise<PrettyCash> {
-      const res = await hrApi.get(`/PrettyCash/by-docnum/${docNum}`);
+    async getByDocNum(docNum: string): Promise<PettyCash> {
+      const res = await hrApi.get(`/PettyCash/by-docnum/${docNum}`);
+      return res.data;
+    },
+    async getById(id: string): Promise<PettyCash> {
+      const res = await hrApi.get(`/PettyCash/${id}`);
       return res.data;
     },
   },

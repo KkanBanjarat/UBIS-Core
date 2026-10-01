@@ -16,9 +16,9 @@ const routes = [
         component: () => import("../views/DashboardView.vue"),
       },
       {
-        path: "pretty-cash",
-        name: "pretty-cash",
-        component: () => import("../views/prettycash/PrettyCashListView.vue"),
+        path: "petty-cash",
+        name: "petty-cash",
+        component: () => import("../views/pettycash/PettyCashListView.vue"),
       },
       {
         path: "approvals",

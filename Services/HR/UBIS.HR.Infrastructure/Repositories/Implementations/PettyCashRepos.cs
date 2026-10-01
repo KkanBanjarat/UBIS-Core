@@ -5,25 +5,25 @@ using UBIS.HR.Infrastructure.Data;
 
 namespace UBIS.HR.Infrastructure.Repositories.Interfaces;
 
-public class PrettyCashRepos : BaseRepos<TbPrettyCashRequest>, IPrettyCashRepos
+public class PettyCashRepos : BaseRepos<TbPettyCashRequest>, IPettyCashRepos
 {
-    public PrettyCashRepos(HrDbContext context) : base(context)
+    public PettyCashRepos(HrDbContext context) : base(context)
     {
     }
 
-    private IQueryable<TbPrettyCashRequest> IncludeAll()
+    private IQueryable<TbPettyCashRequest> IncludeAll()
     {
         return _dbSet
             .Include(x => x.Employee)
-            .Include(x => x.TbPrettyCashLines.Where(l => !l.IsDelete))
+            .Include(x => x.TbPettyCashLines.Where(l => !l.IsDelete))
                 .ThenInclude(l => l.Benefit);
     }
-    public async Task<TbPrettyCashRequest?> GetByDocNumAsync(string docNum)
+    public async Task<TbPettyCashRequest?> GetByDocNumAsync(string docNum)
     {
         return await IncludeAll()
             .FirstOrDefaultAsync(x => x.DocNum == docNum && !x.IsDelete);
     }
-    public async Task<List<TbPrettyCashRequest>> GetSummariesByDocNumsAsync(IEnumerable<string> docNums)
+    public async Task<List<TbPettyCashRequest>> GetSummariesByDocNumsAsync(IEnumerable<string> docNums)
     {
         var list = docNums.Distinct().ToList();
         return await _dbSet
@@ -32,29 +32,28 @@ public class PrettyCashRepos : BaseRepos<TbPrettyCashRequest>, IPrettyCashRepos
             .Where(x => list.Contains(x.DocNum) && !x.IsDelete)
             .ToListAsync();
     }
-    public async Task<TbPrettyCashRequest?> GetDetailByIdAsync(Guid id)
+    public async Task<TbPettyCashRequest?> GetDetailByIdAsync(Guid id)
     {
         return await IncludeAll()
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
     }
 
-    public async Task<(IEnumerable<TbPrettyCashRequest> Items, int TotalCount)> GetFilteredPagedAsync(
-        PrettyCashFilterDto filter, Guid currentEmployeeId, string currentUserEmail, List<Guid> adminBranchIds)
+    public async Task<(IEnumerable<PettyCashDto> Items, int TotalCount)> GetFilteredPagedAsync(PettyCashFilterDto filter, List<Guid> adminBranchIds)
     {
-        var query = IncludeAll()
+        var query = _dbSet
             .AsNoTracking()
             .Where(x => !x.IsDelete);
 
         // เห็นเฉพาะ: เอกสารของตัวเอง (ผู้ขอ) หรือ เอกสารที่ตัวเองสร้าง หรือ (HR Admin) เอกสารของพนักงานในสาขาที่ดูแล
         query = query.Where(x =>
-            x.EmployeeId == currentEmployeeId ||
-            x.CreatedBy == currentUserEmail ||
+            x.EmployeeId == filter.currentEmployeeId ||
+            x.CreatedBy == filter.currentUserEmail ||
             adminBranchIds.Contains(x.Employee.BranchId));
 
         if (!string.IsNullOrEmpty(filter.Search))
             query = query.Where(x => x.DocNum.Contains(filter.Search)
-             || x.TbPrettyCashLines.Any(l => l.Detail.Contains(filter.Search))
+             || x.TbPettyCashLines.Any(l => l.Detail.Contains(filter.Search))
              || x.Employee.LnameTh.Contains(filter.Search)
              || x.Employee.FnameTh.Contains(filter.Search)
              || x.Employee.LnameEn.Contains(filter.Search)
@@ -68,21 +67,42 @@ public class PrettyCashRepos : BaseRepos<TbPrettyCashRequest>, IPrettyCashRepos
 
         var totalCount = await query.CountAsync();
 
+        var page = Math.Max(1, filter.Page);
+        var size = Math.Clamp(filter.PageSize, 1, 100);
+
         var items = await query
             .OrderByDescending(x => x.UpdatedAt)
-            .Skip((filter.Page - 1) * filter.PageSize)
-            .Take(filter.PageSize)
+            .Skip((page - 1) * size)
+            .Take(size)
+            .Select(x => new PettyCashDto
+            {
+                Id = x.Id,
+                DocNum = x.DocNum,
+                DocStatus = x.DocStatus,
+                DocDate = x.DocDate.Date,
+                EmployeeId = x.EmployeeId,
+                EmployeeNameTh = x.Employee.FnameTh + " " + x.Employee.LnameTh,
+                Remark = x.Remark,
+                TotalAmount = x.TotalAmount,
+                LineCount = x.TbPettyCashLines.Count(l => !l.IsDelete),
+                HasBenefitLine = x.TbPettyCashLines.Any(l => !l.IsDelete && l.BenefitId != null),
+                HasCashLine = x.TbPettyCashLines.Any(l => !l.IsDelete && l.BenefitId == null),
+                CreatedBy = x.CreatedBy,
+                CreatedAt = x.CreatedAt,
+                UpdatedBy = x.UpdatedBy,
+                UpdatedAt = x.UpdatedAt,
+            })
             .ToListAsync();
 
         return (items, totalCount);
     }
-    public async Task DeleteLinesAsync(Guid prettyCashId)
+    public async Task DeleteLinesAsync(Guid pettyCashId)
     {
-        var lines = await _context.TbPrettyCashLines
-            .Where(l => l.PrettyCashId == prettyCashId)
+        var lines = await _context.TbPettyCashLines
+            .Where(l => l.PettyCashId == pettyCashId)
             .ToListAsync();
 
-        _context.TbPrettyCashLines.RemoveRange(lines);
+        _context.TbPettyCashLines.RemoveRange(lines);
         await _context.SaveChangesAsync();
     }
 }

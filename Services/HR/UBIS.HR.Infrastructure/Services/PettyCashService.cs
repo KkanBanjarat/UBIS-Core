@@ -7,27 +7,27 @@ using UBIS.HR.Infrastructure.Repositories;
 
 namespace UBIS.HR.Infrastructure.Services;
 
-public class PrettyCashService : IPrettyCashService
+public class PettyCashService : IPettyCashService
 {
-    private readonly IPrettyCashRepos _repos;
+    private readonly IPettyCashRepos _repos;
     private readonly IDocNumberService _docNumberService;
     private readonly IEmployeeRepos _employeeRepos;
     private readonly IPodAdminBranchRepos _podAdminBranchRepos;
     private readonly IApprovalRouteResolverService _routeResolver;
     private readonly IServiceProvider _serviceProvider;
-    private readonly ILogger<PrettyCashService> _logger;
+    private readonly ILogger<PettyCashService> _logger;
     private readonly ICurrentUserService _currentUser;
 
-    public string DocType => "PrettyCash";
+    public string DocType => "PettyCash";
 
-    public PrettyCashService(IPrettyCashRepos repos,
+    public PettyCashService(IPettyCashRepos repos,
         IDocNumberService docNumberService,
         IEmployeeRepos employeeRepos,
         IPodAdminBranchRepos podAdminBranchRepos,
         IApprovalRouteResolverService routeResolver,
         IServiceProvider serviceProvider,
         ICurrentUserService currentUser,
-        ILogger<PrettyCashService> logger)
+        ILogger<PettyCashService> logger)
     {
         _repos = repos;
         _docNumberService = docNumberService;
@@ -39,9 +39,9 @@ public class PrettyCashService : IPrettyCashService
         _logger = logger;
     }
     private IApprovalService ApprovalService => _serviceProvider.GetRequiredService<IApprovalService>();
-    private static PrettyCashDto MapToDto(TbPrettyCashRequest s)
+    private static PettyCashDto MapToDto(TbPettyCashRequest s)
     {
-        return new PrettyCashDto
+        return new PettyCashDto
         {
             Id = s.Id,
             DocNum = s.DocNum,
@@ -51,7 +51,7 @@ public class PrettyCashService : IPrettyCashService
             EmployeeNameTh = s.Employee != null ? $"{s.Employee.FnameTh} {s.Employee.LnameTh}" : null,
             Remark = s.Remark,
             TotalAmount = s.TotalAmount,
-            Lines = s.TbPrettyCashLines.Select(l => new PrettyCashLineDto
+            Lines = s.TbPettyCashLines.Select(l => new PettyCashLineDto
             {
                 Id = l.Id,
                 BenefitId = l.BenefitId,
@@ -69,7 +69,7 @@ public class PrettyCashService : IPrettyCashService
         };
     }
 
-    public async Task<PagedResultDto<PrettyCashDto>> GetAllAsync(PrettyCashFilterDto filter)
+    public async Task<PagedResultDto<PettyCashDto>> GetAllAsync(PettyCashFilterDto filter)
     {
         var employeeCode = _currentUser.GetCurrentUserEmployeeCode();
         var currentEmployeeId = await _employeeRepos.GetIdByEmpIdAsync(employeeCode) ?? Guid.Empty;
@@ -78,29 +78,32 @@ public class PrettyCashService : IPrettyCashService
         var adminBranches = await _podAdminBranchRepos.GetByUserIdWithBranchAsync(_currentUser.GetCurrentUserId());
         var adminBranchIds = adminBranches.Select(b => b.BranchId).ToList();
 
-        var (items, totalCount) = await _repos.GetFilteredPagedAsync(filter, currentEmployeeId, currentUserEmail, adminBranchIds);
-        return new PagedResultDto<PrettyCashDto> { Items = items.Select(MapToDto).ToList(), TotalCount = totalCount };
+        filter.currentEmployeeId = currentEmployeeId;
+        filter.currentUserEmail = currentUserEmail;
+
+        var (items, totalCount) = await _repos.GetFilteredPagedAsync(filter, adminBranchIds);
+        return new PagedResultDto<PettyCashDto> { Items = items.ToList(), TotalCount = totalCount };
     }
 
-    public async Task<PrettyCashDto?> GetByIdAsync(Guid id)
+    public async Task<PettyCashDto?> GetByIdAsync(Guid id)
     {
         var s = await _repos.GetDetailByIdAsync(id);
         return s == null ? null : MapToDto(s);
     }
 
-    public async Task<PrettyCashDto?> GetByDocNumAsync(string docNum)
+    public async Task<PettyCashDto?> GetByDocNumAsync(string docNum)
     {
         var entity = await _repos.GetByDocNumAsync(docNum);
         return entity == null ? null : MapToDto(entity);
     }
 
-    public async Task<PrettyCashDto> CreateAsync(CreatePrettyCashDto data)
+    public async Task<PettyCashDto> CreateAsync(CreatePettyCashDto data)
     {
         try
         {
-            var newEntity = new TbPrettyCashRequest
+            var newEntity = new TbPettyCashRequest
             {
-                DocNum = await _docNumberService.GenerateAsync("PrettyCash"),
+                DocNum = await _docNumberService.GenerateAsync("PettyCash"),
                 DocStatus = "Draft",
                 DocDate = data.DocDate.Date,
                 EmployeeId = data.EmployeeId,
@@ -111,7 +114,7 @@ public class PrettyCashService : IPrettyCashService
                 UpdatedAt = DateTime.Now,
                 UpdatedBy = _currentUser.GetCurrentUserEmail(),
                 IsDelete = false,
-                TbPrettyCashLines = data.Lines.Select(l => new TbPrettyCashLine
+                TbPettyCashLines = data.Lines.Select(l => new TbPettyCashLine
                 {
                     BenefitId = l.BenefitId,
                     Detail = l.Detail,
@@ -134,12 +137,12 @@ public class PrettyCashService : IPrettyCashService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "เกิดข้อผิดพลาดในการเพิ่มข้อมูล Pretty Cash: {Message}", ex.Message);
+            _logger.LogError(ex, "เกิดข้อผิดพลาดในการเพิ่มข้อมูล Petty Cash: {Message}", ex.Message);
             throw;
         }
     }
 
-    public async Task<PrettyCashDto?> UpdateAsync(Guid id, CreatePrettyCashDto data)
+    public async Task<PettyCashDto?> UpdateAsync(Guid id, CreatePettyCashDto data)
     {
         try
         {
@@ -147,7 +150,7 @@ public class PrettyCashService : IPrettyCashService
             if (existingEntity == null) return null;
 
             if (existingEntity.DocStatus != "Draft")
-                throw new InvalidOperationException("แก้ไขได้เฉพาะเอกสารสถานะ Draft เท่านั้น");
+                throw new InvalidOperationException("แก้ไขได้เฉพาะเอกสารสถานะ Draft เท่านั้น กรุณาตรวจสอบ");
 
             existingEntity.DocDate = data.DocDate;
             existingEntity.EmployeeId = data.EmployeeId;
@@ -160,7 +163,7 @@ public class PrettyCashService : IPrettyCashService
 
             foreach (var l in data.Lines)
             {
-                existingEntity.TbPrettyCashLines.Add(new TbPrettyCashLine
+                existingEntity.TbPettyCashLines.Add(new TbPettyCashLine
                 {
                     BenefitId = l.BenefitId,
                     Detail = l.Detail,
@@ -185,7 +188,7 @@ public class PrettyCashService : IPrettyCashService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "เกิดข้อผิดพลาดในการแก้ไขข้อมูล Pretty Cash: {Message}", ex.Message);
+            _logger.LogError(ex, "เกิดข้อผิดพลาดในการแก้ไขข้อมูล Petty Cash: {Message}", ex.Message);
             throw;
         }
     }
@@ -198,7 +201,7 @@ public class PrettyCashService : IPrettyCashService
             if (existingEntity == null) return false;
 
             if (existingEntity.DocStatus != "Draft")
-                throw new InvalidOperationException("ลบได้เฉพาะเอกสารสถานะ Draft เท่านั้น");
+                throw new InvalidOperationException("ลบได้เฉพาะเอกสารสถานะ Draft เท่านั้น กรุณาตรวจสอบ");
 
             existingEntity.IsDelete = true;
             existingEntity.DeletedBy = _currentUser.GetCurrentUserEmail();
@@ -213,12 +216,12 @@ public class PrettyCashService : IPrettyCashService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "เกิดข้อผิดพลาดในการลบข้อมูล Pretty Cash: {Message}", ex.Message);
+            _logger.LogError(ex, "เกิดข้อผิดพลาดในการลบข้อมูล Petty Cash: {Message}", ex.Message);
             throw;
         }
     }
 
-    public async Task<PrettyCashDto?> SubmitAsync(Guid id)
+    public async Task<PettyCashDto?> SubmitAsync(Guid id)
     {
         try
         {
@@ -228,7 +231,7 @@ public class PrettyCashService : IPrettyCashService
             if (existingEntity.DocStatus != "Draft")
                 throw new InvalidOperationException("ส่งอนุมัติได้เฉพาะเอกสารสถานะ Draft เท่านั้น");
 
-            var resolvedApprovers = await _routeResolver.ResolveAsync("PrettyCash", existingEntity.EmployeeId);
+            var resolvedApprovers = await _routeResolver.ResolveAsync("PettyCash", existingEntity.EmployeeId);
 
             existingEntity.DocStatus = "WaitApprove";
             existingEntity.UpdatedAt = DateTime.Now;
@@ -237,7 +240,7 @@ public class PrettyCashService : IPrettyCashService
             await _repos.SaveChangesAsync();
 
             await ApprovalService.CreateApprovalAsync(
-                "PrettyCash",
+                "PettyCash",
                 existingEntity.DocNum,
                 1,
                 resolvedApprovers.OrderBy(x => x.StepNo).Select(x => x.ApproverEmployeeId).ToList()
@@ -251,12 +254,12 @@ public class PrettyCashService : IPrettyCashService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "เกิดข้อผิดพลาดในการส่งอนุมัติ Pretty Cash: {Message}", ex.Message);
+            _logger.LogError(ex, "เกิดข้อผิดพลาดในการส่งอนุมัติ Petty Cash: {Message}", ex.Message);
             throw;
         }
     }
 
-    public async Task<PrettyCashDto?> RecallAsync(Guid id)
+    public async Task<PettyCashDto?> RecallAsync(Guid id)
     {
         try
         {
@@ -272,7 +275,7 @@ public class PrettyCashService : IPrettyCashService
 
             await _repos.SaveChangesAsync();
 
-            await ApprovalService.RecallAsync("PrettyCash", existingEntity.DocNum!, 1);
+            await ApprovalService.RecallAsync("PettyCash", existingEntity.DocNum!, 1);
 
             return await GetByIdAsync(id);
         }
@@ -282,7 +285,7 @@ public class PrettyCashService : IPrettyCashService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "เกิดข้อผิดพลาดในการดึงเอกสารกลับ Pretty Cash: {Message}", ex.Message);
+            _logger.LogError(ex, "เกิดข้อผิดพลาดในการดึงเอกสารกลับ Petty Cash: {Message}", ex.Message);
             throw;
         }
     }
@@ -302,7 +305,7 @@ public class PrettyCashService : IPrettyCashService
         var entities = await _repos.GetSummariesByDocNumsAsync(docNumbers);
 
         return entities.ToDictionary(
-            e => e.DocNum,   // DocNum มี Unique Index (ux_pretty_cash_docnum) จึงไม่ซ้ำ
+            e => e.DocNum,   // DocNum มี Unique Index (ux_Petty_cash_docnum) จึงไม่ซ้ำ
             e => (
                 e.DocDate,
                 e.Employee != null ? $"{e.Employee.FnameTh} {e.Employee.LnameTh}" : "-",

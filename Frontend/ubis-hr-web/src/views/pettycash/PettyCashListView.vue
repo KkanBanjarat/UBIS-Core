@@ -22,13 +22,9 @@
       <div class="flex flex-col sm:flex-row gap-3">
         <div class="relative flex-1 min-w-[220px]">
           <Search class="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-gray-400 pointer-events-none z-10" />
-          <input
-            v-model="filter.search"
-            @input="onSearchInput"
-            type="text"
+          <input v-model="filter.search" @input="onSearchInput" type="text"
             placeholder="ค้นหาเลขที่เอกสาร ชื่อพนักงาน รายะเอียดเอกสาร..."
-            class="input input-bordered w-full pl-10 text-sm focus:outline-none focus:border-primary transition-colors"
-          />
+            class="input input-bordered w-full pl-10 text-sm focus:outline-none focus:border-primary transition-colors" />
         </div>
 
         <div class="w-full sm:w-56">
@@ -39,16 +35,16 @@
 
     <!-- Table Card -->
     <div class="bg-base-100 rounded-xl border border-base-200 shadow-sm overflow-hidden">
-    <div class="flex items-center gap-2 px-4 sm:px-5 py-3 border-b border-base-200 text-xs text-base-content/45">
-  <span>แสดง</span>
-  <select v-model.number="filter.pageSize" class="select select-bordered select-sm w-20">
-    <option :value="10">10</option>
-    <option :value="20">20</option>
-    <option :value="50">50</option>
-    <option :value="100">100</option>
-  </select>
-  <span>รายการต่อหน้า</span>
-</div>
+      <div class="flex items-center gap-2 px-4 sm:px-5 py-3 border-b border-base-200 text-xs text-base-content/45">
+        <span>แสดง</span>
+        <select v-model.number="filter.pageSize" class="select select-bordered select-sm w-20">
+          <option :value="10">10</option>
+          <option :value="20">20</option>
+          <option :value="50">50</option>
+          <option :value="100">100</option>
+        </select>
+        <span>รายการต่อหน้า</span>
+      </div>
       <div v-if="isLoading" class="p-5 space-y-2">
         <div v-for="i in 5" :key="i" class="skeleton h-14 w-full rounded-lg"></div>
       </div>
@@ -82,17 +78,12 @@
             </thead>
             <tbody>
               <template v-for="item in items" :key="item.id">
-                <tr
-                  class="group border-b border-base-200/60 transition-colors"
-                  :class="expandedRows.has(item.id) ? 'bg-primary/[0.025]' : 'hover:bg-base-200/30'"
-                >
+                <tr class="group border-b border-base-200/60 transition-colors"
+                  :class="expandedRows.has(item.id) ? 'bg-primary/[0.025]' : 'hover:bg-base-200/30'">
                   <td class="w-10">
-                    <button
-                      type="button"
+                    <button type="button"
                       class="btn btn-ghost btn-xs btn-square rounded-lg text-base-content/40 hover:text-primary hover:bg-primary/10"
-                      :title="expandedRows.has(item.id) ? 'ซ่อนรายการ' : 'ดูรายการ'"
-                      @click="toggleExpand(item.id)"
-                    >
+                      :title="expandedRows.has(item.id) ? 'ซ่อนรายการ' : 'ดูรายการ'" @click="toggleExpand(item.id)">
                       <ChevronUp v-if="expandedRows.has(item.id)" class="size-4" />
                       <ChevronDown v-else class="size-4" />
                     </button>
@@ -100,7 +91,7 @@
 
                   <td>
                     <p class="font-semibold text-sm">{{ item.docNum || '(ยังไม่ส่งอนุมัติ)' }}</p>
-                    <p class="text-[11px] text-base-content/35 mt-0.5">{{ item.lines?.length ?? 0 }} รายการ</p>
+                    <p class="text-[11px] text-base-content/35 mt-0.5">{{ item.lineCount ?? 0 }} รายการ</p>
                   </td>
 
                   <td>
@@ -136,44 +127,30 @@
 
                   <td>
                     <div class="flex items-center justify-end gap-0.5">
-                      <button
-                        v-if="item.docStatus === 'Draft'"
+                      <button v-if="item.docStatus === 'Draft'"
                         class="btn btn-ghost btn-xs btn-square rounded-lg text-warning/70 hover:bg-warning/10 hover:text-warning"
-                        title="แก้ไข"
-                        @click="openEditModal(item)"
-                      >
+                        title="แก้ไข" @click="openEditModal(item)" :disabled="editLoadingId === item.id">
                         <Edit class="size-4" />
                       </button>
-                      <button
-                        v-if="item.docStatus === 'Draft'"
+                      <button v-if="item.docStatus === 'Draft'"
                         class="btn btn-ghost btn-xs btn-square rounded-lg text-primary hover:bg-primary/10"
-                        title="ส่งอนุมัติ"
-                        @click="confirmSubmit(item)"
-                      >
+                        title="ส่งอนุมัติ" @click="confirmSubmit(item)">
                         <Send class="size-4" />
                       </button>
                       <button
                         class="btn btn-ghost btn-xs btn-square rounded-lg text-base-content/40 hover:bg-info/10 hover:text-info"
-                        title="ดูรายละเอียดและสถานะอนุมัติ"
-                        @click="openDocumentDetail(item)"
-                      >
+                        title="ดูรายละเอียดและสถานะอนุมัติ" @click="openDocumentDetail(item)">
                         <Eye class="size-3.5" />
                       </button>
-                      <button
-                        v-if="item.docStatus === 'WaitApprove' || item.docStatus === 'Rejected'"
+                      <button v-if="item.docStatus === 'WaitApprove' || item.docStatus === 'Rejected'"
                         class="btn btn-ghost btn-xs btn-square rounded-lg text-info hover:bg-info/10"
-                        title="ดึงกลับมาเป็นร่าง"
-                        @click="confirmRecall(item)"
-                      >
+                        title="ดึงกลับมาเป็นร่าง" @click="confirmRecall(item)">
                         <Undo2 class="size-4" />
                       </button>
 
-                      <button
-                        v-if="item.docStatus === 'Draft'"
+                      <button v-if="item.docStatus === 'Draft'"
                         class="btn btn-ghost btn-xs btn-square rounded-lg text-error/60 hover:bg-error/10 hover:text-error"
-                        title="ลบ"
-                        @click="confirmDelete(item)"
-                      >
+                        title="ลบ" @click="confirmDelete(item)">
                         <Trash2 class="size-4" />
                       </button>
                     </div>
@@ -181,32 +158,36 @@
                 </tr>
 
                 <tr v-if="expandedRows.has(item.id)" class="border-b border-base-200/60 bg-base-200/20">
+                <!-- <pre class="text-xs text-error">{{ { expanded: expandedRows.has(item.id), loading: detailLoading[item.id], err: detailError[item.id], has: !!detailMap[item.id], lines: detailMap[item.id]?.lines?.length } }}</pre> -->
                   <td colspan="9" class="p-0">
                     <div class="px-5 sm:px-12 py-4 space-y-4">
                       <div>
                         <div class="flex items-center justify-between mb-3">
                           <div>
-                            <p class="text-xs font-semibold">รายละเอียดการเบิก</p>
-                            <p class="text-[11px] text-base-content/40 mt-0.5">รายการสวัสดิการและเงินสดย่อยในใบเบิกนี้</p>
+                            <p class="text-base font-semibold">รายละเอียดการเบิก</p>
+                            <p class="text-sm text-base-content/40 mt-0.5">รายการสวัสดิการและเงินสดย่อยในใบเบิกนี้
+                            </p>
                           </div>
-                          <span class="text-[11px] text-base-content/40">{{ item.lines?.length ?? 0 }} รายการ</span>
+                          <span class="text-sm text-base-content/40">{{ detailMap[item.id]?.lines?.length ?? item.lineCount ?? 0 }} รายการ</span>
                         </div>
-
-                        <div v-if="item.lines?.length" class="rounded-xl border border-base-200 bg-base-100 overflow-hidden">
-                          <div
-                            v-for="(line, lineIndex) in item.lines"
-                            :key="line.id ?? lineIndex"
-                            class="flex flex-col sm:grid sm:grid-cols-[40px_minmax(180px,1fr)_minmax(180px,1.5fr)_130px] gap-3 items-start sm:items-center px-4 py-3 border-b border-base-200/70 last:border-0"
-                          >
+                        <div v-if="detailLoading[item.id] && !detailMap[item.id]" class="space-y-2">
+                          <div v-for="i in 2" :key="i" class="skeleton h-12 w-full rounded-lg"></div>
+                        </div>
+                        <div v-else-if="detailError[item.id] && !detailMap[item.id]"
+                          class="rounded-xl border border-dashed border-error/40 p-6 text-center text-sm text-error">
+                          โหลดรายละเอียดไม่สำเร็จ
+                          <button class="btn btn-xs btn-primary ml-2" @click="loadDetail(item.id)">ลองใหม่</button>
+                        </div>
+                        <div v-else-if="detailMap[item.id]?.lines?.length"
+                          class="rounded-xl border border-base-300 bg-base-100 overflow-hidden">
+                          <div v-for="(line, lineIndex) in detailMap[item.id]?.lines ?? []" :key="line.id ?? lineIndex"
+                            class="flex flex-col sm:grid sm:grid-cols-[40px_minmax(180px,1fr)_minmax(180px,1.5fr)_130px] gap-3 items-start sm:items-center px-4 py-3 border-b border-base-300/70 last:border-0">
                             <div class="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary text-xs font-semibold">
                               {{ lineIndex + 1 }}
                             </div>
-
                             <div class="min-w-0">
-                              <span
-                                class="badge badge-xs font-normal mb-0.5"
-                                :class="line.benefitId ? 'badge-primary text-primary-content' : 'badge-ghost'"
-                              >
+                              <span class="badge badge-xs font-normal mb-0.5"
+                                :class="line.benefitId ? 'badge-primary text-primary-content' : 'badge-ghost'">
                                 {{ line.benefitId ? 'สวัสดิการ' : 'เงินสดย่อย' }}
                               </span>
                               <p class="text-sm font-medium truncate">{{ getBenefitName(line.benefitId) }}</p>
@@ -214,7 +195,8 @@
 
                             <div class="min-w-0">
                               <p class="text-xs text-base-content/40 mb-0.5">รายละเอียด</p>
-                              <p class="text-sm text-base-content/65 truncate" :title="line.detail">{{ line.detail || '-' }}</p>
+                              <p class="text-sm text-base-content/65 truncate" :title="line.detail">{{ line.detail ||
+                                '-' }}</p>
                             </div>
 
                             <div class="sm:text-right">
@@ -227,12 +209,14 @@
                           </div>
                         </div>
 
-                        <div v-else class="rounded-xl border border-dashed border-base-300 p-6 text-center text-xs text-base-content/40">
+                        <div v-else
+                          class="rounded-xl border border-dashed border-base-300 p-6 text-center text-sm text-base-content/40">
                           ไม่มีรายละเอียดรายการ
                         </div>
                       </div>
 
-                      <div v-if="item.remark" class="flex gap-2 rounded-lg bg-base-100 border border-base-200 px-3 py-2.5">
+                      <div v-if="item.remark"
+                        class="flex gap-2 rounded-lg bg-base-100 border border-base-200 px-3 py-2.5">
                         <MessageSquare class="size-3.5 shrink-0 mt-0.5 text-base-content/35" />
                         <div>
                           <p class="text-[11px] text-base-content/40">หมายเหตุ</p>
@@ -241,13 +225,10 @@
                       </div>
 
                       <!-- ไฟล์แนบ -->
-                      <div class="rounded-xl border border-base-200 bg-base-100 p-3">
-                        <p class="text-xs font-semibold mb-2">ไฟล์แนบ</p>
-                        <AttachmentList
-                          doc-type="PrettyCash"
-                          :doc-number="item.docNum || null"
-                          :readonly="item.docStatus !== 'Draft'"
-                        />
+                      <div class="rounded-xl border border-base-300 bg-base-100 p-3">
+                        <p class="text-base font-semibold mb-2">ไฟล์แนบ</p>
+                        <AttachmentList doc-type="PettyCash" :doc-number="item.docNum || null"
+                          :readonly="item.docStatus !== 'Draft'" />
                       </div>
                     </div>
                   </td>
@@ -257,47 +238,48 @@
           </table>
         </div>
 
-        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-5 py-3 border-t border-base-200">
-  <p class="text-xs text-base-content/45">
-    แสดง {{ totalCount === 0 ? 0 : (filter.page - 1) * filter.pageSize + 1 }}–{{ Math.min(filter.page * filter.pageSize, totalCount) }}
-    จาก {{ totalCount }} รายการ
-  </p>
-  <div class="join">
-    <button class="join-item btn btn-sm btn-ghost" :disabled="filter.page === 1" @click="goToPage(1)">
-      <ChevronsLeft class="size-4" />
-    </button>
-    <button class="join-item btn btn-sm btn-ghost" :disabled="filter.page === 1" @click="goToPage(filter.page - 1)">
-      <ChevronLeft class="size-4" />
-    </button>
-    <button
-      v-for="p in pageWindow"
-      :key="p"
-      class="join-item btn btn-sm"
-      :class="p === filter.page ? 'btn-primary' : 'btn-ghost'"
-      @click="goToPage(p)"
-    >
-      {{ p }}
-    </button>
-    <button class="join-item btn btn-sm btn-ghost" :disabled="filter.page >= totalPages" @click="goToPage(filter.page + 1)">
-      <ChevronRight class="size-4" />
-    </button>
-    <button class="join-item btn btn-sm btn-ghost" :disabled="filter.page >= totalPages" @click="goToPage(totalPages)">
-      <ChevronsRight class="size-4" />
-    </button>
-  </div>
-</div>
+        <div
+          class="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-5 py-3 border-t border-base-200">
+          <p class="text-xs text-base-content/45">
+            แสดง {{ totalCount === 0 ? 0 : (filter.page - 1) * filter.pageSize + 1 }}–{{ Math.min(filter.page *
+              filter.pageSize,
+            totalCount) }}
+            จาก {{ totalCount }} รายการ
+          </p>
+          <div class="join">
+            <button class="join-item btn btn-sm btn-ghost" :disabled="filter.page === 1" @click="goToPage(1)">
+              <ChevronsLeft class="size-4" />
+            </button>
+            <button class="join-item btn btn-sm btn-ghost" :disabled="filter.page === 1"
+              @click="goToPage(filter.page - 1)">
+              <ChevronLeft class="size-4" />
+            </button>
+            <button v-for="p in pageWindow" :key="p" class="join-item btn btn-sm"
+              :class="p === filter.page ? 'btn-primary' : 'btn-ghost'" @click="goToPage(p)">
+              {{ p }}
+            </button>
+            <button class="join-item btn btn-sm btn-ghost" :disabled="filter.page >= totalPages"
+              @click="goToPage(filter.page + 1)">
+              <ChevronRight class="size-4" />
+            </button>
+            <button class="join-item btn btn-sm btn-ghost" :disabled="filter.page >= totalPages"
+              @click="goToPage(totalPages)">
+              <ChevronsRight class="size-4" />
+            </button>
+          </div>
+        </div>
       </template>
     </div>
   </div>
 
-  <PrettyCashFormModal
-    ref="formModalRef"
-    :is-create="isCreateMode"
+  <PettyCashFormModal 
+    ref="formModalRef" 
+    :is-create="isCreateMode" 
     :employee-id="myEmployeeId"
-    :employee-name="myEmployeeName"
-    :benefit-options="benefitOptions"
+    :employee-name="myEmployeeName" 
+    :benefit-options="benefitOptions" 
     :allowed-employees="allowedEmployees"
-    @save="handleSave"
+    @save="handleSave" 
   />
   <ApprovalDetailModal ref="detailModalRef" />
 </template>
@@ -305,15 +287,15 @@
 <script setup lang="ts">
 import { ref, reactive, watch, onMounted, computed } from 'vue'
 import { storeToRefs } from 'pinia'
-import { usePrettyCashStore } from '../../stores/prettyCashStore.ts'
+import { usePettyCashStore } from '../../stores/pettyCashStore.ts'
 import FormSelect from '../../components/ui/FormSelect.vue'
-import PrettyCashFormModal from '../../components/prettycash/PrettyCashFormModal.vue'
+import PettyCashFormModal from '../../components/pettycash/PettyCashFormModal.vue'
 import ApprovalDetailModal from '../../components/approval/ApprovalDetailModal.vue'
 import AttachmentList from '../../components/attachment/AttachmentList.vue'
-import { notify, extractErrorMessage } from '../../utils/notify'
+import { notify, extractErrorMessage } from '../../utils/notify.ts'
 import { useAuthStore } from '../../stores/authStore.ts'
-import type { PrettyCash, PrettyCashFilter } from '../../types/PrettyCash'
-import { Plus, Search, Receipt, Edit, Trash2, Send, ChevronDown, ChevronUp, MessageSquare, Gift, Wallet, Shuffle, Undo2, CircleAlertIcon, Eye,ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-vue-next'
+import type { PettyCash, PettyCashFilter } from '../../types/PettyCash.ts'
+import { Plus, Search, Receipt, Edit, Trash2, Send, ChevronDown, ChevronUp, MessageSquare, Gift, Wallet, Shuffle, Undo2, CircleAlertIcon, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-vue-next'
 
 interface OptionItem {
   id: string
@@ -321,17 +303,17 @@ interface OptionItem {
 }
 
 const authStore = useAuthStore()
-const prettyCashStore = usePrettyCashStore()
-const { items, totalCount, isLoading, errorMessage, benefitOptions, allowedEmployees, myEmployeeId, myEmployeeName } = storeToRefs(prettyCashStore)
+const pettyCashStore = usePettyCashStore()
+const { items, totalCount, isLoading, errorMessage, benefitOptions, allowedEmployees, myEmployeeId, myEmployeeName } = storeToRefs(pettyCashStore)
 const detailModalRef = ref<InstanceType<typeof ApprovalDetailModal>>()
 const expandedRows = ref<Set<string>>(new Set())
 
-const filter = reactive<PrettyCashFilter>({
+const filter = reactive<PettyCashFilter>({
   search: '',
   docStatus: null,
   employeeId: null,
   page: 1,
-  pageSize: 20,
+  pageSize:10,
 })
 
 const statusOptions: OptionItem[] = [
@@ -343,9 +325,9 @@ const statusOptions: OptionItem[] = [
   { id: 'Cancelled', label: 'ยกเลิก' },
 ]
 
-function openDocumentDetail(item: PrettyCash) {
+function openDocumentDetail(item: PettyCash) {
   if (!item.docNum) return
-  detailModalRef.value?.open('PrettyCash', item.docNum)
+  detailModalRef.value?.open('PettyCash', item.docNum)
 }
 
 function statusLabel(s: string) {
@@ -360,15 +342,13 @@ function statusClass(s: string) {
   return 'badge-ghost'
 }
 
-function getDocType(item: PrettyCash): 'benefit' | 'cash' | 'mixed' | 'empty' {
-  if (!item.lines || item.lines.length === 0) return 'empty'
-  const hasBenefit = item.lines.some(l => l.benefitId)
-  const hasCash = item.lines.some(l => !l.benefitId)
-  if (hasBenefit && hasCash) return 'mixed'
-  return hasBenefit ? 'benefit' : 'cash'
+function getDocType(item: PettyCash): 'benefit' | 'cash' | 'mixed' | 'empty' {
+  if (!item.lineCount) return 'empty'
+  if (item.hasBenefitLine && item.hasCashLine) return 'mixed'
+  return item.hasBenefitLine ? 'benefit' : 'cash'
 }
 
-function docTypeLabel(item: PrettyCash) {
+function docTypeLabel(item: PettyCash) {
   const type = getDocType(item)
   if (type === 'empty') return 'ยังไม่มีรายการ'
   if (type === 'benefit') return 'สวัสดิการ'
@@ -376,7 +356,7 @@ function docTypeLabel(item: PrettyCash) {
   return 'สวัสดิการ + เงินสดย่อย'
 }
 
-function docTypeBadgeClass(item: PrettyCash) {
+function docTypeBadgeClass(item: PettyCash) {
   const type = getDocType(item)
   if (type === 'empty') return 'badge-ghost text-base-content/35'
   if (type === 'benefit') return 'badge-primary text-primary-content'
@@ -384,7 +364,7 @@ function docTypeBadgeClass(item: PrettyCash) {
   return 'badge-secondary text-secondary-content'
 }
 
-function docTypeIcon(item: PrettyCash) {
+function docTypeIcon(item: PettyCash) {
   const type = getDocType(item)
   if (type === 'empty') return CircleAlertIcon
   if (type === 'benefit') return Gift
@@ -411,11 +391,34 @@ function formatDateTime(d: string) {
   })
 }
 
+const detailMap = ref<Record<string, PettyCash>>({})
+const detailLoading = ref<Record<string, boolean>>({})
+const detailError = ref<Record<string, boolean>>({})
+
+async function loadDetail(id: string) {
+  detailLoading.value[id] = true
+  detailError.value[id] = false
+  try {
+    detailMap.value[id] = await pettyCashStore.getById(id)
+  } catch (err) {
+    detailError.value[id] = true
+    console.error('Failed to load detail:', err)
+  } finally {
+    detailLoading.value[id] = false
+  }
+}
+
 function toggleExpand(id: string) {
   const next = new Set(expandedRows.value)
-  next.has(id) ? next.delete(id) : next.add(id)
+  if (next.has(id)) {
+    next.delete(id)
+  } else {
+    next.add(id)
+    loadDetail(id) // ดึงใหม่ทุกครั้งที่กาง
+  }
   expandedRows.value = next
 }
+
 const totalPages = computed(() => Math.ceil(totalCount.value / filter.pageSize) || 1)
 const pageWindow = computed(() => {
   const maxButtons = 5
@@ -436,9 +439,10 @@ function goToPage(p: number) {
 }
 
 async function fetchList() {
-  await prettyCashStore.fetchList(filter)
+  await pettyCashStore.fetchList(filter)
   const validIds = new Set(items.value.map(x => x.id))
   expandedRows.value = new Set([...expandedRows.value].filter(id => validIds.has(id)))
+  expandedRows.value.forEach(id => loadDetail(id))
 }
 
 let debounceTimer: ReturnType<typeof setTimeout>
@@ -455,7 +459,7 @@ watch(() => filter.pageSize, () => {
   fetchList()
 })
 
-const formModalRef = ref<InstanceType<typeof PrettyCashFormModal>>()
+const formModalRef = ref<InstanceType<typeof PettyCashFormModal>>()
 const isCreateMode = ref(true)
 const editingId = ref<string | null>(null)
 
@@ -465,44 +469,55 @@ function openCreateModal() {
   formModalRef.value?.open()
 }
 
-function openEditModal(item: PrettyCash) {
-  isCreateMode.value = false
-  editingId.value = item.id
-  formModalRef.value?.open(item)
+const editLoadingId = ref<string | null>(null)
+
+async function openEditModal(item: PettyCash) {
+  editLoadingId.value = item.id
+  try {
+    const detail = await pettyCashStore.getById(item.id)
+    isCreateMode.value = false
+    editingId.value = item.id
+    formModalRef.value?.open(detail)
+  } catch (err) {
+    await notify.error(extractErrorMessage(err), 'โหลดข้อมูลใบเบิกไม่สำเร็จ')
+  } finally {
+    editLoadingId.value = null
+  }
 }
 
 async function handleSave(payload: any, isCreate: boolean) {
   try {
-    if (isCreate) await prettyCashStore.create(payload)
-    else await prettyCashStore.update(editingId.value!, payload)
+    console.log('payload',payload);
+    if (isCreate) await pettyCashStore.create(payload)
+    else await pettyCashStore.update(editingId.value!, payload)
 
     formModalRef.value?.close()
     if (isCreate) filter.page = 1
-      await fetchList()
+    await fetchList()
     await notify.success(isCreate ? 'สร้างใบเบิกสำเร็จ' : 'บันทึกการแก้ไขสำเร็จ')
   } catch (err) {
     await notify.error(extractErrorMessage(err), 'เกิดข้อผิดพลาด', formModalRef.value?.getDialogEl())
   }
 }
 
-async function confirmDelete(item: PrettyCash) {
+async function confirmDelete(item: PettyCash) {
   const ok = await notify.confirm('ยืนยันลบใบเบิกนี้ใช่หรือไม่', 'ยืนยันการลบ')
   if (!ok) return
   try {
-    await prettyCashStore.remove(item.id)
+    await pettyCashStore.remove(item.id)
     await notify.success('ลบสำเร็จ')
-    if (items.value.length === 1 && filter.page > 1) filter.page -= 1 
-      await fetchList()
+    if (items.value.length === 1 && filter.page > 1) filter.page -= 1
+    await fetchList()
   } catch (err) {
     await notify.error(extractErrorMessage(err), 'ลบไม่สำเร็จ')
   }
 }
 
-async function confirmSubmit(item: PrettyCash) {
+async function confirmSubmit(item: PettyCash) {
   const ok = await notify.confirm('ยืนยันส่งอนุมัติใบเบิกนี้ใช่หรือไม่ (จะออกเลขที่เอกสารทันที)', 'ยืนยันส่งอนุมัติ')
   if (!ok) return
   try {
-    await prettyCashStore.submit(item.id)
+    await pettyCashStore.submit(item.id)
     await notify.success('ส่งอนุมัติสำเร็จ')
     await fetchList()
   } catch (err) {
@@ -510,11 +525,11 @@ async function confirmSubmit(item: PrettyCash) {
   }
 }
 
-async function confirmRecall(item: PrettyCash) {
+async function confirmRecall(item: PettyCash) {
   const ok = await notify.confirm('ยืนยันดึงเอกสารกลับมาเป็นร่างใช่หรือไม่ (จะแก้ไขข้อมูลต่อได้)', 'ยืนยันดึงกลับ')
   if (!ok) return
   try {
-    await prettyCashStore.recall(item.id)
+    await pettyCashStore.recall(item.id)
     await notify.success('ดึงเอกสารกลับมาเป็นร่างสำเร็จ')
     await fetchList()
   } catch (err) {
@@ -527,7 +542,7 @@ onMounted(() => {
   fetchList()
 
   // ข้อมูลสำหรับฟอร์มสร้าง/แก้ไข โหลดคู่ขนานไปเบื้องหลัง
-  prettyCashStore.fetchInitData().catch((err) => {
+  pettyCashStore.fetchInitData().catch((err) => {
     console.error('Failed to load init data:', err)
   })
 
@@ -535,7 +550,7 @@ onMounted(() => {
     .fetchCurrentEmployee(false)
     .then((emp) => {
       if (emp) {
-        prettyCashStore.setMyEmployee(emp.id, `${emp.fNameTh} ${emp.lNameTh}`)
+        pettyCashStore.setMyEmployee(emp.id, `${emp.fNameTh} ${emp.lNameTh}`)
       }
     })
     .catch((err) => {

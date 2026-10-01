@@ -171,13 +171,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { User as UserIcon, FileQuestion, FileText, ReceiptText } from 'lucide-vue-next'
-import { usePrettyCashStore } from '../../stores/prettyCashStore'
-import type { PrettyCash } from '../../types/PrettyCash'
+import { usePettyCashStore } from '../../stores/pettyCashStore'
+import type { PettyCash } from '../../types/PettyCash'
 
 const props = defineProps<{ docNumber: string }>()
 
-const prettyCashStore = usePrettyCashStore()
-const doc = ref<PrettyCash | null>(null)
+const pettyCashStore = usePettyCashStore()
+const doc = ref<PettyCash | null>(null)
 const isLoading = ref(true)
 
 function formatDate(d: string) {
@@ -194,7 +194,7 @@ function formatAmount(amount: number | null | undefined) {
 
 onMounted(async () => {
   try {
-    doc.value = await prettyCashStore.getByDocNum(props.docNumber)
+    doc.value = await pettyCashStore.getByDocNum(props.docNumber)
   } catch (err) {
     console.error('Failed to load pretty cash detail:', err)
   } finally {

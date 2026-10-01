@@ -44,8 +44,8 @@
                 <label class="block text-xs font-medium text-base-content/60 mb-1.5">
                   วันที่เอกสาร <span class="text-error">*</span>
                 </label>
-                <input v-model="formData.docDate" type="date"
-                    class="input input-bordered input-sm h-9 w-full bg-base-100 focus:border-primary" />
+                <input v-model="formData.docDate" type="date" class="input input-bordered input-sm h-9 w-full bg-base-100 focus:border-primary" />
+                <p v-if="errors.docDate" class="text-xs text-error mt-1">{{ errors.docDate }}</p>
               </div>
              <div>
               <EmployeeSelect
@@ -55,6 +55,7 @@
                 :disabled="allowedEmployeeOptions.length <= 1"
                 @change="onEmployeeChange"
               />
+              <p v-if="errors.employeeId" class="text-xs text-error mt-1">{{ errors.employeeId }}</p>
             </div>
               <div class="sm:col-span-2">
                 <label class="block text-xs font-medium text-base-content/60 mb-1.5">หมายเหตุ</label>
@@ -79,10 +80,9 @@
               </button>
             </div>
 
-            <div v-if="formData.lines.length === 0"
-              class="rounded-xl border border-dashed border-base-300 bg-base-200/20 py-10 text-center">
-              <div
-                class="mx-auto flex size-11 items-center justify-center rounded-full bg-base-200 text-base-content/40">
+            <div v-if="formData.lines.length === 0" class="rounded-xl border border-dashed border-base-300 bg-base-200/20 py-10 text-center">
+              <p v-if="errors.lines" class="text-xs text-error mt-2">{{ errors.lines }}</p>
+              <div class="mx-auto flex size-11 items-center justify-center rounded-full bg-base-200 text-base-content/40">
                 <ReceiptText class="size-5" />
               </div>
               <p class="text-sm font-medium mt-3">ยังไม่มีรายการเบิก</p>
@@ -122,17 +122,17 @@
                     class="textarea textarea-bordered w-full text-sm resize-none focus:border-primary"></textarea>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-1 gap-3">
                   <div>
                     <label class="block text-xs font-medium text-base-content/60 mb-1.5">ยอดเบิก</label>
                     <div class="relative">
                       <input v-model.number="line.amount" type="number" min="0" step="0.01"
                         class="input input-bordered input-sm w-full pr-10 focus:border-primary" />
-                      <span
-                        class="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-base-content/35">บาท</span>
+                      <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-base-content/35">บาท</span>
                     </div>
+                    <p v-if="errors[`lines[${idx}].amount`]" class="text-xs text-error m-1">{{ errors[`lines[${idx}].amount`] }}</p>
                   </div>
-                  <div>
+                  <div hidden>
                     <label class="block text-xs font-medium text-base-content/60 mb-1.5">รหัสบัญชี</label>
                     <input v-model="line.accountCode" type="text" placeholder="Account Code"
                       class="input input-bordered input-sm w-full focus:border-primary" />
@@ -175,7 +175,7 @@
           </section>
         <section class="rounded-xl border border-base-200 bg-base-200/20 p-4">
           <p class="text-sm font-semibold mb-3">ไฟล์แนบ</p>
-          <AttachmentList doc-type="PrettyCash" :doc-number="currentDocNum || null" :target="dialogRef" />
+          <AttachmentList doc-type="PettyCash" :doc-number="currentDocNum || null" :target="dialogRef" />
         </section>
           <!-- Total -->
           <div class="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 px-5 py-4">
@@ -220,14 +220,15 @@
 </template>
 
 <script setup lang="ts">
+import * as yup from 'yup'
 import { ref, computed } from 'vue'
-import { notify } from '../../utils/notify'
+import { notify } from '../../utils/notify.ts'
 import { X, Plus, Trash2, ReceiptText, FileText, Info, TriangleAlert, CircleAlert } from 'lucide-vue-next'
 import FormSelect from '../ui/FormSelect.vue'
-import type { PrettyCash } from '../../types/PrettyCash'
+import type { PettyCash } from '../../types/PettyCash.ts'
 import AttachmentList from '../attachment/AttachmentList.vue'
 import EmployeeSelect, { type EmployeeOption } from '../../components/ui/EmployeeSelect.vue'
-import { usePrettyCashStore } from '../../stores/prettyCashStore.ts'
+import { usePettyCashStore } from '../../stores/pettyCashStore.ts'
 
 
 interface OptionItem {
@@ -250,7 +251,7 @@ const props = defineProps<{
   allowedEmployees: EmployeeOption[]
 }>()
 
-const prettyCashStore = usePrettyCashStore()
+const pettyCashStore = usePettyCashStore()
 const emit = defineEmits<{ save: [data: any, isCreate: boolean] }>()
 
 const dialogRef = ref<HTMLDialogElement>()
@@ -261,6 +262,8 @@ const selectedEmployeeId = ref('')
 const employeeBenefitLimits = ref<Record<string, BenefitLimitInfo>>({})
 const isLoadingLimits = ref(false)
 const isEditMode = ref(false)
+const errors = ref<Record<string, string>>({})
+
 
 const allowedEmployeeOptions = computed(() => {
   if (props.allowedEmployees.length === 0) {
@@ -326,7 +329,7 @@ function onBenefitChange(line: LineForm, benefitId: string | null | undefined) {
 async function loadBenefitLimitsFor(employeeId: string) {
   isLoadingLimits.value = true
   try {
-    employeeBenefitLimits.value = await prettyCashStore.getBenefitLimitsFor(employeeId)
+    employeeBenefitLimits.value = await pettyCashStore.getBenefitLimitsFor(employeeId)
 
     for (const line of formData.value.lines) {
       if (line.benefitId) {
@@ -367,7 +370,7 @@ async function onEmployeeChange(employeeId: string | null | undefined) {
   await loadBenefitLimitsFor(newId)
 }
 
-async function open(item?: PrettyCash | null) {
+async function open(item?: PettyCash | null) {
   errorMessage.value = ''
   currentDocNum.value = item?.docNum || ''
   isEditMode.value = !!item
@@ -404,9 +407,37 @@ function close() {
 function getDialogEl() {
   return dialogRef.value ?? null
 }
-
+const validationSchema = yup.object({
+  docDate: yup.string().required('กรุณาระบุวันที่เอกสาร'),
+  employeeId: yup.string().required('กรุณาเลือกผู้ขอเบิก'),
+  lines: yup
+    .array()
+    .min(1, 'กรุณาเพิ่มรายการเบิกอย่างน้อย 1 รายการ')
+    .of(
+      yup.object({
+        amount: yup
+          .number()
+          .typeError('กรุณาระบุยอดเบิก')
+          .moreThan(0, 'ยอดเบิกต้องมากกว่า 0'),
+      }),
+    ),
+})
 async function handleSubmit() {
   errorMessage.value = ''
+  errors.value = {}
+  try {
+    await validationSchema.validate(
+      {
+        docDate: formData.value.docDate,
+        employeeId: selectedEmployeeId.value,
+        lines: formData.value.lines,
+      },
+      { abortEarly: false },
+    )
+  } catch (err: any) {
+    if (err.inner) err.inner.forEach((e: any) => { if (e.path && !errors.value[e.path]) errors.value[e.path] = e.message })
+    return
+  }
 
   const overGeneralLimit = formData.value.lines.find(isOverGeneralLimit)
   if (overGeneralLimit) {

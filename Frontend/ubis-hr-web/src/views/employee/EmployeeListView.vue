@@ -113,24 +113,20 @@
     <!-- Table card -->
     <div class="bg-base-100 rounded-2xl shadow-sm border border-base-200 overflow-hidden">
       <!-- Table toolbar -->
-      <div
-        class="flex items-center justify-between gap-3 px-5 py-4 border-b border-base-200"
-      >
-        <select
-          v-model.number="filter.pageSize"
-          class="select select-bordered select-sm w-20"
-        >
+      <div class="flex items-center gap-2 px-4 sm:px-5 py-3 border-b border-base-200 text-xs text-base-content/45">
+        <span>แสดง</span>
+        <select v-model.number="filter.pageSize" class="select select-bordered select-sm w-20">
           <option :value="10">10</option>
           <option :value="20">20</option>
           <option :value="50">50</option>
           <option :value="100">100</option>
         </select>
+        <span>รายการต่อหน้า</span>
         <button class="btn btn-primary btn-sm gap-1.5" @click="openCreateModal">
           <Plus class="size-4" />
           เพิ่มพนักงานใหม่
         </button>
       </div>
-
       <!-- Loading skeleton -->
       <div v-if="isLoading" class="p-5 space-y-3">
         <div

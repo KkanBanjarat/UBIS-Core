@@ -29,5 +29,5 @@ public partial class TbBenefit
 
     public virtual ICollection<TbBenefitPlanItem> TbBenefitPlanItems { get; set; } = new List<TbBenefitPlanItem>();
 
-    public virtual ICollection<TbPrettyCashLine> TbPrettyCashLines { get; set; } = new List<TbPrettyCashLine>();
+    public virtual ICollection<TbPettyCashLine> TbPettyCashLines { get; set; } = new List<TbPettyCashLine>();
 }

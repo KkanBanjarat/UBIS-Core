@@ -27,7 +27,7 @@ export const menuGroups: MenuGroup[] = [
     items: [
       { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
       {
-        path: "/pretty-cash",
+        path: "/petty-cash",
         label: "เบิกสวัสดิการ/เงินสดย่อย",
         icon: Receipt,
       },

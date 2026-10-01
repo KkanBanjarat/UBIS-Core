@@ -1,6 +1,6 @@
 namespace UBIS.HR.Application.Dtos;
 
-public class PrettyCashLineDto
+public class PettyCashLineDto
 {
     public Guid Id { get; set; }
     public Guid? BenefitId { get; set; }
@@ -12,7 +12,7 @@ public class PrettyCashLineDto
     public string? AccountCode { get; set; }
 }
 
-public class PrettyCashDto
+public class PettyCashDto
 {
     public Guid Id { get; set; }
     public string DocNum { get; set; }
@@ -22,14 +22,17 @@ public class PrettyCashDto
     public string? EmployeeNameTh { get; set; }
     public string? Remark { get; set; }
     public decimal TotalAmount { get; set; }
-    public List<PrettyCashLineDto> Lines { get; set; } = new();
     public string CreatedBy { get; set; }
     public DateTime CreatedAt { get; set; }
     public string UpdatedBy { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public int LineCount { get; set; }
+    public bool HasBenefitLine { get; set; }
+    public bool HasCashLine { get; set; }
+    public List<PettyCashLineDto> Lines { get; set; } = new();
 }
 
-public class CreatePrettyCashLineDto
+public class CreatePettyCashLineDto
 {
     public Guid? BenefitId { get; set; }
     public string Detail { get; set; }
@@ -39,18 +42,21 @@ public class CreatePrettyCashLineDto
     public string? AccountCode { get; set; }
 }
 
-public class CreatePrettyCashDto
+public class CreatePettyCashDto
 {
     public DateTime DocDate { get; set; }
     public Guid EmployeeId { get; set; }
     public string? Remark { get; set; }
-    public List<CreatePrettyCashLineDto> Lines { get; set; } = new();
+    public List<CreatePettyCashLineDto> Lines { get; set; } = new();
 }
 
-public class PrettyCashFilterDto
+public class PettyCashFilterDto
 {
     public string? Search { get; set; }
     public string? DocStatus { get; set; }
+    public Guid currentEmployeeId { get; set; }
+    public string? currentUserEmail { get; set; }
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 20;
+
 }

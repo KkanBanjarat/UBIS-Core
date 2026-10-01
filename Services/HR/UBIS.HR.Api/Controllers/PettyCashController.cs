@@ -8,17 +8,17 @@ namespace UBIS.HR.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
-public class PrettyCashController : ControllerBase
+public class PettyCashController : ControllerBase
 {
-    private readonly IPrettyCashService _service;
+    private readonly IPettyCashService _service;
 
-    public PrettyCashController(IPrettyCashService service)
+    public PettyCashController(IPettyCashService service)
     {
         _service = service;
     }
 
-    [HttpPost("pretty-cash-list")]
-    public async Task<IActionResult> GetPaged(PrettyCashFilterDto filter)
+    [HttpPost("petty-cash-list")]
+    public async Task<IActionResult> GetPaged(PettyCashFilterDto filter)
     {
         return Ok(await _service.GetAllAsync(filter));
     }
@@ -40,13 +40,13 @@ public class PrettyCashController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create(CreatePrettyCashDto data)
+    public async Task<IActionResult> Create(CreatePettyCashDto data)
     {
         return Ok(await _service.CreateAsync(data));
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(Guid id, CreatePrettyCashDto data)
+    public async Task<IActionResult> Update(Guid id, CreatePettyCashDto data)
     {
         try
         {

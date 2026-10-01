@@ -87,5 +87,5 @@ public partial class TbEmployee
 
     public virtual ICollection<TbEmployeeBenefitPlan> TbEmployeeBenefitPlans { get; set; } = new List<TbEmployeeBenefitPlan>();
 
-    public virtual ICollection<TbPrettyCashRequest> TbPrettyCashRequests { get; set; } = new List<TbPrettyCashRequest>();
+    public virtual ICollection<TbPettyCashRequest> TbPettyCashRequests { get; set; } = new List<TbPettyCashRequest>();
 }

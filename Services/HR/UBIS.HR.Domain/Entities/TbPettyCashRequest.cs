@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace UBIS.HR.Domain.Entities;
 
-public partial class TbPrettyCashRequest
+public partial class TbPettyCashRequest
 {
     public Guid Id { get; set; }
 
@@ -35,5 +35,5 @@ public partial class TbPrettyCashRequest
 
     public virtual TbEmployee Employee { get; set; } = null!;
 
-    public virtual ICollection<TbPrettyCashLine> TbPrettyCashLines { get; set; } = new List<TbPrettyCashLine>();
+    public virtual ICollection<TbPettyCashLine> TbPettyCashLines { get; set; } = new List<TbPettyCashLine>();
 }

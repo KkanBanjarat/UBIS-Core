@@ -18,6 +18,8 @@ public partial class HrDbContext : DbContext
 
     public virtual DbSet<FdwTbUser> FdwTbUsers { get; set; }
 
+    public virtual DbSet<MvEmployeeHierarchy> MvEmployeeHierarchies { get; set; }
+
     public virtual DbSet<TbAttachment> TbAttachments { get; set; }
 
     public virtual DbSet<TbBenefit> TbBenefits { get; set; }
@@ -42,6 +44,10 @@ public partial class HrDbContext : DbContext
 
     public virtual DbSet<TbOrganizationUnit> TbOrganizationUnits { get; set; }
 
+    public virtual DbSet<TbPettyCashLine> TbPettyCashLines { get; set; }
+
+    public virtual DbSet<TbPettyCashRequest> TbPettyCashRequests { get; set; }
+
     public virtual DbSet<TbPodAdminBranch> TbPodAdminBranches { get; set; }
 
     public virtual DbSet<TbPosition> TbPositions { get; set; }
@@ -50,10 +56,6 @@ public partial class HrDbContext : DbContext
 
     public virtual DbSet<TbPrefix> TbPrefixes { get; set; }
 
-    public virtual DbSet<TbPrettyCashLine> TbPrettyCashLines { get; set; }
-
-    public virtual DbSet<TbPrettyCashRequest> TbPrettyCashRequests { get; set; }
-
     public virtual DbSet<TbReasonApprove> TbReasonApproves { get; set; }
 
     public virtual DbSet<TbRouteApprove> TbRouteApproves { get; set; }
@@ -61,6 +63,8 @@ public partial class HrDbContext : DbContext
     public virtual DbSet<TbTransApprove> TbTransApproves { get; set; }
 
     public virtual DbSet<VwPodAdminBranch> VwPodAdminBranches { get; set; }
+
+    public virtual DbSet<VwTransApprove> VwTransApproves { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseNpgsql("Name=ConnectionStrings:HrDatabase");
@@ -76,6 +80,13 @@ public partial class HrDbContext : DbContext
             entity
                 .HasNoKey()
                 .ToTable("fdw_tb_user");
+        });
+
+        modelBuilder.Entity<MvEmployeeHierarchy>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("mv_employee_hierarchy");
         });
 
         modelBuilder.Entity<TbAttachment>(entity =>
@@ -411,11 +422,83 @@ public partial class HrDbContext : DbContext
             entity.Property(e => e.UpdatedAt).HasColumnType("timestamp without time zone");
         });
 
+        modelBuilder.Entity<TbPettyCashLine>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("tb_pretty_cash_line_pkey");
+
+            entity.ToTable("tb_petty_cash_line");
+
+            entity.HasIndex(e => e.PettyCashId, "idx_pcline_request");
+
+            entity.Property(e => e.Id).HasDefaultValueSql("gen_random_uuid()");
+            entity.Property(e => e.Amount).HasPrecision(18, 2);
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone");
+            entity.Property(e => e.CreatedBy).HasDefaultValueSql("'System'::text");
+            entity.Property(e => e.DeletedAt).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.LimitAmount).HasPrecision(18, 2);
+            entity.Property(e => e.Qty)
+                .HasPrecision(18, 2)
+                .HasDefaultValue(1m);
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone");
+            entity.Property(e => e.UpdatedBy).HasDefaultValueSql("'System'::text");
+
+            entity.HasOne(d => d.Benefit).WithMany(p => p.TbPettyCashLines)
+                .HasForeignKey(d => d.BenefitId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_pcline_benefit");
+
+            entity.HasOne(d => d.PettyCash).WithMany(p => p.TbPettyCashLines)
+                .HasForeignKey(d => d.PettyCashId)
+                .HasConstraintName("FK_pcline_request");
+        });
+
+        modelBuilder.Entity<TbPettyCashRequest>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("tb_pretty_cash_request_pkey");
+
+            entity.ToTable("tb_petty_cash_request");
+
+            entity.HasIndex(e => e.CreatedBy, "idx_pcreq_createdby").HasFilter("(\"IsDelete\" = false)");
+
+            entity.HasIndex(e => e.EmployeeId, "idx_pcreq_employee").HasFilter("(\"IsDelete\" = false)");
+
+            entity.HasIndex(e => e.UpdatedAt, "idx_pcreq_updatedat")
+                .IsDescending()
+                .HasFilter("(\"IsDelete\" = false)");
+
+            entity.HasIndex(e => e.DocNum, "ux_pretty_cash_docnum").IsUnique();
+
+            entity.Property(e => e.Id).HasDefaultValueSql("gen_random_uuid()");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone");
+            entity.Property(e => e.CreatedBy).HasDefaultValueSql("'System'::text");
+            entity.Property(e => e.DeletedAt).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.DocDate).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.DocStatus).HasDefaultValueSql("'Draft'::text");
+            entity.Property(e => e.TotalAmount).HasPrecision(18, 2);
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone");
+            entity.Property(e => e.UpdatedBy).HasDefaultValueSql("'System'::text");
+
+            entity.HasOne(d => d.Employee).WithMany(p => p.TbPettyCashRequests)
+                .HasForeignKey(d => d.EmployeeId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_pretty_cash_employee");
+        });
+
         modelBuilder.Entity<TbPodAdminBranch>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("tb_pod_admin_branch_pkey");
 
             entity.ToTable("tb_pod_admin_branch");
+
+            entity.HasIndex(e => e.UserId, "idx_podadmin_user").HasFilter("(\"IsDelete\" = false)");
 
             entity.HasIndex(e => e.BranchId, "ux_pod_admin_branch_primary")
                 .IsUnique()
@@ -484,66 +567,6 @@ public partial class HrDbContext : DbContext
             entity.Property(e => e.UpdatedBy).HasDefaultValueSql("'System'::text");
         });
 
-        modelBuilder.Entity<TbPrettyCashLine>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("tb_pretty_cash_line_pkey");
-
-            entity.ToTable("tb_pretty_cash_line");
-
-            entity.Property(e => e.Id).HasDefaultValueSql("gen_random_uuid()");
-            entity.Property(e => e.Amount).HasPrecision(18, 2);
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnType("timestamp without time zone");
-            entity.Property(e => e.CreatedBy).HasDefaultValueSql("'System'::text");
-            entity.Property(e => e.DeletedAt).HasColumnType("timestamp without time zone");
-            entity.Property(e => e.LimitAmount).HasPrecision(18, 2);
-            entity.Property(e => e.Qty)
-                .HasPrecision(18, 2)
-                .HasDefaultValue(1m);
-            entity.Property(e => e.UpdatedAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnType("timestamp without time zone");
-            entity.Property(e => e.UpdatedBy).HasDefaultValueSql("'System'::text");
-
-            entity.HasOne(d => d.Benefit).WithMany(p => p.TbPrettyCashLines)
-                .HasForeignKey(d => d.BenefitId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("FK_pcline_benefit");
-
-            entity.HasOne(d => d.PrettyCash).WithMany(p => p.TbPrettyCashLines)
-                .HasForeignKey(d => d.PrettyCashId)
-                .HasConstraintName("FK_pcline_request");
-        });
-
-        modelBuilder.Entity<TbPrettyCashRequest>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("tb_pretty_cash_request_pkey");
-
-            entity.ToTable("tb_pretty_cash_request");
-
-            entity.HasIndex(e => e.DocNum, "ux_pretty_cash_docnum").IsUnique();
-
-            entity.Property(e => e.Id).HasDefaultValueSql("gen_random_uuid()");
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnType("timestamp without time zone");
-            entity.Property(e => e.CreatedBy).HasDefaultValueSql("'System'::text");
-            entity.Property(e => e.DeletedAt).HasColumnType("timestamp without time zone");
-            entity.Property(e => e.DocDate).HasColumnType("timestamp without time zone");
-            entity.Property(e => e.DocStatus).HasDefaultValueSql("'Draft'::text");
-            entity.Property(e => e.TotalAmount).HasPrecision(18, 2);
-            entity.Property(e => e.UpdatedAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnType("timestamp without time zone");
-            entity.Property(e => e.UpdatedBy).HasDefaultValueSql("'System'::text");
-
-            entity.HasOne(d => d.Employee).WithMany(p => p.TbPrettyCashRequests)
-                .HasForeignKey(d => d.EmployeeId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("FK_pretty_cash_employee");
-        });
-
         modelBuilder.Entity<TbReasonApprove>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("tb_reason_approve_pkey");
@@ -592,6 +615,8 @@ public partial class HrDbContext : DbContext
 
             entity.ToTable("tb_trans_approve");
 
+            entity.HasIndex(e => new { e.ApproverId, e.Status }, "idx_transapprove_approver");
+
             entity.HasIndex(e => new { e.DocType, e.DocNumber, e.DocRev, e.Round }, "idx_transapprove_doc");
 
             entity.Property(e => e.ApprovedDate).HasColumnType("timestamp without time zone");
@@ -615,6 +640,17 @@ public partial class HrDbContext : DbContext
 
             entity.Property(e => e.CreatedAt).HasColumnType("timestamp without time zone");
             entity.Property(e => e.CreatedBy).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<VwTransApprove>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_trans_approve");
+
+            entity.Property(e => e.ApprovedDate).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.CreatedAt).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.UpdatedAt).HasColumnType("timestamp without time zone");
         });
 
         OnModelCreatingPartial(modelBuilder);
