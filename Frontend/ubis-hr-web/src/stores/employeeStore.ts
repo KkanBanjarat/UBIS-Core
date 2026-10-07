@@ -69,7 +69,7 @@ export const useEmployeeStore = defineStore("employee", {
 
         this.positionLevelOptions = lvlRes.data.map((x: any) => ({
           id: x.id,
-          label: `L${x.level} : ${x.nameEn} (${x.nameTh})`,
+          label: `L${x.level} : ${x.nameEn} (${x.nameTh})${x.isSubsidiary ? " - ใช้สำหรับบริษัทลูก" : ""}`,
         }));
 
         this.employeeTypeOptions = typeRes.data.map((x: any) => ({

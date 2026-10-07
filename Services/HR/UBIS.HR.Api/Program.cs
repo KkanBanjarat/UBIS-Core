@@ -40,6 +40,7 @@ builder.Services.AddScoped<IAttachmentRepos, AttachmentRepos>();
 builder.Services.AddScoped<IReasonApproveRepos, ReasonApproveRepos>();
 builder.Services.AddScoped<IApprovalRepos, ApprovalRepos>();
 builder.Services.AddScoped<IRouteApproveRepos, RouteApproveRepos>();
+builder.Services.AddScoped<IBenefitClaimRepos, BenefitClaimRepos>();
 
 builder.Services.AddHttpClient<IAccessServiceClient, AccessServiceClient>();
 builder.Services.AddScoped<IAttachmentService, AttachmentService>();
@@ -60,6 +61,8 @@ builder.Services.AddScoped<IPodAdminBranchService, PodAdminBranchService>();
 builder.Services.AddScoped<PettyCashService>();
 builder.Services.AddScoped<IPettyCashService>(sp => sp.GetRequiredService<PettyCashService>());
 builder.Services.AddScoped<IApprovalDocumentService>(sp => sp.GetRequiredService<PettyCashService>());
+builder.Services.AddScoped<IBenefitClaimService, BenefitClaimService>();
+builder.Services.AddScoped<IApprovalDocumentService>(sp => (BenefitClaimService)sp.GetRequiredService<IBenefitClaimService>());
 
 builder.Services.AddScoped<IApprovalService, ApprovalService>();
 builder.Services.AddScoped<IDocNumberService, DocNumberService>();

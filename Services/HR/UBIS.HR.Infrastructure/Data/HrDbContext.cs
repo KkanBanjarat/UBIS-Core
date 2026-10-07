@@ -24,6 +24,10 @@ public partial class HrDbContext : DbContext
 
     public virtual DbSet<TbBenefit> TbBenefits { get; set; }
 
+    public virtual DbSet<TbBenefitClaim> TbBenefitClaims { get; set; }
+
+    public virtual DbSet<TbBenefitClaimLine> TbBenefitClaimLines { get; set; }
+
     public virtual DbSet<TbBenefitPlan> TbBenefitPlans { get; set; }
 
     public virtual DbSet<TbBenefitPlanItem> TbBenefitPlanItems { get; set; }
@@ -123,6 +127,60 @@ public partial class HrDbContext : DbContext
                 .HasDefaultValueSql("now()")
                 .HasColumnType("timestamp without time zone");
             entity.Property(e => e.UpdatedBy).HasDefaultValueSql("'System'::text");
+        });
+
+        modelBuilder.Entity<TbBenefitClaim>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("tb_benefit_claim_pkey");
+
+            entity.ToTable("tb_benefit_claim");
+
+            entity.HasIndex(e => e.EmployeeId, "ix_tb_benefit_claim_employee");
+
+            entity.HasIndex(e => new { e.DocStatus, e.DocDate }, "ix_tb_benefit_claim_status_date");
+
+            entity.HasIndex(e => e.DocNum, "ux_tb_benefit_claim_docnum")
+                .IsUnique()
+                .HasFilter("((\"DocNum\" <> ''::text) AND (\"IsDelete\" = false))");
+
+            entity.Property(e => e.Id).HasDefaultValueSql("gen_random_uuid()");
+            entity.Property(e => e.CreatedAt).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.DeletedAt).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.DocDate).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.TotalAmount).HasPrecision(18, 2);
+            entity.Property(e => e.UpdatedAt).HasColumnType("timestamp without time zone");
+
+            entity.HasOne(d => d.Employee).WithMany(p => p.TbBenefitClaims)
+                .HasForeignKey(d => d.EmployeeId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fk_tb_benefit_claim_employee");
+        });
+
+        modelBuilder.Entity<TbBenefitClaimLine>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("tb_benefit_claim_line_pkey");
+
+            entity.ToTable("tb_benefit_claim_line");
+
+            entity.HasIndex(e => e.BenefitClaimId, "ix_tb_benefit_claim_line_claim");
+
+            entity.Property(e => e.Id).HasDefaultValueSql("gen_random_uuid()");
+            entity.Property(e => e.Amount).HasPrecision(18, 2);
+            entity.Property(e => e.CreatedAt).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.DeletedAt).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.LimitAmount).HasPrecision(18, 2);
+            entity.Property(e => e.Qty).HasPrecision(18, 2);
+            entity.Property(e => e.UpdatedAt).HasColumnType("timestamp without time zone");
+
+            entity.HasOne(d => d.BenefitClaim).WithMany(p => p.TbBenefitClaimLines)
+                .HasForeignKey(d => d.BenefitClaimId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("tb_benefit_claim_line_BenefitClaimId_fkey");
+
+            entity.HasOne(d => d.Benefit).WithMany(p => p.TbBenefitClaimLines)
+                .HasForeignKey(d => d.BenefitId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fk_tb_benefit_claim_line_benefit");
         });
 
         modelBuilder.Entity<TbBenefitPlan>(entity =>
@@ -620,12 +678,14 @@ public partial class HrDbContext : DbContext
             entity.HasIndex(e => new { e.DocType, e.DocNumber, e.DocRev, e.Round }, "idx_transapprove_doc");
 
             entity.Property(e => e.ApprovedDate).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.ApproverType).HasMaxLength(50);
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnType("timestamp without time zone");
             entity.Property(e => e.CreatedBy).HasDefaultValueSql("'System'::text");
             entity.Property(e => e.DocRev).HasDefaultValue(1);
             entity.Property(e => e.Round).HasDefaultValue(1);
+            entity.Property(e => e.StepName).HasMaxLength(200);
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnType("timestamp without time zone");

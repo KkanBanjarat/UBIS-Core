@@ -16,6 +16,8 @@ export interface ApprovalStep {
   status: string;
   actualApproveNameTh: string | null;
   approvedDate: string | null;
+  stepName: string | null;
+  approverType: string | null;
 }
 
 export interface ApprovalReason {

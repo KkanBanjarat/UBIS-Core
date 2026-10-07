@@ -145,7 +145,83 @@
               />
             </div>
           </section>
+          <section class="space-y-3 pt-5 border-t border-base-200">
+            <div class="flex items-center gap-2 text-xs font-semibold text-base-content/45 uppercase tracking-wide">
+              <Building2 class="size-3.5" />
+              สังกัด
+            </div>
 
+            <div class="grid grid-cols-1 gap-3">
+              <div>
+                <FormSelect
+                  :model-value="formData.companyId"
+                  @update:model-value="onCompanyChange"
+                  label="บริษัท"
+                  required
+                  :options="props.companyOptions"
+                />
+                <p v-if="hasError('companyId')" class="text-xs text-error mt-1">{{ errors.companyId }}</p>
+              </div>
+              <div>
+                <FormSelect
+                  v-model="formData.branchId"
+                  label="สาขา"
+                  required
+                  :options="props.branchOptions"
+                  :disabled="!formData.companyId"
+                  :placeholder="formData.companyId ? 'เลือกสาขา' : 'เลือกบริษัทก่อน'"
+                />
+                <p v-if="hasError('branchId')" class="text-xs text-error mt-1">{{ errors.branchId }}</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-3">
+              <FormSelect
+                v-model="formData.groupId"
+                label="สายงาน (Group)"
+                :options="props.groupOptions"
+                placeholder="-- เลือก --"
+                clear-label="ไม่ระบุ"
+              />
+              <FormSelect
+                v-model="formData.departmentId"
+                label="ฝ่าย (Department)"
+                :options="props.departmentOptions"
+                placeholder="-- เลือก --"
+                clear-label="ไม่ระบุ"
+              />
+            </div>
+
+            <div class="grid grid-cols-1 gap-3">
+              <FormSelect
+                v-model="formData.divisionId"
+                label="แผนก (Division)"
+                :options="props.divisionOptions"
+                placeholder="-- เลือก --"
+                clear-label="ไม่ระบุ"
+              />
+              <FormSelect
+                v-model="formData.sectionId"
+                label="ส่วนงาน (Section)"
+                :options="props.sectionOptions"
+                placeholder="-- เลือก --"
+                clear-label="ไม่ระบุ"
+              />
+            </div>
+
+            <div>
+              <EmployeeSearchSelect
+                  v-model="formData.reportToId"
+                  label="หัวหน้างาน"
+                  placeholder="ค้นหารหัสพนักงาน / ชื่อ"
+                  :company-id="null"
+                  :exclude-id="props.employee?.id ?? null"
+                  :initial-label="reportToInitialLabel"
+                  :disabled="!formData.companyId"
+                />
+                <p class="text-xs text-base-content/40 mt-1">เว้นว่างถ้าไม่มีหัวหน้า</p>
+            </div>
+          </section>
           <section class="space-y-3 pt-5 border-t border-base-200">
             <div class="flex items-center gap-2 text-xs font-semibold text-base-content/45 uppercase tracking-wide">
               <Briefcase class="size-3.5" />
@@ -266,83 +342,7 @@
             </div>
           </section>
 
-          <section class="space-y-3 pt-5 border-t border-base-200">
-            <div class="flex items-center gap-2 text-xs font-semibold text-base-content/45 uppercase tracking-wide">
-              <Building2 class="size-3.5" />
-              สังกัด
-            </div>
-
-            <div class="grid grid-cols-1 gap-3">
-              <div>
-                <FormSelect
-                  :model-value="formData.companyId"
-                  @update:model-value="onCompanyChange"
-                  label="บริษัท"
-                  required
-                  :options="props.companyOptions"
-                />
-                <p v-if="hasError('companyId')" class="text-xs text-error mt-1">{{ errors.companyId }}</p>
-              </div>
-              <div>
-                <FormSelect
-                  v-model="formData.branchId"
-                  label="สาขา"
-                  required
-                  :options="props.branchOptions"
-                  :disabled="!formData.companyId"
-                  :placeholder="formData.companyId ? 'เลือกสาขา' : 'เลือกบริษัทก่อน'"
-                />
-                <p v-if="hasError('branchId')" class="text-xs text-error mt-1">{{ errors.branchId }}</p>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-1 gap-3">
-              <FormSelect
-                v-model="formData.groupId"
-                label="สายงาน (Group)"
-                :options="props.groupOptions"
-                placeholder="-- เลือก --"
-                clear-label="ไม่ระบุ"
-              />
-              <FormSelect
-                v-model="formData.departmentId"
-                label="ฝ่าย (Department)"
-                :options="props.departmentOptions"
-                placeholder="-- เลือก --"
-                clear-label="ไม่ระบุ"
-              />
-            </div>
-
-            <div class="grid grid-cols-1 gap-3">
-              <FormSelect
-                v-model="formData.divisionId"
-                label="แผนก (Division)"
-                :options="props.divisionOptions"
-                placeholder="-- เลือก --"
-                clear-label="ไม่ระบุ"
-              />
-              <FormSelect
-                v-model="formData.sectionId"
-                label="ส่วนงาน (Section)"
-                :options="props.sectionOptions"
-                placeholder="-- เลือก --"
-                clear-label="ไม่ระบุ"
-              />
-            </div>
-
-            <div>
-              <EmployeeSearchSelect
-                  v-model="formData.reportToId"
-                  label="หัวหน้างาน"
-                  placeholder="ค้นหารหัสพนักงาน / ชื่อ"
-                  :company-id="null"
-                  :exclude-id="props.employee?.id ?? null"
-                  :initial-label="reportToInitialLabel"
-                  :disabled="!formData.companyId"
-                />
-                <p class="text-xs text-base-content/40 mt-1">เว้นว่างถ้าไม่มีหัวหน้า</p>
-            </div>
-          </section>
+          
         </div>
 
         <!-- Footer -->
@@ -464,6 +464,7 @@ const genderSelectOptions = [
 const statusOptions = [
   { id: 'Active', label: 'ทำงานอยู่' },
   { id: 'Resigned', label: 'ลาออก' },
+  { id: 'FailedProbation', label: 'ไม่ผ่านทดลองงาน' },
 ]
 
 function hasError(field: string): boolean {

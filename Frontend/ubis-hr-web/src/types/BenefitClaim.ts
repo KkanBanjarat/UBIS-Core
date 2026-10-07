@@ -1,6 +1,6 @@
-export interface PettyCashLine {
+export interface BenefitClaimLine {
   id: string;
-  benefitId: string | null;
+  benefitId: string;
   benefitNameTh: string | null;
   detail: string;
   limitAmount: number;
@@ -9,7 +9,7 @@ export interface PettyCashLine {
   accountCode: string | null;
 }
 
-export interface PettyCash {
+export interface BenefitClaim {
   id: string;
   docNum: string;
   docStatus: string;
@@ -24,16 +24,14 @@ export interface PettyCash {
   remark: string | null;
   totalAmount: number;
   lineCount?: number;
-  hasBenefitLine?: boolean;
-  hasCashLine?: boolean;
   createdBy: string;
   createdAt: string;
   updatedBy: string;
   updatedAt: string;
-  lines: PettyCashLine[];
+  lines: BenefitClaimLine[];
 }
 
-export interface PettyCashFilter {
+export interface BenefitClaimFilter {
   search: string;
   docStatus: string | null;
   employeeId: string | null;

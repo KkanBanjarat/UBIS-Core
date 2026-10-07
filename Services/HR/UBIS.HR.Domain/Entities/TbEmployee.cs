@@ -85,6 +85,8 @@ public partial class TbEmployee
 
     public virtual TbOrganizationUnit? Section { get; set; }
 
+    public virtual ICollection<TbBenefitClaim> TbBenefitClaims { get; set; } = new List<TbBenefitClaim>();
+
     public virtual ICollection<TbEmployeeBenefitPlan> TbEmployeeBenefitPlans { get; set; } = new List<TbEmployeeBenefitPlan>();
 
     public virtual ICollection<TbPettyCashRequest> TbPettyCashRequests { get; set; } = new List<TbPettyCashRequest>();

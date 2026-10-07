@@ -27,6 +27,8 @@ public partial class TbBenefit
 
     public DateTime? DeletedAt { get; set; }
 
+    public virtual ICollection<TbBenefitClaimLine> TbBenefitClaimLines { get; set; } = new List<TbBenefitClaimLine>();
+
     public virtual ICollection<TbBenefitPlanItem> TbBenefitPlanItems { get; set; } = new List<TbBenefitPlanItem>();
 
     public virtual ICollection<TbPettyCashLine> TbPettyCashLines { get; set; } = new List<TbPettyCashLine>();

@@ -41,25 +41,30 @@ public class ApprovalService : IApprovalService
         return _documentServices.FirstOrDefault(x => x.DocType == docType);
     }
 
-    public async Task CreateApprovalAsync(string docType, string docNumber, int docRev, List<Guid> approverIds)
+    public async Task CreateApprovalAsync(string docType, string docNumber, int docRev, List<ResolvedApprover> steps)
     {
         var round = await _approvalRepos.GetLatestRoundAsync(docType, docNumber, docRev) + 1;
         var currentUserEmail = _currentUser.GetCurrentUserEmail();
+        var now = DateTime.Now;
 
-        for (int i = 0; i < approverIds.Count; i++)
+        var stepNo = 0;
+        foreach (var step in steps)
         {
+            stepNo++;
             await _approvalRepos.AddAsync(new TbTransApprove
             {
                 DocType = docType,
                 DocNumber = docNumber,
                 DocRev = docRev,
                 Round = round,
-                StepNo = i + 1,
-                ApproverId = approverIds[i],
-                Status = i == 0 ? "WaitApprove" : "Pending",
-                CreatedAt = DateTime.Now,
+                StepNo = stepNo,
+                StepName = step.StepName,
+                ApproverType = step.ApproverType,
+                ApproverId = step.ApproverEmployeeId,
+                Status = stepNo == 1 ? "WaitApprove" : "Pending",
+                CreatedAt = now,
                 CreatedBy = currentUserEmail,
-                UpdatedAt = DateTime.Now,
+                UpdatedAt = now,
                 UpdatedBy = currentUserEmail,
             });
         }
@@ -258,6 +263,8 @@ public class ApprovalService : IApprovalService
                 Status = s.Status,
                 ActualApproveNameTh = s.ActualApproveId.HasValue ? nameMap.GetValueOrDefault(s.ActualApproveId.Value, "-") : null,
                 ApprovedDate = s.ApprovedDate,
+                ApproverType = s.ApproverType,
+                StepName = s.StepName
             }).ToList(),
             Reasons = reasons.Select(r => new ApprovalReasonDto
             {

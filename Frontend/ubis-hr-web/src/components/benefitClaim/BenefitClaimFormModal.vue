@@ -10,13 +10,13 @@
             </div>
             <div>
               <h3 class="font-semibold text-base-content text-base leading-tight">
-                {{ isEditMode ? 'แก้ไขใบเบิกเงินสดย่อย' : 'สร้างใบเบิกเงินสดย่อย' }}
+                {{ isEditMode ? 'แก้ไขใบเบิกสวัสดิการ' : 'สร้างใบเบิกสวัสดิการ' }}
               </h3>
               <div v-if="isEditMode" class="mt-1 flex items-center gap-2">
                 <span class="text-xs text-base-content/50">เลขที่</span>
                 <span class="text-xs font-semibold text-primary">{{ currentDocNum }}</span>
               </div>
-              <p class="text-xs text-base-content/45 mt-1">กรอกรายการที่ต้องการเบิก แล้วกดบันทึก</p>
+              <p class="text-xs text-base-content/45 mt-1">เลือกสวัสดิการที่ต้องการเบิก แล้วกดบันทึก</p>
             </div>
           </div>
           <button type="button" class="btn btn-ghost btn-sm btn-square rounded-lg" @click="close">
@@ -47,29 +47,53 @@
                 <input v-model="formData.docDate" type="date" class="input input-bordered input-sm h-9 w-full bg-base-100 focus:border-primary" />
                 <p v-if="errors.docDate" class="text-xs text-error mt-1">{{ errors.docDate }}</p>
               </div>
-             <div>
-              <EmployeeSelect
-                :model-value="selectedEmployeeId"
-                label="ผู้ขอเบิก"
-                :options="allowedEmployeeOptions"
-                :disabled="allowedEmployeeOptions.length <= 1"
-                @change="onEmployeeChange"/>
-              <p v-if="errors.employeeId" class="text-xs text-error mt-1">{{ errors.employeeId }}</p>
-            </div>
-            <div v-if="selectedEmployee" class="sm:col-span-2 rounded-lg border border-base-200 bg-base-100 px-4 py-3">
-              <p class="text-sm font-medium">{{ selectedEmployee.fullNameTh }}</p>
-              <p v-if="selectedEmployee.positionNameTh" class="text-sm text-base-content/50 mt-0.5">
-                ตำแหน่ง: {{ selectedEmployee.positionNameTh }}
-              </p>
-            </div>
-            <div class="sm:col-span-2">
-              <label class="block text-xs font-medium text-base-content/60 mb-1.5">หมายเหตุ</label>
-              <textarea v-model="formData.remark" rows="2" placeholder="ระบุหมายเหตุเพิ่มเติม (ถ้ามี)"
-                class="textarea textarea-bordered w-full text-sm bg-base-100 resize-none focus:border-primary">
-              </textarea>
-            </div>
+              <div>
+                <EmployeeSelect
+                  :model-value="selectedEmployeeId"
+                  label="ผู้ขอเบิก"
+                  :options="allowedEmployeeOptions"
+                  :disabled="allowedEmployeeOptions.length <= 1"
+                  @change="onEmployeeChange"
+                />
+                <p v-if="errors.employeeId" class="text-xs text-error mt-1">{{ errors.employeeId }}</p>
+              </div>
+
+              <div v-if="selectedEmployee" class="sm:col-span-2 rounded-lg border border-base-200 bg-base-100 px-4 py-3">
+                <p class="text-md font-medium">ผู้ขอเบิก : {{ selectedEmployee.fullNameTh }}</p>
+                <p v-if="selectedEmployee.positionNameTh" class="text-sm text-base-content/50 mt-0.5">
+                    ตำแหน่ง: {{ selectedEmployee.positionNameTh }}
+                </p>
+
+                <button type="button"
+                    class="mt-2 flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                    @click="showBenefits = !showBenefits">
+                    <component :is="showBenefits ? ChevronUp : ChevronDown" class="size-sm" />
+                    สวัสดิการที่ใช้ได้
+                    <span v-if="!isLoadingLimits" class="text-base-content/40">({{ entitledBenefits.length }})</span>
+                </button>
+
+                <div v-if="showBenefits" class="mt-2">
+                    <div v-if="isLoadingLimits" class="skeleton h-8 w-full"></div>
+                    <p v-else-if="!entitledBenefits.length" class="text-xs text-warning">
+                    พนักงานคนนี้ไม่มีสวัสดิการที่ใช้ได้ จึงไม่สามารถสร้างใบเบิกสวัสดิการได้
+                    </p>
+                    <ul v-else class="space-y-1 max-h-40 overflow-y-auto">
+                    <li v-for="b in entitledBenefits" :key="b.id" class="flex items-center justify-between gap-3 text-sm">
+                        <span class="truncate">{{ b.label }}</span>
+                        <span class="font-semibold shrink-0">{{ b.limitAmount.toLocaleString('th-TH') }} บาท</span>
+                    </li>
+                    </ul>
+                </div>
+                </div>
+
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-base-content/60 mb-1.5">หมายเหตุ</label>
+                <textarea v-model="formData.remark" rows="2" placeholder="ระบุหมายเหตุเพิ่มเติม (ถ้ามี)"
+                  class="textarea textarea-bordered w-full text-sm bg-base-100 resize-none focus:border-primary"></textarea>
+              </div>
             </div>
           </section>
+
           <!-- Lines -->
           <section>
             <div class="flex items-center justify-between mb-3">
@@ -78,15 +102,16 @@
                   <h4 class="text-sm font-semibold">รายการเบิก</h4>
                   <span class="badge badge-sm badge-ghost">{{ formData.lines.length }} รายการ</span>
                 </div>
-                <p class="text-[11px] text-base-content/40 mt-0.5">เพิ่มรายการสวัสดิการหรือเงินสดย่อยที่ต้องการเบิก</p>
+                <p class="text-[11px] text-base-content/40 mt-0.5">เพิ่มรายการสวัสดิการที่ต้องการเบิก</p>
               </div>
-              <button type="button" class="btn btn-primary btn-sm gap-1.5 rounded-lg" @click="addLine">
+              <button type="button" class="btn btn-primary btn-sm gap-1.5 rounded-lg"
+                :disabled="!entitledBenefits.length" @click="addLine">
                 <Plus class="size-4" /> เพิ่มรายการ
               </button>
             </div>
 
             <div v-if="formData.lines.length === 0" class="rounded-xl border border-dashed border-base-300 bg-base-200/20 py-10 text-center">
-              <p v-if="errors.lines" class="text-xs text-error mt-2">{{ errors.lines }}</p>
+              <p v-if="errors.lines" class="text-xs text-error mb-2">{{ errors.lines }}</p>
               <div class="mx-auto flex size-11 items-center justify-center rounded-full bg-base-200 text-base-content/40">
                 <ReceiptText class="size-5" />
               </div>
@@ -99,8 +124,7 @@
                 class="group rounded-xl border border-base-200 bg-base-100 p-4 transition-all hover:border-primary/20 hover:shadow-sm">
                 <div class="flex items-center justify-between mb-4">
                   <div class="flex items-center gap-2.5">
-                    <div
-                      class="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary text-xs font-semibold">
+                    <div class="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary text-xs font-semibold">
                       {{ idx + 1 }}
                     </div>
                     <div>
@@ -114,13 +138,21 @@
                     <Trash2 class="size-3.5" />
                   </button>
                 </div>
+
+                <div class="mb-3">
+                  <FormSelect v-model="line.benefitId" label="สวัสดิการ *" :options="filteredBenefitOptions"
+                    placeholder="-- เลือกสวัสดิการ --"
+                    @update:model-value="(id) => onBenefitChange(line, id)" />
+                  <p v-if="errors[`lines[${idx}].benefitId`]" class="text-xs text-error mt-1">{{ errors[`lines[${idx}].benefitId`] }}</p>
+                </div>
+
                 <div class="mb-3">
                   <label class="block text-xs font-medium text-base-content/60 mb-1.5">รายละเอียด</label>
-                  <textarea v-model="line.detail" rows="2" placeholder="เช่น ค่าเดินทาง, ค่าอาหาร, ค่าของใช้สำนักงาน"
+                  <textarea v-model="line.detail" rows="2" placeholder="ระบุรายละเอียดการเบิก"
                     class="textarea textarea-bordered w-full text-sm resize-none focus:border-primary"></textarea>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-1 gap-3">
+                <div class="grid grid-cols-1 gap-3">
                   <div>
                     <label class="block text-xs font-medium text-base-content/60 mb-1.5">ยอดเบิก</label>
                     <div class="relative">
@@ -128,7 +160,7 @@
                         class="input input-bordered input-sm w-full pr-10 focus:border-primary" />
                       <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-base-content/35">บาท</span>
                     </div>
-                    <p v-if="errors[`lines[${idx}].amount`]" class="text-xs text-error m-1">{{ errors[`lines[${idx}].amount`] }}</p>
+                    <p v-if="errors[`lines[${idx}].amount`]" class="text-xs text-error mt-1">{{ errors[`lines[${idx}].amount`] }}</p>
                   </div>
                   <div hidden>
                     <label class="block text-xs font-medium text-base-content/60 mb-1.5">รหัสบัญชี</label>
@@ -138,19 +170,34 @@
                 </div>
 
                 <!-- Limit Info -->
-                <div v-if="isOverGeneralLimit(line)" class="mt-3 flex items-center gap-1.5 rounded-lg bg-error/10 px-3 py-2.5 text-error">
-                  <CircleAlert class="size-3.5" />
-                  <span class="text-xs font-medium">
-                    เกินวงเงินเงินสดย่อย {{ GENERAL_PETTY_CASH_LIMIT.toLocaleString('th-TH') }} บาทต่อรายการ — บันทึกไม่ได้
-                  </span>
+                <div v-if="line.benefitId" class="mt-3 rounded-lg px-3 py-2.5 space-y-1.5 bg-base-200/50">
+                  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                      <Info class="size-3.5 text-base-content/40" />
+                      <span class="text-xs text-base-content/50">วงเงินสิทธิ์</span>
+                      <span class="text-xs font-semibold">{{ line.limitAmount.toLocaleString('th-TH') }} บาท</span>
+                    </div>
+
+                    <div v-if="line.amount > line.limitAmount" class="flex items-center gap-1.5 text-warning">
+                      <TriangleAlert class="size-3.5" />
+                      <span class="text-xs font-medium">
+                        เกินวงเงินอ้างอิง {{ (line.amount - line.limitAmount).toLocaleString('th-TH') }} บาท
+                        (ตรวจสอบก่อนอนุมัติ)
+                      </span>
+                    </div>
+                  </div>
+
+                  <p v-if="line.condition" class="text-[11px] text-base-content/45 pl-5.5">เงื่อนไข: {{ line.condition }}</p>
                 </div>
               </div>
             </div>
           </section>
-        <section class="rounded-xl border border-base-200 bg-base-200/20 p-4">
-          <p class="text-sm font-semibold mb-3">ไฟล์แนบ</p>
-          <AttachmentList doc-type="PettyCash" :doc-number="currentDocNum || null" :target="dialogRef" />
-        </section>
+
+          <section class="rounded-xl border border-base-200 bg-base-200/20 p-4">
+            <p class="text-sm font-semibold mb-3">ไฟล์แนบ</p>
+            <AttachmentList doc-type="BenefitClaim" :doc-number="currentDocNum || null" :target="dialogRef" />
+          </section>
+
           <!-- Total -->
           <div class="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 px-5 py-4">
             <div>
@@ -186,6 +233,7 @@
         </div>
       </form>
     </div>
+
     <form method="dialog" class="modal-backdrop">
       <button>close</button>
     </form>
@@ -195,25 +243,45 @@
 <script setup lang="ts">
 import * as yup from 'yup'
 import { ref, computed } from 'vue'
-import { X, Plus, Trash2, ReceiptText, FileText, CircleAlert } from 'lucide-vue-next'
-import type { PettyCash } from '../../types/PettyCash.ts'
+import { notify } from '../../utils/notify.ts'
+import { X, Plus, Trash2, ReceiptText, FileText, Info, TriangleAlert, CircleAlert, ChevronDown, ChevronUp } from 'lucide-vue-next'
+import FormSelect from '../ui/FormSelect.vue'
+import type { BenefitClaim } from '../../types/BenefitClaim.ts'
 import AttachmentList from '../attachment/AttachmentList.vue'
 import EmployeeSelect, { type EmployeeOption } from '../../components/ui/EmployeeSelect.vue'
+import { useBenefitClaimStore } from '../../stores/benefitClaimStore.ts'
+
+interface OptionItem {
+  id: string
+  label: string
+}
+interface BenefitOption extends OptionItem {
+  limitHint?: number
+}
+interface BenefitLimitInfo {
+  limitAmount: number
+  description: string | null
+}
 
 const props = defineProps<{
   isCreate: boolean
   employeeId: string
   employeeName: string
+  benefitOptions: BenefitOption[]
   allowedEmployees: EmployeeOption[]
 }>()
 
+const benefitClaimStore = useBenefitClaimStore()
 const emit = defineEmits<{ save: [data: any, isCreate: boolean] }>()
 
 const dialogRef = ref<HTMLDialogElement>()
 const isSubmitting = ref(false)
 const currentDocNum = ref('')
 const errorMessage = ref('')
+const showBenefits = ref(false)
 const selectedEmployeeId = ref('')
+const employeeBenefitLimits = ref<Record<string, BenefitLimitInfo>>({})
+const isLoadingLimits = ref(false)
 const isEditMode = ref(false)
 const errors = ref<Record<string, string>>({})
 
@@ -224,19 +292,33 @@ const allowedEmployeeOptions = computed(() => {
   return props.allowedEmployees
 })
 
+const filteredBenefitOptions = computed(() => {
+  const entitledIds = new Set(Object.keys(employeeBenefitLimits.value))
+  return props.benefitOptions.filter(o => entitledIds.has(o.id))
+})
+
 const selectedEmployee = computed(() =>
   allowedEmployeeOptions.value.find(e => e.id === selectedEmployeeId.value) ?? null
 )
 
+const entitledBenefits = computed(() =>
+  filteredBenefitOptions.value.map(o => ({
+    id: o.id,
+    label: o.label,
+    limitAmount: employeeBenefitLimits.value[o.id]?.limitAmount ?? 0,
+    description: employeeBenefitLimits.value[o.id]?.description ?? null,
+  }))
+)
+
 interface LineForm {
-  benefitId: string | null // เก็บไว้เฉพาะเอกสารเก่าที่เคยมีสวัสดิการ
+  benefitId: string | null
   detail: string
+  limitAmount: number
+  condition: string | null
   amount: number
   qty: number
   accountCode: string
 }
-
-const GENERAL_PETTY_CASH_LIMIT = 2000
 
 const defaultForm = () => ({
   docDate: new Date().toISOString().split('T')[0],
@@ -248,14 +330,12 @@ const formData = ref(defaultForm())
 
 const totalAmount = computed(() => formData.value.lines.reduce((sum, l) => sum + (l.amount || 0), 0))
 
-function isOverGeneralLimit(line: LineForm) {
-  return !line.benefitId && line.amount > GENERAL_PETTY_CASH_LIMIT
-}
-
 function addLine() {
   formData.value.lines.push({
     benefitId: null,
     detail: '',
+    limitAmount: 0,
+    condition: null,
     amount: 0,
     qty: 1,
     accountCode: '',
@@ -266,16 +346,65 @@ function removeLine(idx: number) {
   formData.value.lines.splice(idx, 1)
 }
 
-function onEmployeeChange(employeeId: string | null | undefined) {
-  selectedEmployeeId.value = employeeId ?? props.employeeId
+function onBenefitChange(line: LineForm, benefitId: string | null | undefined) {
+  line.benefitId = benefitId || null
+  const info = line.benefitId ? employeeBenefitLimits.value[line.benefitId] : null
+  line.limitAmount = info?.limitAmount ?? 0
+  line.condition = info?.description ?? null
 }
 
-async function open(item?: PettyCash | null) {
+async function loadBenefitLimitsFor(employeeId: string) {
+  isLoadingLimits.value = true
+  try {
+    employeeBenefitLimits.value = await benefitClaimStore.getBenefitLimitsFor(employeeId)
+
+    for (const line of formData.value.lines) {
+      if (line.benefitId) {
+        const info = employeeBenefitLimits.value[line.benefitId]
+        if (!info) {
+          line.benefitId = null
+          line.limitAmount = 0
+          line.condition = null
+        } else {
+          line.limitAmount = info.limitAmount
+          line.condition = info.description
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load benefit limits:', err)
+    employeeBenefitLimits.value = {}
+  } finally {
+    isLoadingLimits.value = false
+  }
+}
+
+async function onEmployeeChange(employeeId: string | null | undefined) {
+  const newId = employeeId ?? props.employeeId
+  if (newId === selectedEmployeeId.value) return
+
+  if (formData.value.lines.length > 0) {
+    const ok = await notify.confirm(
+      'เปลี่ยนผู้ขอเบิกจะล้างรายการเบิกที่กรอกไว้ทั้งหมด เนื่องจากสวัสดิการแต่ละคนไม่เท่ากัน ยืนยันเปลี่ยนหรือไม่',
+      'ยืนยันเปลี่ยนผู้ขอเบิก',
+      dialogRef.value
+    )
+    if (!ok) return
+  }
+
+  selectedEmployeeId.value = newId
+  formData.value.lines = []
+  await loadBenefitLimitsFor(newId)
+}
+
+async function open(item?: BenefitClaim | null) {
   errorMessage.value = ''
-  errors.value = {}
+    errors.value = {}
+  showBenefits.value = false
   currentDocNum.value = item?.docNum || ''
   isEditMode.value = !!item
   selectedEmployeeId.value = item?.employeeId || props.employeeId
+  await loadBenefitLimitsFor(selectedEmployeeId.value)
 
   if (isEditMode.value && item) {
     formData.value = {
@@ -284,6 +413,8 @@ async function open(item?: PettyCash | null) {
       lines: item.lines.map(l => ({
         benefitId: l.benefitId,
         detail: l.detail,
+        limitAmount: employeeBenefitLimits.value[l.benefitId]?.limitAmount ?? l.limitAmount,
+        condition: employeeBenefitLimits.value[l.benefitId]?.description ?? null,
         amount: l.amount,
         qty: l.qty,
         accountCode: l.accountCode ?? '',
@@ -312,6 +443,7 @@ const validationSchema = yup.object({
     .min(1, 'กรุณาเพิ่มรายการเบิกอย่างน้อย 1 รายการ')
     .of(
       yup.object({
+        benefitId: yup.string().nullable().required('กรุณาเลือกสวัสดิการ'),
         amount: yup
           .number()
           .typeError('กรุณาระบุยอดเบิก')
@@ -337,12 +469,6 @@ async function handleSubmit() {
     return
   }
 
-  const overLimit = formData.value.lines.find(isOverGeneralLimit)
-  if (overLimit) {
-    errorMessage.value = `มีรายการที่เกินวงเงิน ${GENERAL_PETTY_CASH_LIMIT.toLocaleString('th-TH')} บาท กรุณาแก้ไขก่อนบันทึก`
-    return
-  }
-
   isSubmitting.value = true
   try {
     const payload = {
@@ -352,7 +478,7 @@ async function handleSubmit() {
       lines: formData.value.lines.map(l => ({
         benefitId: l.benefitId,
         detail: l.detail,
-        limitAmount: l.benefitId ? 0 : GENERAL_PETTY_CASH_LIMIT,
+        limitAmount: l.limitAmount || 0,
         amount: l.amount,
         qty: l.qty,
         accountCode: l.accountCode || null,

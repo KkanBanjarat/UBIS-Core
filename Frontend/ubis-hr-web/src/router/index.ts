@@ -21,6 +21,12 @@ const routes = [
         component: () => import("../views/pettycash/PettyCashListView.vue"),
       },
       {
+        path: "benefit-claim",
+        name: "benefit-claim",
+        component: () =>
+          import("../views/benefitClaim/BenefitClaimListView.vue"),
+      },
+      {
         path: "approvals",
         name: "approvals",
         component: () => import("../views/approval/ApprovalsView.vue"),

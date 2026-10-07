@@ -114,112 +114,77 @@
 
           <!-- Timeline -->
           <div class="p-5 sm:p-7">
-            <div
-              v-if="approvalSteps.length"
-              class="relative"
-            >
-              <div
-                class="absolute bottom-5 left-5 top-5 w-0.5 bg-base-300"
-              ></div>
-
-              <div
-                v-for="(step, index) in approvalSteps"
+            <div  v-if="approvalSteps.length" class="relative">
+              <div class="absolute bottom-5 left-5 top-5 w-0.5 bg-base-300"></div>
+              <div v-for="(step, index) in approvalSteps"
                 :key="step.id"
-                class="relative flex gap-4"
-              >
+                class="relative flex gap-4">
                 <!-- Status Icon -->
-                <div
-                  class="relative z-10 flex size-10 shrink-0 items-center justify-center rounded-full border-4 border-base-100 shadow-md"
-                  :class="getTimelineIconClass(step.status)"
-                >
-                  <Check
-                    v-if="step.status === 'approved'"
-                    class="size-4"
-                  />
-
-                  <Clock3
-                    v-else-if="step.status === 'waitApprove'"
-                    class="size-4"
-                  />
-
-                  <X
-                    v-else-if="
+                <div class="relative z-10 flex size-10 shrink-0 items-center justify-center rounded-full border-4 border-base-100 shadow-md"
+                  :class="getTimelineIconClass(step.status)">
+                  <Check v-if="step.status === 'approved'"
+                    class="size-4"/>
+                  <Clock3 v-else-if="step.status === 'waitApprove'"
+                    class="size-4"/>
+                  <X v-else-if="
                       step.status === 'rejected' ||
                       step.status === 'disapproved'
-                    "
-                    class="size-4"
-                  />
-
-                  <RotateCcw
-                    v-else-if="step.status === 'recalled'"
-                    class="size-4"
-                  />
+                    " class="size-4"/>
+                  <RotateCcw v-else-if="step.status === 'recalled'"
+                    class="size-4"/>
 
                   <span
                     v-else
                     class="size-2 rounded-full bg-current"
                   ></span>
                 </div>
-
                 <!-- Timeline Card -->
-                <div
-                  class="mb-7 flex-1 rounded-xl border px-4 py-3.5 shadow-sm transition-all"
+                <div class="mb-7 flex-1 rounded-xl border px-4 py-3.5 shadow-sm transition-all"
                   :class="[
                     getTimelineCardClass(step.status),
                     index === approvalSteps.length - 1 ? 'mb-0' : '',
                   ]"
                 >
-                  <div
-                    class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"
-                  >
+                  <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <div class="flex items-center gap-2">
                         <p class="text-sm font-semibold">
                           {{ step.title }}
+                          <span v-if="step.stepName" class="font-normal text-base-content/60">
+                            · {{ step.stepName }}
+                          </span>
                         </p>
-
                         <span
                           v-if="step.status === 'waitApprove'"
                           class="size-1.5 animate-pulse rounded-full bg-warning"
                         ></span>
                       </div>
 
-                      <p class="mt-0.5 text-xs text-base-content/50">
+                      <p class="mt-0.5 text-sm text-base-content/70">
                         {{ step.actor }}
                       </p>
                     </div>
-
                     <!-- Status Badge -->
-                    <span
-                      class="badge badge-sm w-fit font-medium"
-                      :class="getTimelineBadgeClass(step.status)"
-                    >
+                    <span class="badge badge-sm w-fit font-medium"
+                      :class="getTimelineBadgeClass(step.status)">
                       {{ getTimelineStatusText(step.status) }}
                     </span>
                   </div>
-
-                  <div
-                    v-if="step.date"
-                    class="mt-3 flex items-center gap-1.5 text-[11px] text-base-content/40"
-                  >
+                  <div v-if="step.date"
+                    class="mt-3 flex items-center gap-1.5 text-[11px] text-base-content/40">
                     <Clock3 class="size-3" />
                     {{ step.date }}
                   </div>
 
-                  <div
-                    v-if="step.remark"
-                    class="mt-3 rounded-lg bg-base-100/70 px-3 py-2 text-xs text-base-content/60"
-                  >
+                  <div v-if="step.remark"
+                    class="mt-3 rounded-lg bg-base-100/70 px-3 py-2 text-xs text-base-content/60">
                     {{ step.remark }}
                   </div>
                 </div>
               </div>
             </div>
 
-            <p
-              v-else
-              class="text-center text-sm text-base-content/40 py-6"
-            >
+            <p v-else class="text-center text-sm text-base-content/40 py-6">
               ยังไม่มีข้อมูลขั้นตอนอนุมัติ
             </p>
           </div>
@@ -339,6 +304,7 @@ interface TimelineStep {
   id: number;
   title: string;
   actor: string;
+  stepName: string | null,
   status: TimelineStatus;
   date: string;
   remark: string;
@@ -371,7 +337,7 @@ function toTimelineStatus(status: string): TimelineStatus {
   }
 }
 
-const approvalSteps = computed<TimelineStep[]>(() => {
+const approvalSteps = computed<TimelineStep[]> (() => {
   // หา Step ที่ถูกตีกลับ / ไม่อนุมัติจริง
   const deniedStepNos = trailSteps.value
     .filter(
@@ -399,6 +365,7 @@ const approvalSteps = computed<TimelineStep[]>(() => {
     return {
       id: step.stepNo,
       title: `ลำดับที่ ${step.stepNo}`,
+      stepName: step.stepName,
       actor: step.approverNameTh,
       status: toTimelineStatus(step.status),
       date: step.approvedDate

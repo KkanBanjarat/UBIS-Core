@@ -180,19 +180,19 @@
 </template>
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { User as UserIcon, FileQuestion, FileText, ReceiptText } from 'lucide-vue-next'
-import { usePettyCashStore } from '../../stores/pettyCashStore'
-import type { PettyCash } from '../../types/PettyCash'
+import { FileQuestion, FileText, ReceiptText } from 'lucide-vue-next'
+import { useBenefitClaimStore } from '../../stores/benefitClaimStore'
+import type { BenefitClaim } from '../../types/BenefitClaim'
 
 const props = defineProps<{ docNumber: string }>()
 
-const pettyCashStore = usePettyCashStore()
-const doc = ref<PettyCash | null>(null)
+const benefitClaimStore = useBenefitClaimStore()
+const doc = ref<BenefitClaim | null>(null)
 const isLoading = ref(true)
 
 function formatDate(d: string) {
   if (!d) return '-'
-  return new Date(d).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })
+  return new Date(d).toLocaleDateString('en-GB', { year: 'numeric', month: 'numeric', day: 'numeric' })
 }
 
 function formatAmount(amount: number | null | undefined) {
@@ -204,9 +204,9 @@ function formatAmount(amount: number | null | undefined) {
 
 onMounted(async () => {
   try {
-    doc.value = await pettyCashStore.getByDocNum(props.docNumber)
+    doc.value = await benefitClaimStore.getByDocNum(props.docNumber)
   } catch (err) {
-    console.error('Failed to load pretty cash detail:', err)
+    console.error('Failed to load benefit claim detail:', err)
   } finally {
     isLoading.value = false
   }

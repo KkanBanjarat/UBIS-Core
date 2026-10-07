@@ -122,7 +122,7 @@
           <option :value="100">100</option>
         </select>
         <span>รายการต่อหน้า</span>
-        <button class="btn btn-primary btn-sm gap-1.5" @click="openCreateModal">
+        <button class="btn btn-primary btn-sm gap-1.5 ml-auto" @click="openCreateModal">
           <Plus class="size-4" />
           เพิ่มพนักงานใหม่
         </button>
@@ -137,10 +137,8 @@
       </div>
 
       <!-- Error -->
-      <div
-        v-else-if="errorMessage"
-        class="flex flex-col items-center gap-2 p-14 text-center"
-      >
+      <div v-else-if="errorMessage"
+        class="flex flex-col items-center gap-2 p-14 text-center">
         <CircleAlert class="size-8 text-error/70" />
         <p class="text-error text-sm">{{ errorMessage }}</p>
       </div>
@@ -460,6 +458,7 @@ const organizationUnitId = computed<string | null>({
 const statusOptions: OptionItem[] = [
   { id: "Active", label: "ทำงานอยู่" },
   { id: "Resigned", label: "ลาออก" },
+  { id: 'FailedProbation', label: 'ไม่ผ่านทดลองงาน' },
 ];
 
 // ========================================
@@ -517,6 +516,9 @@ function statusMeta(rawStatus: string) {
   }
   if (rawStatus === "ลาออก" || rawStatus === "Resigned") {
     return { label: "ลาออก", class: "badge-error text-error-content" };
+  }
+  if (rawStatus === "ไม่ผ่านทดลองงาน" || rawStatus === "FailedProbationห") {
+    return { label: "ไม่ผ่านทดลองงาน", class: "badge-error text-error-content" };
   }
   return { label: rawStatus, class: "badge-ghost" };
 }

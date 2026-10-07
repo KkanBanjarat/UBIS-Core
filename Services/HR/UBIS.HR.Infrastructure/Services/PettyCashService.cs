@@ -48,6 +48,11 @@ public class PettyCashService : IPettyCashService
             DocStatus = s.DocStatus,
             DocDate = s.DocDate.Date,
             EmployeeId = s.EmployeeId,
+            PositionTh = s.Employee.Position.NameTh,
+            PositionEn = s.Employee.Position.NameEn,
+            PositionLevel = $"L{s.Employee.PositionLevel.Level}",
+            PositionLevelNameEn = s.Employee.PositionLevel.NameEn,
+            PositionLevelNameTh = s.Employee.PositionLevel.NameTh,
             EmployeeNameTh = s.Employee != null ? $"{s.Employee.FnameTh} {s.Employee.LnameTh}" : null,
             Remark = s.Remark,
             TotalAmount = s.TotalAmount,
@@ -243,7 +248,7 @@ public class PettyCashService : IPettyCashService
                 "PettyCash",
                 existingEntity.DocNum,
                 1,
-                resolvedApprovers.OrderBy(x => x.StepNo).Select(x => x.ApproverEmployeeId).ToList()
+                resolvedApprovers.OrderBy(x => x.StepNo).ToList()
             );
 
             return await GetByIdAsync(id);

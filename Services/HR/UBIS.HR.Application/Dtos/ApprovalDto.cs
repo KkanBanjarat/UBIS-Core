@@ -28,6 +28,9 @@ public class ApprovalStepDto
     public string Status { get; set; }
     public string? ActualApproveNameTh { get; set; }
     public DateTime? ApprovedDate { get; set; }
+    public string? StepName { get; set; }
+    public string? ApproverType { get; set; }
+
 }
 
 public class ApprovalReasonDto
