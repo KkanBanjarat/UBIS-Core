@@ -150,6 +150,9 @@
                   <label class="block text-xs font-medium text-base-content/60 mb-1.5">รายละเอียด</label>
                   <textarea v-model="line.detail" rows="2" placeholder="ระบุรายละเอียดการเบิก"
                     class="textarea textarea-bordered w-full text-sm resize-none focus:border-primary"></textarea>
+                  <p v-if="errors[`lines[${idx}].detail`]" class="text-xs text-error mt-1">
+                    {{ errors[`lines[${idx}].detail`] }}
+                  </p>
                 </div>
 
                 <div class="grid grid-cols-1 gap-3">
@@ -330,6 +333,23 @@ const formData = ref(defaultForm())
 
 const totalAmount = computed(() => formData.value.lines.reduce((sum, l) => sum + (l.amount || 0), 0))
 
+const validationSchema = yup.object({
+  docDate: yup.string().required('กรุณาระบุวันที่เอกสาร'),
+  employeeId: yup.string().required('กรุณาเลือกผู้ขอเบิก'),
+  lines: yup
+    .array()
+    .min(1, 'กรุณาเพิ่มรายการเบิกอย่างน้อย 1 รายการ')
+    .of(
+      yup.object({
+        benefitId: yup.string().nullable().required('กรุณาเลือกสวัสดิการ'),
+        detail: yup.string().trim().required('กรุณาระบุรายละเอียด'),
+        amount: yup
+          .number()
+          .typeError('กรุณาระบุยอดเบิก')
+          .moreThan(0, 'ยอดเบิกต้องมากกว่า 0'),
+      }),
+    ),
+})
 function addLine() {
   formData.value.lines.push({
     benefitId: null,
@@ -435,22 +455,7 @@ function getDialogEl() {
   return dialogRef.value ?? null
 }
 
-const validationSchema = yup.object({
-  docDate: yup.string().required('กรุณาระบุวันที่เอกสาร'),
-  employeeId: yup.string().required('กรุณาเลือกผู้ขอเบิก'),
-  lines: yup
-    .array()
-    .min(1, 'กรุณาเพิ่มรายการเบิกอย่างน้อย 1 รายการ')
-    .of(
-      yup.object({
-        benefitId: yup.string().nullable().required('กรุณาเลือกสวัสดิการ'),
-        amount: yup
-          .number()
-          .typeError('กรุณาระบุยอดเบิก')
-          .moreThan(0, 'ยอดเบิกต้องมากกว่า 0'),
-      }),
-    ),
-})
+
 
 async function handleSubmit() {
   errorMessage.value = ''

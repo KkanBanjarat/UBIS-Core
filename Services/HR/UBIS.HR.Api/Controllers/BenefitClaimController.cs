@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UBIS.HR.Application.Dtos;
 using UBIS.HR.Application.Interfaces;
+using UBIS.HR.Api.Authorization;
 
 namespace UBIS.HR.Api.Controllers;
 
@@ -16,11 +17,12 @@ public class BenefitClaimController : ControllerBase
     {
         _service = service;
     }
-
+    // [MenuAuthorize("benefit-claim", MenuLevel.Read)]
     [HttpPost("benefit-claim-list")]
     public async Task<IActionResult> GetPaged(BenefitClaimFilterDto filter)
         => Ok(await _service.GetAllAsync(filter));
 
+    // [MenuAuthorize("benefit-claim", MenuLevel.Read)]
     [HttpGet("by-docnum/{docNum}")]
     public async Task<IActionResult> GetByDocNum(string docNum)
     {
@@ -34,7 +36,7 @@ public class BenefitClaimController : ControllerBase
         var result = await _service.GetByIdAsync(id);
         return result == null ? NotFound() : Ok(result);
     }
-
+    [MenuAuthorize("benefit-claim", MenuLevel.Write)]
     [HttpPost]
     public async Task<IActionResult> Create(CreateBenefitClaimDto data)
     {

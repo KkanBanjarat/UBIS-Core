@@ -74,7 +74,8 @@
             <div class="min-w-0">
               <div class="flex flex-wrap items-center gap-2">
                 <h4 class="text-sm font-semibold text-primary">เอกสาร{{ docTypeLabel(item.docType) }}</h4>
-                <span class="inline-flex items-center gap-1 rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-medium text-warning">
+                <span
+                  class="inline-flex items-center gap-1 rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-medium text-warning">
                   <span class="size-1.5 rounded-full bg-warning"></span>
                   รออนุมัติ
                 </span>
@@ -186,8 +187,8 @@
         <div class="flex items-start gap-3">
 
           <div class="flex size-10 shrink-0 items-center justify-center rounded-xl" :class="denialMode === 'reject'
-              ? 'bg-warning/10 text-warning'
-              : 'bg-error/10 text-error'">
+            ? 'bg-warning/10 text-warning'
+            : 'bg-error/10 text-error'">
             <component :is="denialMode === 'reject' ? Undo2 : X" class="size-5" />
           </div>
 
@@ -238,8 +239,8 @@
           </button>
 
           <button type="button" class="btn btn-sm px-5" :class="denialMode === 'reject'
-              ? 'btn-warning'
-              : 'btn-error'
+            ? 'btn-warning'
+            : 'btn-error'
             " :disabled="!rejectReason.trim()" @click="submitDenial">
             {{
               denialMode === 'reject'

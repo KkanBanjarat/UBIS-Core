@@ -24,25 +24,21 @@
     >
 
       <!-- Document Header -->
-      <div
-        class="relative overflow-hidden border-b border-base-300
-               bg-base-200/40 px-5 py-4"
-      >
+      <div class="relative overflow-hidden border-b border-base-300 bg-base-200/40 px-5 py-4">
         <div class="pointer-events-none absolute -right-12 -top-12 size-32 rounded-full bg-primary/5" ></div>
-
         <div class="relative flex items-center gap-3">
           <div class="flex size-10 shrink-0 items-center justify-center
                    rounded-xl bg-primary text-primary-content shadow-sm">
             <FileText class="size-4.5" />
           </div>
-
           <div class="min-w-0">
-            <p class="text-[11px] font-medium text-base-content/45">
-              ข้อมูลเอกสาร
-            </p>
+           
             <h2 class="mt-0.5 truncate text-base font-bold text-base-content">
-              {{ props.docNumber }}
+              เลขที่เอกสาร : {{ props.docNumber }}
             </h2>
+             <p class="text-sm font-medium text-base-content/70">
+              ข้อมูลเอกสารเบิกสวัสดิการ
+            </p>
           </div>
         </div>
       </div>

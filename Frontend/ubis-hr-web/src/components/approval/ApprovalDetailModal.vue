@@ -7,9 +7,9 @@
           <h3 class="font-semibold text-base-content text-base">
             รายละเอียดเอกสาร
           </h3>
-          <p class="text-xs text-base-content/45 mt-0.5">
+          <!-- <p class="text-xs text-base-content/45 mt-0.5">
             {{ docNumber }}
-          </p>
+          </p> -->
         </div>
 
         <button type="button"
@@ -26,17 +26,13 @@
           v-if="documentConfig"
           :doc-number="docNumber"
         />
-        <section
-          v-else
-          class="rounded-xl border border-dashed border-warning/40 bg-warning/5 p-4 text-sm"
-        >
+        <section v-else
+          class="rounded-xl border border-dashed border-warning/40 bg-warning/5 p-4 text-sm">
           ไม่รองรับการแสดงรายละเอียดเอกสารประเภทนี้ ({{ docType }})
         </section>
 
         <!-- Attachments -->
-        <section
-          class="overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm"
-        >
+        <section class="overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm">
           <div class="border-b border-base-300 bg-base-200/50 px-5 py-4">
             <div class="flex items-center gap-3">
               <div

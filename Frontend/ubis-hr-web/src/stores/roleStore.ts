@@ -15,6 +15,9 @@ export const useRoleStore = defineStore("role", {
     rolePermissions: [] as RolePermissionGroup[],
     isLoading: false,
     errorMessage: "",
+    permissionsLoaded: false,
+    isLoadingPermissions: false,
+    permissionsError: "",
   }),
   getters: {
     // key: `${roleId}:${permissionId}` -> rolePermissionId หรือ null ถ้ายังไม่ Grant
@@ -49,7 +52,42 @@ export const useRoleStore = defineStore("role", {
         this.isLoading = false;
       }
     },
+    // โหลดเฉพาะรายการ Role (เส้นเบา) ใช้ตอนเปิดหน้า
+    async fetchRoles() {
+      this.isLoading = true;
+      this.errorMessage = "";
+      try {
+        const res = await accessApi.get<RoleItem[]>("/Roles");
+        this.roles = res.data;
+      } catch (err) {
+        console.error("Failed to load roles:", err);
+        this.errorMessage = "โหลดรายการ Role ไม่สำเร็จ";
+      } finally {
+        this.isLoading = false;
+      }
+    },
 
+    // โหลด Permission + การผูกสิทธิ์ ครั้งเดียวตอนเปิดแท็บ Permission
+    async fetchPermissionData(force = false) {
+      if (this.permissionsLoaded && !force) return;
+      if (this.isLoadingPermissions) return;
+      this.isLoadingPermissions = true;
+      this.permissionsError = "";
+      try {
+        const [permissions, rolePermissions] = await Promise.all([
+          accessApi.get<PermissionItem[]>("/Permissions"),
+          accessApi.get<RolePermissionGroup[]>("/RolePermissions"),
+        ]);
+        this.permissions = permissions.data;
+        this.rolePermissions = rolePermissions.data;
+        this.permissionsLoaded = true;
+      } catch (err) {
+        console.error("Failed to load permissions:", err);
+        this.permissionsError = "โหลดข้อมูล Permission ไม่สำเร็จ";
+      } finally {
+        this.isLoadingPermissions = false;
+      }
+    },
     async fetchRolePermissions() {
       const res =
         await accessApi.get<RolePermissionGroup[]>("/RolePermissions");
@@ -58,16 +96,20 @@ export const useRoleStore = defineStore("role", {
 
     // ---------------- Role ----------------
     async createRole(payload: RoleFormPayload) {
-      await accessApi.post("/Roles", payload);
-      await this.fetchAll(true);
+      const res = await accessApi.post<RoleItem>("/Roles", payload);
+      this.roles.push(res.data);
     },
     async updateRole(id: string, payload: RoleFormPayload) {
-      await accessApi.put(`/Roles/${id}`, payload);
-      await this.fetchAll(true);
+      const res = await accessApi.put<RoleItem>(`/Roles/${id}`, payload);
+      const i = this.roles.findIndex((r) => r.id === id);
+      if (i >= 0) this.roles[i] = res.data;
     },
     async deleteRole(id: string) {
       await accessApi.delete(`/Roles/${id}`);
-      await this.fetchAll(true);
+      this.roles = this.roles.filter((r) => r.id !== id);
+      this.rolePermissions = this.rolePermissions.filter(
+        (g) => g.roleId !== id,
+      );
     },
 
     // ---------------- Permission ----------------
@@ -81,15 +123,30 @@ export const useRoleStore = defineStore("role", {
     },
 
     // ---------------- Grant / Revoke ----------------
-    // Grant: ยังไม่เคยติ๊ก -> ติ๊ก
     async grant(roleId: string, permissionId: string) {
-      await accessApi.post("/RolePermissions", { roleId, permissionId });
-      await this.fetchRolePermissions();
+      const res = await accessApi.post<RolePermissionGroup>(
+        "/RolePermissions",
+        {
+          roleId,
+          permissionId,
+        },
+      );
+      // response คือกลุ่มของ role นั้นที่มีสิทธิ์ใหม่ 1 รายการ
+      const group = this.rolePermissions.find((g) => g.roleId === roleId);
+      if (group) group.permissions.push(...res.data.permissions);
+      else this.rolePermissions.push(res.data);
     },
-    // Revoke: ติ๊กอยู่ -> เอาออก
     async revoke(rolePermissionId: string) {
       await accessApi.delete(`/RolePermissions/${rolePermissionId}`);
-      await this.fetchRolePermissions();
+      for (const g of this.rolePermissions) {
+        const i = g.permissions.findIndex(
+          (p) => p.rolePermissionId === rolePermissionId,
+        );
+        if (i >= 0) {
+          g.permissions.splice(i, 1);
+          break;
+        }
+      }
     },
   },
 });

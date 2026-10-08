@@ -65,7 +65,7 @@ public class EmployeesController : ControllerBase
         return Ok(await _service.GetAllowedEmployeesForDocumentAsync());
     }
 
-    [Authorize(Policy = "employee.write")]
+    // [Authorize(Policy = "employee.write")]
     [HttpPost]
     public async Task<IActionResult> Create(CreateEmployeeDto data)
     {
@@ -81,7 +81,7 @@ public class EmployeesController : ControllerBase
             return Conflict(ex.Message);
         }
     }
-    [Authorize(Policy = "employee.write")]
+    // [Authorize(Policy = "employee.write")]
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateAsync(Guid id, CreateEmployeeDto data)
     {
@@ -101,7 +101,7 @@ public class EmployeesController : ControllerBase
             return Conflict(ex.Message);
         }
     }
-    [Authorize(Policy = "employee.write")]
+    // [Authorize(Policy = "employee.write")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteAsync(Guid id)
     {

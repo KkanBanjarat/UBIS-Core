@@ -121,11 +121,11 @@
                   </td>
                   <td>
                     <span class="text-sm text-base-content/70">{{ item.employeeNameTh }}</span>
-                    <p v-i class="text-[12px] text-base-content/35 mt-0.5">{{ item.positionTh  }}</p>
+                   <p class="text-[12px] text-base-content/35 mt-0.5">{{ item.positionTh }}</p>
                   </td>
                   <td>
                     <span class="text-sm text-base-content/70">{{ item.positionLevel }} : {{ item.positionLevelNameTh }}</span>
-                     <p v-i class="text-[12px] text-base-content/35 mt-0.5">{{ item.positionLevelNameEn  }}</p>
+                     <p class="text-[12px] text-base-content/35 mt-0.5">{{ item.positionLevelNameEn }}</p>
                   </td>
                   <td class="text-right">
                     <span class="font-semibold text-sm">{{ item.totalAmount.toLocaleString('th-TH') }}</span>

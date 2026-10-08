@@ -10,7 +10,7 @@ export interface ApprovalDocumentConfig {
 export const approvalDocumentRegistry: Record<string, ApprovalDocumentConfig> =
   {
     PettyCash: {
-      label: "เงินสดย่อย",
+      label: "ใบเงินสดย่อย",
       detailComponent: PettyCashApprovalDetail,
     },
     BenefitClaim: {

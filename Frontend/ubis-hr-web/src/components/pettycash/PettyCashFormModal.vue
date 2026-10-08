@@ -99,8 +99,7 @@
                 class="group rounded-xl border border-base-200 bg-base-100 p-4 transition-all hover:border-primary/20 hover:shadow-sm">
                 <div class="flex items-center justify-between mb-4">
                   <div class="flex items-center gap-2.5">
-                    <div
-                      class="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary text-xs font-semibold">
+                    <div class="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary text-xs font-semibold">
                       {{ idx + 1 }}
                     </div>
                     <div>
@@ -118,8 +117,10 @@
                   <label class="block text-xs font-medium text-base-content/60 mb-1.5">รายละเอียด</label>
                   <textarea v-model="line.detail" rows="2" placeholder="เช่น ค่าเดินทาง, ค่าอาหาร, ค่าของใช้สำนักงาน"
                     class="textarea textarea-bordered w-full text-sm resize-none focus:border-primary"></textarea>
+                  <p v-if="errors[`lines[${idx}].detail`]" class="text-xs text-error mt-1">
+                    {{ errors[`lines[${idx}].detail`] }}
+                  </p>
                 </div>
-
                 <div class="grid grid-cols-1 sm:grid-cols-1 gap-3">
                   <div>
                     <label class="block text-xs font-medium text-base-content/60 mb-1.5">ยอดเบิก</label>
@@ -312,6 +313,7 @@ const validationSchema = yup.object({
     .min(1, 'กรุณาเพิ่มรายการเบิกอย่างน้อย 1 รายการ')
     .of(
       yup.object({
+        detail: yup.string().trim().required('กรุณาระบุรายละเอียด'),
         amount: yup
           .number()
           .typeError('กรุณาระบุยอดเบิก')

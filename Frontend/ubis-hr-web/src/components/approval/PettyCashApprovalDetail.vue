@@ -125,19 +125,18 @@
           <!-- Detail -->
           <div class="min-w-0 flex-1">
             <p class="truncate text-sm font-semibold">
-              {{ line.benefitNameTh || 'เงินสดย่อยทั่วไป' }}
-            </p>
-            <p v-if="line.detail"
-              class="mt-0.5 truncate text-xs text-base-content/45">
               {{ line.detail }}
             </p>
+            <!-- <p v-if="line.detail"
+              class="mt-0.5 truncate text-xs text-base-content/45">
+              {{ line.detail }}
+            </p> -->
           </div>
           <!-- Amount -->
           <div class="shrink-0 text-right">
             <p class="text-sm font-bold">
-              {{ formatAmount(line.amount) }}
+              {{ formatAmount(line.amount) }} <span  class="text-[10px] text-base-content/40">บาท</span>
             </p>
-            <p class="text-[10px] text-base-content/40">บาท</p>
           </div>
         </div>
       </div>

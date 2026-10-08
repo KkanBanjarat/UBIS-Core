@@ -5,7 +5,8 @@ using UBIS.Access.Application.Interfaces;
 
 namespace UBIS.Access.Api.Controllers;
 
-[Authorize(Policy = "system.admin")]
+// [Authorize(Policy = "system.admin")]
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class RolesController : ControllerBase

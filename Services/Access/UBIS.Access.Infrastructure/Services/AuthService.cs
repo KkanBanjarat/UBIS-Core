@@ -16,6 +16,7 @@ public class AuthService : IAuthService
     private readonly ILogger<AuthService> _logger;
     private readonly IConfiguration _config;
     private readonly IUserRepos _userRepos;
+    private readonly IMenuRepos _menuRepos;
     private readonly ICurrentUserService _currentUser;
     private readonly IUserRoleService _userRoleService;
     public AuthService(ILogger<AuthService> logger,
@@ -23,6 +24,7 @@ public class AuthService : IAuthService
     IConfiguration config,
     ICurrentUserService currentUser,
     IUserRoleService userRoleService,
+    IMenuRepos menuRepos,
     IUserRepos userrepos)
     {
         _userRepos = userrepos;
@@ -30,6 +32,7 @@ public class AuthService : IAuthService
         _config = config;
         _currentUser = currentUser;
         _userRoleService = userRoleService;
+        _menuRepos = menuRepos;
     }
 
     public async Task<LoginResponseDto?> LoginAsync(LoginRequestDto data)
@@ -45,7 +48,8 @@ public class AuthService : IAuthService
             if (!isValid) return null;
 
             var permissions = await _userRoleService.GetEffectivePermissionsAsync(user.Id);
-            var (tokenString, expiresAt) = GenerateJwtToken(user, permissions);
+            var menuClaims = await BuildMenuClaimsAsync(user.Id);
+            var (tokenString, expiresAt) = GenerateJwtToken(user, permissions, menuClaims);
 
             await _userRepos.UpdateLastLoginAtAsync(user.Id);
 
@@ -63,7 +67,27 @@ public class AuthService : IAuthService
             throw;
         }
     }
-    private (string Token, DateTime ExpiresAt) GenerateJwtToken(TbUser user, List<EffectivePermissionDto> permissions)
+    // สร้างรายการ "resource:level" สำหรับ claim "menu"
+    private async Task<List<string>> BuildMenuClaimsAsync(Guid userId)
+    {
+        var (menus, access, isSuperAdmin) = await _menuRepos.GetUserMenuAccessAsync(userId);
+
+        if (isSuperAdmin)
+            return new List<string> { "*:3" };
+
+        // หลายหน้าอาจใช้ PermissionCode เดียวกัน → เอาระดับสูงสุด
+        var result = new Dictionary<string, short>();
+        foreach (var m in menus.Where(m => m.NodeType == "Page" && !string.IsNullOrWhiteSpace(m.PermissionCode)))
+        {
+            if (!access.TryGetValue(m.Id, out var level) || level <= 0) continue;
+            var key = m.PermissionCode!;
+            if (!result.TryGetValue(key, out var cur) || level > cur)
+                result[key] = level;
+        }
+
+        return result.Select(kv => $"{kv.Key}:{kv.Value}").ToList();
+    }
+    private (string Token, DateTime ExpiresAt) GenerateJwtToken(TbUser user, List<EffectivePermissionDto> permissions, List<string> menuClaims)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
         var jwtSecret = _config["Jwt:Secret"]
@@ -81,7 +105,8 @@ public class AuthService : IAuthService
         };
         foreach (var p in permissions)
             claims.Add(new Claim("perm", $"{p.PermissionCode}:{p.Scope}"));
-
+        foreach (var m in menuClaims)                           // ← เพิ่ม
+            claims.Add(new Claim("menu", m));
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
@@ -188,7 +213,8 @@ public class AuthService : IAuthService
             await _userRepos.SaveChangesAsync();
 
             var permissions = await _userRoleService.GetEffectivePermissionsAsync(user.Id);
-            var (tokenString, expiresAt) = GenerateJwtToken(user, permissions);
+            var menuClaims = await BuildMenuClaimsAsync(user.Id);
+            var (tokenString, expiresAt) = GenerateJwtToken(user, permissions, menuClaims);
 
             return new LoginResponseDto
             {

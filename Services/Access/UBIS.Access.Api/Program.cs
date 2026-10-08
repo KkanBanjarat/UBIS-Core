@@ -22,6 +22,7 @@ builder.Services.AddScoped<IUserRepos, UserRepos>();
 builder.Services.AddScoped<IPermissionRepos, PermissionRepos>();
 builder.Services.AddScoped<IRolePermissionRepos, RolePermissionRepos>();
 builder.Services.AddScoped<IUserRoleRepos, UserRoleRepos>();
+builder.Services.AddScoped<IMenuRepos, MenuRepos>();
 
 // ✅ Services 
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -31,6 +32,10 @@ builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IRolePermissionService, RolePermissionService>();
 builder.Services.AddScoped<IUserRoleService, UserRoleService>();
+builder.Services.AddScoped<IMenuService, MenuService>();
+builder.Services.AddScoped<IRoleMenuService, RoleMenuService>();
+builder.Services.AddScoped<IMenuAdminService, MenuAdminService>();
+builder.Services.AddScoped<IRoleMemberService, RoleMemberService>();
 
 var jwtSecret = builder.Configuration["Jwt:Secret"]
     ?? throw new InvalidOperationException("Jwt:Secret ยังไม่ได้ตั้งค่า");

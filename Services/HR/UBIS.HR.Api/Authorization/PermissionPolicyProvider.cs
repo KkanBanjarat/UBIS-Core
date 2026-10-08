@@ -40,15 +40,30 @@ public class PermissionPolicyProvider : IAuthorizationPolicyProvider
 
         return _cache.GetOrAdd(policyName, name =>
         {
-            // ใช้ Authentication Scheme ชุดเดียวกับ DefaultPolicy
-            // ถ้าวันหน้าเปิด EntraID กลับมา Policy พวกนี้จะตามไปเองโดยไม่ต้องแก้
             var builder = new AuthorizationPolicyBuilder(
                 _options.DefaultPolicy.AuthenticationSchemes.ToArray());
+            builder.RequireAuthenticatedUser();
 
-            return builder
-                .RequireAuthenticatedUser()
-                .AddRequirements(new PermissionRequirement(name))
-                .Build();
+            // รูปแบบ "menu.{resource}.{read|write|all}" เช่น menu.benefit-claim.write
+            if (name.StartsWith("menu.", StringComparison.Ordinal))
+            {
+                var body = name["menu.".Length..];
+                var dot = body.LastIndexOf('.');
+                if (dot > 0)
+                {
+                    short level = body[(dot + 1)..] switch
+                    {
+                        "read" => 1,
+                        "write" => 2,
+                        "all" => 3,
+                        _ => 0
+                    };
+                    if (level > 0)
+                        return builder.AddRequirements(new MenuAccessRequirement(body[..dot], level)).Build();
+                }
+            }
+
+            return builder.AddRequirements(new PermissionRequirement(name)).Build();
         });
     }
 }

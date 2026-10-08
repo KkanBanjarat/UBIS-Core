@@ -1,97 +1,39 @@
-import { createRouter, createWebHistory } from "vue-router";
+import {
+  createRouter,
+  createWebHistory,
+  type RouteComponent,
+  type RouteRecordRaw,
+} from "vue-router";
 import LoginView from "../views/LoginView.vue";
 import AppLayout from "../components/AppLayout.vue";
+import { useAuthStore } from "../stores/authStore";
+import { useMenuStore } from "../stores/menuStore";
 
-const routes = [
+// โหลด view ทุกไฟล์ล่วงหน้าแบบ lazy: key เช่น "../views/DashboardView.vue"
+const viewModules = import.meta.glob("../views/**/*.vue");
+
+// route คงที่ (ไม่ขึ้นกับเมนู)
+const routes: RouteRecordRaw[] = [
   { path: "/login", name: "login", component: LoginView },
   {
+    path: "/print/:docType/:id",
+    name: "print",
+    component: () => import("../views/print/DocumentPrintView.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
     path: "/",
+    name: "app-layout",
     component: AppLayout,
     meta: { requiresAuth: true },
-    children: [
-      { path: "", redirect: "/dashboard" },
-      {
-        path: "dashboard",
-        name: "dashboard",
-        component: () => import("../views/DashboardView.vue"),
-      },
-      {
-        path: "petty-cash",
-        name: "petty-cash",
-        component: () => import("../views/pettycash/PettyCashListView.vue"),
-      },
-      {
-        path: "benefit-claim",
-        name: "benefit-claim",
-        component: () =>
-          import("../views/benefitClaim/BenefitClaimListView.vue"),
-      },
-      {
-        path: "approvals",
-        name: "approvals",
-        component: () => import("../views/approval/ApprovalsView.vue"),
-      },
-      {
-        path: "employees",
-        name: "employees",
-        component: () => import("../views/employee/EmployeeListView.vue"),
-        meta: { requiresPermission: "employee.write" },
-      },
-      {
-        path: "companies",
-        name: "companies",
-        component: () => import("../views/master-data/CompanyView.vue"),
-        meta: { requiresPermission: "employee.write" },
-      },
-      {
-        path: "org-unit",
-        name: "organization-unit",
-        component: () =>
-          import("../views/master-data/OrganizationUnitView.vue"),
-        meta: { requiresPermission: "employee.write" },
-      },
-      {
-        path: "positions",
-        name: "positions",
-        component: () => import("../views/master-data/PositionView.vue"),
-        meta: { requiresPermission: "employee.write" },
-      },
-      {
-        path: "benefits",
-        name: "benefits",
-        component: () => import("../views/master-data/BenefitView.vue"),
-        meta: { requiresPermission: "employee.write" },
-      },
-      {
-        path: "position-levels",
-        name: "position-levels",
-        component: () => import("../views/master-data/PositionLevelView.vue"),
-        meta: { requiresPermission: "employee.write" },
-      },
-      {
-        path: "settings/approve-routes",
-        name: "approve-routes",
-        component: () => import("../views/settings/ApproveRouteView.vue"),
-        meta: { requiresPermission: "system.admin" },
-      },
-      {
-        path: "settings/branch-admins",
-        name: "branch-admins",
-        component: () => import("../views/settings/BranchAdminView.vue"),
-        meta: { requiresPermission: "system.admin" },
-      },
-      {
-        path: "/settings/users",
-        component: () => import("../views/settings/UserView.vue"),
-        meta: { requiresPermission: "system.admin" },
-      },
-      {
-        path: "settings/roles",
-        name: "roles",
-        component: () => import("../views/settings/RolesView.vue"),
-        meta: { requiresPermission: "system.admin" },
-      },
-    ],
+    children: [{ path: "", name: "app-home", redirect: "/dashboard" }],
+  },
+  // ⬇️ เพิ่มตรงนี้ (ก่อนปิดวงเล็บเหลี่ยม ]; ของอาร์เรย์)
+  {
+    path: "/:pathMatch(.*)*",
+    name: "not-found",
+    component: { render: () => null },
+    meta: { requiresAuth: true },
   },
 ];
 
@@ -100,38 +42,106 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach((to, from, next) => {
+// route ที่สร้างจากเมนู (เก็บชื่อไว้เพื่อลบตอนสลับผู้ใช้)
+let dynamicRouteNames: string[] = [];
+
+function registerMenuRoutes() {
+  dynamicRouteNames.forEach((name) => {
+    if (router.hasRoute(name)) router.removeRoute(name);
+  });
+  dynamicRouteNames = [];
+
+  for (const page of useMenuStore().pages) {
+    if (!page.path || !page.componentPath) continue;
+
+    const loader = viewModules[`../${page.componentPath}`];
+    if (!loader) {
+      console.warn(
+        `[menu] ไม่พบไฟล์ view ของเมนู "${page.code}": ${page.componentPath}`,
+      );
+      continue;
+    }
+
+    const record: RouteRecordRaw = {
+      path: page.path,
+      name: page.code,
+      component: loader as () => Promise<RouteComponent>,
+      meta: {
+        menuCode: page.code,
+        permissionCode: page.permissionCode,
+        accessLevel: page.accessLevel,
+      },
+    };
+    router.addRoute("app-layout", record);
+    dynamicRouteNames.push(page.code);
+  }
+}
+// ดึงเมนูใหม่เบื้องหลัง (ตอนที่เปิดหน้าจากแคชไปแล้ว)
+function refreshMenusInBackground() {
+  const menuStore = useMenuStore();
+  menuStore
+    .refresh()
+    .then((changed) => {
+      if (!changed) return;
+      registerMenuRoutes();
+
+      // ถ้าหน้าที่เปิดอยู่ไม่อยู่ในสิทธิ์แล้ว ให้ไปหน้าแรกที่เข้าได้
+      const current = router.resolve(router.currentRoute.value.fullPath);
+      if (current.name === "not-found") {
+        const first = menuStore.pages.find((p) => p.path)?.path;
+        router.replace(first ?? "/login");
+      }
+    })
+    .catch((err) => {
+      if (err?.response?.status === 401) {
+        useAuthStore().logout();
+        router.replace("/login");
+      } else {
+        console.warn("[menu] refresh ไม่สำเร็จ ใช้เมนูจากแคชต่อ", err);
+      }
+    });
+}
+
+router.beforeEach(async (to) => {
   const token = localStorage.getItem("token");
 
-  if (to.meta.requiresAuth && !token) {
-    next("/login");
-    return;
+  if (to.path.toLowerCase() === "/login") {
+    return token ? "/dashboard" : true;
   }
 
-  if (token && to.path.toLowerCase() === "/login") {
-    next("/dashboard");
-    return;
-  }
+  if (!token) return "/login";
 
-  const requiredPermission = to.meta.requiresPermission as string | undefined;
-  if (requiredPermission) {
-    const permissions: string[] = JSON.parse(
-      localStorage.getItem("permissions") || "[]",
-    );
-    const hasIt = permissions.some(
-      (p) =>
-        p === "*" ||
-        p.startsWith("*:") ||
-        p === requiredPermission ||
-        p.startsWith(requiredPermission + ":"),
-    );
-    if (!hasIt) {
-      next("/dashboard");
-      return;
+  // โหลดเมนูครั้งแรก (รวมกรณี refresh หน้า) แล้วเพิ่ม route จริง
+  const menuStore = useMenuStore();
+  if (!menuStore.loaded) {
+    if (menuStore.hydrateFromCache()) {
+      // มีแคช: ใช้ทันที แล้วอัปเดตเบื้องหลัง
+      registerMenuRoutes();
+      refreshMenusInBackground();
+    } else {
+      // ไม่มีแคช (login ครั้งแรก): ต้องรอจาก API
+      try {
+        await menuStore.load();
+      } catch (err) {
+        console.error("Failed to load menus:", err);
+        useAuthStore().logout();
+        return "/login";
+      }
+      registerMenuRoutes();
     }
+    // วิ่งซ้ำไปที่ path เดิม เพื่อให้จับ route ที่เพิ่งเพิ่มได้
+    return { path: to.path, query: to.query, hash: to.hash, replace: true };
   }
 
-  next();
+  // path ที่ไม่มีในเมนูของผู้ใช้ (ไม่มีสิทธิ์/ไม่มีหน้านี้) -> ไปหน้าแรกที่เข้าได้
+  if (to.name === "not-found") {
+    const first = menuStore.pages.find((p) => p.path)?.path;
+    if (first) return first;
+    useAuthStore().logout();
+    return "/login";
+  }
+
+  return true;
 });
 
 export default router;

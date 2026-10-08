@@ -4,6 +4,7 @@ import accessApi from "../services/accessApi";
 import hrApi from "../services/hrApi";
 import type { Employee } from "../types/Employee";
 import { jwtDecode } from "jwt-decode"; // npm install jwt-decode
+import { useMenuStore } from "./menuStore";
 
 interface LoginResponse {
   token: string;
@@ -77,6 +78,7 @@ export const useAuthStore = defineStore("auth", {
       this.employeeCode = null;
       this.permissions = [];
       this.employee = null;
+      useMenuStore().reset();
       localStorage.removeItem("token");
       localStorage.removeItem("email");
       localStorage.removeItem("displayName");

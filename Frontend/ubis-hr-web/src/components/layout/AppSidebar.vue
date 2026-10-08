@@ -22,7 +22,7 @@
 
     <!-- Navigation -->
     <nav class="flex-1 overflow-y-auto px-2.5 py-4">
-      <div v-for="group in visibleMenuGroups"
+      <div v-for="group in navGroups"
         :key="group.label ?? 'root'"
         class="mb-5"
       >
@@ -33,7 +33,7 @@
           {{ group.label }}
         </div>
         <ul class="flex flex-col gap-0.5">
-          <li v-for="item in group.items" :key="item.path">
+          <li v-for="item in group.items" :key="item.key">
             <!-- Parent -->
             <template v-if="item.children?.length">
               <button type="button"
@@ -43,7 +43,7 @@
                     ? 'bg-primary/10 text-primary'
                     : 'text-base-content/60 hover:bg-base-200/70 hover:text-base-content'
                 "
-                @click="toggleMenu(item.path)"
+                @click="toggleMenu(item.key)"
               >
                 <!-- Active indicator -->
                 <span v-if="isParentActive(item)"
@@ -67,12 +67,12 @@
                 <ChevronRight
                   v-show="!uiStore.sidebarCollapsed"
                   class="size-3.5 shrink-0 text-base-content/35 transition-transform duration-200"
-                  :class="openMenus.has(item.path) ? 'rotate-90' : ''"
+                  :class="openMenus.has(item.key) ? 'rotate-90' : ''"
                 />
               </button>
 
               <!-- Children -->
-              <div v-show="!uiStore.sidebarCollapsed && openMenus.has(item.path)"
+              <div v-show="!uiStore.sidebarCollapsed && openMenus.has(item.key)"
                 class="ml-[17px] border-l border-base-200 pl-3">
                 <div class="mt-1 flex flex-col gap-0.5">
                   <RouterLink v-for="child in item.children"
@@ -150,39 +150,73 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, type Component } from "vue";
 import { useRoute } from "vue-router";
 import { ChevronRight } from "lucide-vue-next";
 import { useUiStore } from "../../stores/ui";
-import { useAuthStore } from "../../stores/authStore";
-import { menuGroups } from "../../config/menu";
+import { useMenuStore } from "../../stores/menuStore";
+import { resolveIcon } from "../../utils/menuIcons";
+import type { MenuNode } from "../../types/Menu";
+
+interface NavItem {
+  key: string;
+  path: string;
+  label: string;
+  icon: Component;
+  children?: { path: string; label: string }[];
+}
+interface NavGroup {
+  label: string | null;
+  items: NavItem[];
+}
 
 const route = useRoute();
 const uiStore = useUiStore();
-const authStore = useAuthStore();
+const menuStore = useMenuStore();
 
 const openMenus = ref<Set<string>>(new Set());
 
-const visibleMenuGroups = computed(() =>
-  menuGroups
-    .map((group) => ({
-      ...group,
-      items: group.items.filter(
-        (item) => !item.permission || authStore.hasPermission(item.permission),
-      ),
-    }))
-    .filter((group) => group.items.length > 0),
-);
+function toItem(n: MenuNode): NavItem {
+  if (n.nodeType === "Module") {
+    return {
+      key: n.code,
+      path: "",
+      label: n.label,
+      icon: resolveIcon(n.icon),
+      children: n.children
+        .filter((c) => c.nodeType === "Page" && c.path)
+        .map((c) => ({ path: c.path!, label: c.label })),
+    };
+  }
+  return {
+    key: n.code,
+    path: n.path ?? "",
+    label: n.label,
+    icon: resolveIcon(n.icon),
+  };
+}
 
-function toggleMenu(path: string) {
-  const next = new Set(openMenus.value);
+const navGroups = computed<NavGroup[]>(() => {
+  const roots = menuStore.tree;
+  const groups: NavGroup[] = [];
 
-  if (next.has(path)) {
-    next.delete(path);
-  } else {
-    next.add(path);
+  // หน้า/โมดูลที่ไม่มีหมวด -> กลุ่มแรก (ไม่มีหัวข้อ)
+  const topItems = roots.filter((n) => n.nodeType !== "Category").map(toItem);
+  if (topItems.length) groups.push({ label: null, items: topItems });
+
+  // แต่ละ Category เป็นกลุ่มที่มีหัวข้อ
+  for (const cat of roots.filter((n) => n.nodeType === "Category")) {
+    const items = cat.children.filter((c) => c.nodeType !== "Category").map(toItem);
+    if (items.length) groups.push({ label: cat.label, items });
   }
 
+  return groups;
+});
+
+function toggleMenu(key: string) {
+  const next = new Set(openMenus.value);
+  if (next.has(key)) next.delete(key);
+  else next.add(key);
   openMenus.value = next;
 }
 
