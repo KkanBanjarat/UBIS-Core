@@ -12,4 +12,5 @@ public interface IBenefitClaimRepos : IBaseRepos<TbBenefitClaim>
     Task<(IEnumerable<BenefitClaimDto> Items, int TotalCount)> GetFilteredPagedAsync(
         BenefitClaimFilterDto filter, List<Guid> adminBranchIds);
     Task DeleteLinesAsync(Guid benefitClaimId);
+    Task<(string Name, string? Code)?> GetAffiliationAsync(Guid employeeId);
 }

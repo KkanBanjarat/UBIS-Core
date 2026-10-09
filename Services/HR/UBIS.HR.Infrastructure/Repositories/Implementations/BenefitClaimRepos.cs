@@ -16,6 +16,8 @@ public class BenefitClaimRepos : BaseRepos<TbBenefitClaim>, IBenefitClaimRepos
         return _dbSet
             .Include(x => x.Employee).ThenInclude(e => e.Position)
             .Include(x => x.Employee).ThenInclude(e => e.PositionLevel)
+            .Include(x => x.Employee).ThenInclude(e => e.Company)
+            .Include(x => x.Employee).ThenInclude(e => e.Branch)
             .Include(x => x.TbBenefitClaimLines.Where(l => !l.IsDelete))
                 .ThenInclude(l => l.Benefit);
     }
@@ -111,5 +113,25 @@ public class BenefitClaimRepos : BaseRepos<TbBenefitClaim>, IBenefitClaimRepos
 
         _context.TbBenefitClaimLines.RemoveRange(lines);
         await _context.SaveChangesAsync();
+    }
+
+    // สังกัด: ใช้ Division ถ้ามี ไม่มีใช้ Department (query เบา ไม่ต้อง Include)
+    public async Task<(string Name, string? Code)?> GetAffiliationAsync(Guid employeeId)
+    {
+        var ouId = await _context.TbEmployees
+            .AsNoTracking()
+            .Where(e => e.Id == employeeId)
+            .Select(e => e.DivisionId ?? e.DepartmentId)
+            .FirstOrDefaultAsync();
+
+        if (ouId == null || ouId == Guid.Empty) return null;
+
+        var ou = await _context.TbOrganizationUnits
+            .AsNoTracking()
+            .Where(o => o.Id == ouId && !o.IsDelete)
+            .Select(o => new { o.NameTh, o.Code })
+            .FirstOrDefaultAsync();
+
+        return ou == null ? null : (ou.NameTh, ou.Code);
     }
 }

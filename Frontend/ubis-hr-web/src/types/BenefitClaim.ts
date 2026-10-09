@@ -16,11 +16,15 @@ export interface BenefitClaim {
   docDate: string;
   employeeId: string;
   employeeNameTh: string | null;
+  affiliation?: string | null;
+  affiliationCode?: string | null;
   positionTh: string | null;
   positionEn: string | null;
   positionLevel: string | null;
   positionLevelNameTh: string | null;
   positionLevelNameEn: string | null;
+  company: string | null;
+  branch: string | null;
   remark: string | null;
   totalAmount: number;
   lineCount?: number;

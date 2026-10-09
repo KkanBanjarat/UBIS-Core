@@ -254,6 +254,10 @@ public class ApprovalService : IApprovalService
             ? await _employeeRepos.GetNamesByIdsAsync(employeeIds)
             : new Dictionary<Guid, string>();
 
+        var positionMap = employeeIds.Count > 0
+        ? await _employeeRepos.GetPositionNamesByIdsAsync(employeeIds)
+        : new Dictionary<Guid, string>();
+
         return new ApprovalTrailDto
         {
             Steps = steps.Select(s => new ApprovalStepDto
@@ -262,6 +266,10 @@ public class ApprovalService : IApprovalService
                 ApproverNameTh = nameMap.GetValueOrDefault(s.ApproverId, "-"),
                 Status = s.Status,
                 ActualApproveNameTh = s.ActualApproveId.HasValue ? nameMap.GetValueOrDefault(s.ActualApproveId.Value, "-") : null,
+                ApproverPosition = positionMap.GetValueOrDefault(s.ApproverId, ""),
+                ActualApprovePosition = s.ActualApproveId.HasValue
+                ? positionMap.GetValueOrDefault(s.ActualApproveId.Value, "")
+                : null,
                 ApprovedDate = s.ApprovedDate,
                 ApproverType = s.ApproverType,
                 StepName = s.StepName

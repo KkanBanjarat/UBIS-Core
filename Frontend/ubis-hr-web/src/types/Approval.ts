@@ -15,6 +15,8 @@ export interface ApprovalStep {
   approverNameTh: string;
   status: string;
   actualApproveNameTh: string | null;
+  approverPosition?: string | null;
+  actualApprovePosition?: string | null;
   approvedDate: string | null;
   stepName: string | null;
   approverType: string | null;

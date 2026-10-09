@@ -144,6 +144,11 @@
                         title="ดูรายละเอียดและสถานะอนุมัติ" :disabled="!item.docNum" @click="openDocumentDetail(item)">
                         <Eye class="size-3.5" />
                       </button>
+                      <button
+                        class="btn btn-ghost btn-xs btn-square rounded-lg text-base-content/40 hover:bg-primary/10 hover:text-primary"
+                        title="พรีวิว / พิมพ์ใบเบิก" @click="openPreview(item)">
+                        <Printer class="size-3.5" />
+                      </button>
                       <button v-if="item.docStatus === 'WaitApprove' || item.docStatus === 'Rejected'"
                         class="btn btn-ghost btn-xs btn-square rounded-lg text-info hover:bg-info/10"
                         title="ดึงกลับมาเป็นร่าง" @click="confirmRecall(item)">
@@ -273,6 +278,7 @@
     @save="handleSave"
   />
   <ApprovalDetailModal ref="detailModalRef" />
+  <BenefitClaimPreviewModal ref="previewModalRef" />
 </template>
 
 <script setup lang="ts">
@@ -282,11 +288,12 @@ import { useBenefitClaimStore } from '../../stores/benefitClaimStore.ts'
 import FormSelect from '../../components/ui/FormSelect.vue'
 import BenefitClaimFormModal from '../../components/benefitClaim/BenefitClaimFormModal.vue'
 import ApprovalDetailModal from '../../components/approval/ApprovalDetailModal.vue'
+import BenefitClaimPreviewModal from '../../components/benefitClaim/BenefitClaimPreviewModal.vue'
 import AttachmentList from '../../components/attachment/AttachmentList.vue'
 import { notify, extractErrorMessage } from '../../utils/notify.ts'
 import { useAuthStore } from '../../stores/authStore.ts'
 import type { BenefitClaim, BenefitClaimFilter } from '../../types/BenefitClaim.ts'
-import { Plus, Search, Gift, Edit, Trash2, Send, ChevronDown, ChevronUp, MessageSquare, Undo2, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-vue-next'
+import { Plus, Search, Gift, Edit, Trash2, Send, ChevronDown, ChevronUp, MessageSquare, Undo2, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,Printer } from 'lucide-vue-next'
 
 interface OptionItem {
   id: string
@@ -297,6 +304,7 @@ const authStore = useAuthStore()
 const benefitClaimStore = useBenefitClaimStore()
 const { items, totalCount, isLoading, errorMessage, benefitOptions, allowedEmployees, myEmployeeId, myEmployeeName } = storeToRefs(benefitClaimStore)
 const detailModalRef = ref<InstanceType<typeof ApprovalDetailModal>>()
+const previewModalRef = ref<InstanceType<typeof BenefitClaimPreviewModal>>()
 const expandedRows = ref<Set<string>>(new Set())
 
 const filter = reactive<BenefitClaimFilter>({
@@ -415,11 +423,6 @@ function onSearchInput() {
   }, 300)
 }
 
-watch(() => filter.pageSize, () => {
-  filter.page = 1
-  fetchList()
-})
-
 watch(() => filter.docStatus, () => {
   filter.page = 1
   fetchList()
@@ -501,7 +504,14 @@ async function confirmRecall(item: BenefitClaim) {
     await notify.error(extractErrorMessage(err), 'ดึงกลับไม่สำเร็จ')
   }
 }
-
+async function openPreview(item: BenefitClaim) {
+  try {
+    const detail = await benefitClaimStore.getById(item.id)
+    previewModalRef.value?.open(detail)
+  } catch (err) {
+    await notify.error(extractErrorMessage(err), 'โหลดข้อมูลไม่สำเร็จ')
+  }
+}
 onMounted(() => {
   fetchList()
 

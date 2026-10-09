@@ -187,4 +187,12 @@ public class EmployeeRepos : BaseRepos<TbEmployee>, IEmployeeRepos
             .Select(x => new { x.Id, FullNameTh = x.FnameTh + " " + x.LnameTh })
             .ToDictionaryAsync(x => x.Id, x => x.FullNameTh);
     }
+
+    public async Task<Dictionary<Guid, string>> GetPositionNamesByIdsAsync(List<Guid> ids)
+    {
+        return await _dbSet
+            .Where(x => ids.Contains(x.Id) && x.Position != null)
+            .Select(x => new { x.Id, PositionNameTh = x.Position.NameTh })
+            .ToDictionaryAsync(x => x.Id, x => x.PositionNameTh);
+    }
 }

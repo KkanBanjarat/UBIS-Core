@@ -56,6 +56,8 @@ public class BenefitClaimService : IBenefitClaimService, IApprovalDocumentServic
             PositionLevel = s.Employee?.PositionLevel != null ? $"L{s.Employee.PositionLevel.Level}" : null,
             PositionLevelNameTh = s.Employee?.PositionLevel?.NameTh,
             PositionLevelNameEn = s.Employee?.PositionLevel?.NameEn,
+            Branch = $"{s.Employee?.Branch.NameTh} ({s.Employee?.Branch.Code})",
+            Company = s.Employee?.Company.NameTh,
             Remark = s.Remark,
             TotalAmount = s.TotalAmount,
             LineCount = s.TbBenefitClaimLines.Count,
@@ -125,13 +127,24 @@ public class BenefitClaimService : IBenefitClaimService, IApprovalDocumentServic
     public async Task<BenefitClaimDto?> GetByIdAsync(Guid id)
     {
         var s = await _repos.GetDetailByIdAsync(id);
-        return s == null ? null : MapToDto(s);
+        return s == null ? null : await WithAffiliationAsync(MapToDto(s));
     }
 
     public async Task<BenefitClaimDto?> GetByDocNumAsync(string docNum)
     {
         var s = await _repos.GetByDocNumAsync(docNum);
-        return s == null ? null : MapToDto(s);
+        return s == null ? null : await WithAffiliationAsync(MapToDto(s));
+    }
+
+    private async Task<BenefitClaimDto> WithAffiliationAsync(BenefitClaimDto dto)
+    {
+        var aff = await _repos.GetAffiliationAsync(dto.EmployeeId);
+        if (aff != null)
+        {
+            dto.Affiliation = aff.Value.Name;
+            dto.AffiliationCode = aff.Value.Code;
+        }
+        return dto;
     }
 
     public async Task<BenefitClaimDto> CreateAsync(CreateBenefitClaimDto data)

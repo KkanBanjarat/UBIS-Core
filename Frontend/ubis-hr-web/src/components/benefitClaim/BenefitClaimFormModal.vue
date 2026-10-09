@@ -251,7 +251,14 @@ import { X, Plus, Trash2, ReceiptText, FileText, Info, TriangleAlert, CircleAler
 import FormSelect from '../ui/FormSelect.vue'
 import type { BenefitClaim } from '../../types/BenefitClaim.ts'
 import AttachmentList from '../attachment/AttachmentList.vue'
-import EmployeeSelect, { type EmployeeOption } from '../../components/ui/EmployeeSelect.vue'
+import EmployeeSelect from '../../components/ui/EmployeeSelect.vue'
+
+interface EmployeeOption {
+  id: string
+  empId: string
+  fullNameTh: string
+  positionNameTh?: string | null
+}
 import { useBenefitClaimStore } from '../../stores/benefitClaimStore.ts'
 
 interface OptionItem {

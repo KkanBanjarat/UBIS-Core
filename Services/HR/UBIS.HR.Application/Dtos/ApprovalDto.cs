@@ -25,8 +25,10 @@ public class ApprovalStepDto
 {
     public int StepNo { get; set; }
     public string ApproverNameTh { get; set; }
+    public string? ApproverPosition { get; set; }
     public string Status { get; set; }
     public string? ActualApproveNameTh { get; set; }
+    public string? ActualApprovePosition { get; set; }
     public DateTime? ApprovedDate { get; set; }
     public string? StepName { get; set; }
     public string? ApproverType { get; set; }

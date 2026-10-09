@@ -14,4 +14,5 @@ public interface IEmployeeRepos : IBaseRepos<TbEmployee>
     Task<bool> ExistsByEmpIdAsync(string empId, Guid? excludeId = null);
     Task<List<EmployeeOrgChartNodeDto>> GetOrgChartFlatDataAsync();
     Task<Dictionary<Guid, string>> GetNamesByIdsAsync(List<Guid> ids);
+    Task<Dictionary<Guid, string>> GetPositionNamesByIdsAsync(List<Guid> ids);
 }

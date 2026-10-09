@@ -7,22 +7,23 @@
           <div class="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
             <Receipt class="size-4.5" />
           </div>
-          <h1 class="text-xl font-semibold text-base-content">เบิกสวัสดิการ / เงินสดย่อย</h1>
+          <h1 class="text-xl font-semibold text-base-content">เบิกเงินสดย่อย</h1>
         </div>
-        <p class="text-xs text-base-content/45 mt-1 ml-11">จัดการและติดตามรายการเบิกสวัสดิการและเงินสดย่อย</p>
+        <p class="text-xs text-base-content/45 mt-1 ml-11">จัดการและติดตามรายการเบิกเงินสดย่อย</p>
       </div>
 
       <button class="btn btn-primary btn-sm gap-1.5 rounded-lg" @click="openCreateModal">
         <Plus class="size-4" /> สร้างใบเบิก
       </button>
     </div>
+
     <!-- Filters -->
     <div class="bg-base-100 rounded-xl border border-base-200 p-3 sm:p-4 shadow-sm">
       <div class="flex flex-col sm:flex-row gap-3">
         <div class="relative flex-1 min-w-[220px]">
           <Search class="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-gray-400 pointer-events-none z-10" />
           <input v-model="filter.search" @input="onSearchInput" type="text"
-            placeholder="ค้นหาเลขที่เอกสาร ชื่อพนักงาน รายะเอียดเอกสาร..."
+            placeholder="ค้นหาเลขที่เอกสาร ชื่อพนักงาน รายละเอียดเอกสาร..."
             class="input input-bordered w-full pl-10 text-sm focus:outline-none focus:border-primary transition-colors" />
         </div>
         <div class="w-full sm:w-56">
@@ -43,13 +44,16 @@
         </select>
         <span>รายการต่อหน้า</span>
       </div>
+
       <div v-if="isLoading" class="p-5 space-y-2">
         <div v-for="i in 5" :key="i" class="skeleton h-14 w-full rounded-lg"></div>
       </div>
+
       <div v-else-if="errorMessage" class="flex flex-col items-center gap-3 py-16 text-center">
         <p class="text-sm font-medium text-error">{{ errorMessage }}</p>
         <button class="btn btn-sm btn-primary" @click="fetchList">ลองใหม่</button>
       </div>
+
       <template v-else>
         <div v-if="items.length === 0" class="flex flex-col items-center gap-2 py-16 text-center">
           <div class="flex size-12 items-center justify-center rounded-full bg-base-200 text-base-content/30">
@@ -65,9 +69,8 @@
               <tr class="text-[11px] uppercase tracking-wide text-base-content/40 border-b border-base-200">
                 <th class="bg-base-100 w-10"></th>
                 <th class="bg-base-100">เลขที่เอกสาร</th>
-                <th class="bg-base-100">ประเภทการเบิก</th>
-                <th class="bg-base-100">วันที่</th>
                 <th class="bg-base-100">ผู้ขอเบิก</th>
+                <th class="bg-base-100">ระดับตำแหน่ง</th>
                 <th class="bg-base-100 text-right">ยอดรวม</th>
                 <th class="bg-base-100">สถานะ</th>
                 <th class="bg-base-100">แก้ไขล่าสุด</th>
@@ -86,62 +89,52 @@
                       <ChevronDown v-else class="size-4" />
                     </button>
                   </td>
-                 <td class="py-3">
+
+                  <!-- เลขที่เอกสาร + วันที่ -->
+                  <td class="py-3">
                     <div class="flex flex-col gap-1">
-                      <!-- Document Number -->
-                      <div class="flex items-center gap-2">
-                        <p class="font-semibold text-sm text-base-content leading-tight"
-                          :class="{ 'text-base-content/40 italic': !item.docNum }"
-                        >
-                          {{ item.docNum || '(ยังไม่ส่งอนุมัติ)' }}
-                        </p>
-                      </div>
-
-                      <!-- Date + Line Count -->
-                      <div class="flex items-center gap-2 text-xs">
-                        <span class="text-base-content/55">
-                          วันที่เอกสาร : {{ formatDate(item.docDate) }}
-                        </span>
-                        <!-- <span class="text-base-content/20">•</span> -->
-
-                        <!-- <span class="inline-flex items-center rounded-full bg-cyan-200 px-2 py-0.5
-                                text-[11px] font-medium text-base-content/60">
-                          {{ item.lineCount ?? 0 }} รายการ
-                        </span> -->
-                      </div>
+                      <p class="font-semibold text-sm text-base-content leading-tight"
+                        :class="{ 'text-base-content/40 italic': !item.docNum }">
+                        {{ item.docNum || '(ยังไม่ส่งอนุมัติ)' }}
+                      </p>
+                      <span class="text-xs text-base-content/55">
+                        วันที่เอกสาร : {{ formatDate(item.docDate) }}
+                      </span>
                     </div>
                   </td>
-                  <td class="whitespace-nowrap">
-                    <span class="badge badge-sm gap-1.5 font-normal whitespace-nowrap
-                            max-sm:px-2 max-sm:gap-0.5"
-                      :class="docTypeBadgeClass(item)">
-                      <component :is="docTypeIcon(item)" class="size-3.5 shrink-0" />
-                      <span class="max-sm:hidden">{{ docTypeLabel(item) }}</span>
-                    </span>
-                  </td>
+
+                  <!-- ผู้ขอเบิก -->
                   <td>
                     <span class="text-sm text-base-content/70">{{ item.employeeNameTh }}</span>
-                   <p class="text-[12px] text-base-content/35 mt-0.5">{{ item.positionTh }}</p>
+                    <p class="text-[12px] text-base-content/35 mt-0.5">{{ item.positionTh }}</p>
                   </td>
+
+                  <!-- ระดับตำแหน่ง -->
                   <td>
                     <span class="text-sm text-base-content/70">{{ item.positionLevel }} : {{ item.positionLevelNameTh }}</span>
-                     <p class="text-[12px] text-base-content/35 mt-0.5">{{ item.positionLevelNameEn }}</p>
+                    <p class="text-[12px] text-base-content/35 mt-0.5">{{ item.positionLevelNameEn }}</p>
                   </td>
+
+                  <!-- ยอดรวม -->
                   <td class="text-right">
                     <span class="font-semibold text-sm">{{ item.totalAmount.toLocaleString('th-TH') }}</span>
                     <span class="text-[11px] text-base-content/35 ml-1">บาท</span>
                   </td>
+
+                  <!-- สถานะ -->
                   <td>
                     <span class="badge badge-sm font-medium" :class="statusClass(item.docStatus)">
                       {{ statusLabel(item.docStatus) }}
                     </span>
                   </td>
 
+                  <!-- แก้ไขล่าสุด -->
                   <td>
                     <p class="text-xs text-base-content/60">{{ item.updatedBy }}</p>
                     <p class="text-[11px] text-base-content/35">{{ formatDateTime(item.updatedAt) }}</p>
                   </td>
 
+                  <!-- จัดการ -->
                   <td>
                     <div class="flex items-center justify-end gap-0.5">
                       <button v-if="item.docStatus === 'Draft'"
@@ -164,7 +157,6 @@
                         title="ดึงกลับมาเป็นร่าง" @click="confirmRecall(item)">
                         <Undo2 class="size-4" />
                       </button>
-
                       <button v-if="item.docStatus === 'Draft'"
                         class="btn btn-ghost btn-xs btn-square rounded-lg text-error/60 hover:bg-error/10 hover:text-error"
                         title="ลบ" @click="confirmDelete(item)">
@@ -174,46 +166,47 @@
                   </td>
                 </tr>
 
+                <!-- แถวขยาย: รายละเอียดการเบิก -->
                 <tr v-if="expandedRows.has(item.id)" class="border-b border-base-200/60 bg-base-200/20">
-                <!-- <pre class="text-xs text-error">{{ { expanded: expandedRows.has(item.id), loading: detailLoading[item.id], err: detailError[item.id], has: !!detailMap[item.id], lines: detailMap[item.id]?.lines?.length } }}</pre> -->
-                  <td colspan="9" class="p-0">
+                  <td colspan="8" class="p-0">
                     <div class="px-5 sm:px-12 py-4 space-y-4">
                       <div>
                         <div class="flex items-center justify-between mb-3">
                           <div>
                             <p class="text-base font-semibold">รายละเอียดการเบิก</p>
-                            <p class="text-sm text-base-content/40 mt-0.5">รายการสวัสดิการและเงินสดย่อยในใบเบิกนี้
-                            </p>
+                            <p class="text-sm text-base-content/40 mt-0.5">รายการเงินสดย่อยในใบเบิกนี้</p>
                           </div>
-                          <span class="text-sm text-base-content/40">{{ detailMap[item.id]?.lines?.length ?? item.lineCount ?? 0 }} รายการ</span>
+                          <span class="text-sm text-base-content/40">
+                            {{ detailMap[item.id]?.lines?.length ?? item.lineCount ?? 0 }} รายการ
+                          </span>
                         </div>
+
                         <div v-if="detailLoading[item.id] && !detailMap[item.id]" class="space-y-2">
                           <div v-for="i in 2" :key="i" class="skeleton h-12 w-full rounded-lg"></div>
                         </div>
+
                         <div v-else-if="detailError[item.id] && !detailMap[item.id]"
                           class="rounded-xl border border-dashed border-error/40 p-6 text-center text-sm text-error">
                           โหลดรายละเอียดไม่สำเร็จ
                           <button class="btn btn-xs btn-primary ml-2" @click="loadDetail(item.id)">ลองใหม่</button>
                         </div>
+
                         <div v-else-if="detailMap[item.id]?.lines?.length"
                           class="rounded-xl border border-base-300 bg-base-100 overflow-hidden">
                           <div v-for="(line, lineIndex) in detailMap[item.id]?.lines ?? []" :key="line.id ?? lineIndex"
-                            class="flex flex-col sm:grid sm:grid-cols-[40px_minmax(180px,1fr)_minmax(180px,1.5fr)_130px] gap-3 items-start sm:items-center px-4 py-3 border-b border-base-300/70 last:border-0">
+                            class="flex flex-col sm:grid sm:grid-cols-[40px_minmax(0,1fr)_130px] gap-3 items-start sm:items-center px-4 py-3 border-b border-base-300/70 last:border-0">
                             <div class="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary text-xs font-semibold">
                               {{ lineIndex + 1 }}
                             </div>
-                            <div class="min-w-0">
-                              <span class="badge badge-xs font-normal mb-0.5"
-                                :class="line.benefitId ? 'badge-primary text-primary-content' : 'badge-ghost'">
-                                {{ line.benefitId ? 'สวัสดิการ' : 'เงินสดย่อย' }}
-                              </span>
-                              <p class="text-sm font-medium truncate">{{ getBenefitName(line.benefitId) }}</p>
-                            </div>
 
                             <div class="min-w-0">
-                              <p class="text-xs text-base-content/40 mb-0.5">รายละเอียด</p>
-                              <p class="text-sm text-base-content/65 truncate" :title="line.detail">{{ line.detail ||
-                                '-' }}</p>
+                              <!-- รายการเก่าที่เคยผูกสวัสดิการไว้ (ระบบใหม่แยกไปหน้าเบิกสวัสดิการแล้ว) -->
+                              <span v-if="line.benefitId" class="badge badge-xs badge-ghost font-normal mb-0.5">
+                                สวัสดิการ (รายการเดิม)
+                              </span>
+                              <p class="text-sm text-base-content/75 truncate" :title="line.detail">
+                                {{ line.detail || '-' }}
+                              </p>
                             </div>
 
                             <div class="sm:text-right">
@@ -255,12 +248,12 @@
           </table>
         </div>
 
+        <!-- Pagination -->
         <div
           class="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-5 py-3 border-t border-base-200">
           <p class="text-xs text-base-content/45">
             แสดง {{ totalCount === 0 ? 0 : (filter.page - 1) * filter.pageSize + 1 }}–{{ Math.min(filter.page *
-              filter.pageSize,
-            totalCount) }}
+              filter.pageSize, totalCount) }}
             จาก {{ totalCount }} รายการ
           </p>
           <div class="join">
@@ -289,14 +282,13 @@
     </div>
   </div>
 
-  <PettyCashFormModal 
-    ref="formModalRef" 
-    :is-create="isCreateMode" 
+  <PettyCashFormModal
+    ref="formModalRef"
+    :is-create="isCreateMode"
     :employee-id="myEmployeeId"
-    :employee-name="myEmployeeName" 
-    :benefit-options="benefitOptions" 
+    :employee-name="myEmployeeName"
     :allowed-employees="allowedEmployees"
-    @save="handleSave" 
+    @save="handleSave"
   />
   <ApprovalDetailModal ref="detailModalRef" />
 </template>
@@ -312,7 +304,10 @@ import AttachmentList from '../../components/attachment/AttachmentList.vue'
 import { notify, extractErrorMessage } from '../../utils/notify.ts'
 import { useAuthStore } from '../../stores/authStore.ts'
 import type { PettyCash, PettyCashFilter } from '../../types/PettyCash.ts'
-import { Plus, Search, Receipt, Edit, Trash2, Send, ChevronDown, ChevronUp, MessageSquare, Gift, Wallet, Shuffle, Undo2, CircleAlertIcon, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-vue-next'
+import {
+  Plus, Search, Receipt, Edit, Trash2, Send, ChevronDown, ChevronUp, MessageSquare,
+  Undo2, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
+} from 'lucide-vue-next'
 
 interface OptionItem {
   id: string
@@ -321,7 +316,8 @@ interface OptionItem {
 
 const authStore = useAuthStore()
 const pettyCashStore = usePettyCashStore()
-const { items, totalCount, isLoading, errorMessage, benefitOptions, allowedEmployees, myEmployeeId, myEmployeeName } = storeToRefs(pettyCashStore)
+const { items, totalCount, isLoading, errorMessage, allowedEmployees, myEmployeeId, myEmployeeName } =
+  storeToRefs(pettyCashStore)
 const detailModalRef = ref<InstanceType<typeof ApprovalDetailModal>>()
 const expandedRows = ref<Set<string>>(new Set())
 
@@ -330,7 +326,7 @@ const filter = reactive<PettyCashFilter>({
   docStatus: null,
   employeeId: null,
   page: 1,
-  pageSize:10,
+  pageSize: 10,
 })
 
 const statusOptions: OptionItem[] = [
@@ -359,44 +355,6 @@ function statusClass(s: string) {
   return 'badge-ghost'
 }
 
-function getDocType(item: PettyCash): 'benefit' | 'cash' | 'mixed' | 'empty' {
-  if (!item.lineCount) return 'empty'
-  if (item.hasBenefitLine && item.hasCashLine) return 'mixed'
-  return item.hasBenefitLine ? 'benefit' : 'cash'
-}
-
-function docTypeLabel(item: PettyCash) {
-  const type = getDocType(item)
-  if (type === 'empty') return 'ยังไม่มีรายการ'
-  if (type === 'benefit') return 'สวัสดิการ'
-  if (type === 'cash') return 'เงินสดย่อย'
-  return 'สวัสดิการ + เงินสดย่อย'
-}
-
-function docTypeBadgeClass(item: PettyCash) {
-  const type = getDocType(item)
-  if (type === 'empty') return 'badge-ghost text-base-content/35'
-  if (type === 'benefit') return 'badge-primary text-primary-content'
-  if (type === 'cash') return 'badge-ghost'
-  return 'badge-secondary text-secondary-content'
-}
-
-function docTypeIcon(item: PettyCash) {
-  const type = getDocType(item)
-  if (type === 'empty') return CircleAlertIcon
-  if (type === 'benefit') return Gift
-  if (type === 'cash') return Wallet
-  return Shuffle
-}
-
-function getBenefitName(benefitId: string | null | undefined) {
-  if (!benefitId) return 'เงินสดย่อยทั่วไป'
-  return benefitOptions.value.find(x => x.id === benefitId)?.label ?? 'ไม่ระบุสวัสดิการ'
-}
-
-// function formatDate(d: string) {
-//   return new Date(d).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })
-// }
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString('en-GB', { year: 'numeric', month: 'numeric', day: 'numeric' })
 }
@@ -507,7 +465,6 @@ async function openEditModal(item: PettyCash) {
 
 async function handleSave(payload: any, isCreate: boolean) {
   try {
-    console.log('payload',payload);
     if (isCreate) await pettyCashStore.create(payload)
     else await pettyCashStore.update(editingId.value!, payload)
 
