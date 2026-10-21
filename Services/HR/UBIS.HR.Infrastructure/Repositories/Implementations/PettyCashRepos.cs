@@ -16,6 +16,7 @@ public class PettyCashRepos : BaseRepos<TbPettyCashRequest>, IPettyCashRepos
         return _dbSet
             .Include(x => x.Employee).ThenInclude(e => e.Position)
             .Include(x => x.Employee).ThenInclude(e => e.PositionLevel)
+            .Include(x => x.Employee).ThenInclude(e => e.Company)
             .Include(x => x.TbPettyCashLines.Where(l => !l.IsDelete))
                 .ThenInclude(l => l.Benefit);
     }

@@ -6,6 +6,7 @@ public interface IApprovalService
 {
     Task CreateApprovalAsync(string docType, string docNumber, int docRev, List<ResolvedApprover> resolvedApprovers);
     Task<List<MyApprovalDto>> GetMyPendingApprovalsAsync();
+    Task<List<ApprovalSummaryDto>> GetPendingApprovalsAsync(Guid actor);
     Task<bool> ApproveAsync(int transApproveId);
     Task<bool> DenyAsync(int transApproveId, string reason, bool isDisapprove);
     Task RecallAsync(string docType, string docNumber, int docRev);

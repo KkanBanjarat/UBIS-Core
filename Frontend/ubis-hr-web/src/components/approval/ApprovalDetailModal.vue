@@ -247,6 +247,38 @@
           </div>
         </div>
       </div>
+            <!-- Footer Actions (แสดงเฉพาะเมื่อเปิดจากรายการรออนุมัติ) -->
+      <div
+        v-if="actionItem"
+        class="flex shrink-0 items-center justify-end gap-2 border-t border-base-200 bg-base-100 px-6 py-4"
+      >
+        <button
+          type="button"
+          class="btn btn-sm btn-ghost h-9 min-h-9 px-3 text-error hover:bg-error/10"
+          @click="emitAction('disapprove')"
+        >
+          <X class="size-3.5" />
+          ไม่อนุมัติ
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-sm btn-ghost h-9 min-h-9 px-3 text-warning hover:bg-warning/10"
+          @click="emitAction('reject')"
+        >
+          <Undo2 class="size-3.5" />
+          ตีกลับ
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-sm btn-success h-9 min-h-9 gap-1.5 px-5 shadow-sm"
+          @click="emitAction('approve')"
+        >
+          <Check class="size-3.5" />
+          อนุมัติ
+        </button>
+      </div>
     </div>
 
     <form method="dialog" class="modal-backdrop">
@@ -260,7 +292,7 @@ import { ref, computed } from "vue";
 import { useApprovalStore } from "../../stores/approvalStore.ts";
 import AttachmentList from "../attachment/AttachmentList.vue";
 import { approvalDocumentRegistry } from "../../config/approvalDocuments";
-import type { ApprovalStep, ApprovalReason } from "../../types/Approval";
+import type { ApprovalStep, ApprovalReason,Approval } from "../../types/Approval";
 
 import {
   X,
@@ -270,11 +302,36 @@ import {
   MessageSquareWarning,
   Paperclip,
   RotateCcw,
+  Undo2,
 } from "lucide-vue-next";
 
 const approvalStore = useApprovalStore();
 
 const dialogRef = ref<HTMLDialogElement>();
+const emit = defineEmits<{
+  approve: [item: Approval];
+  reject: [item: Approval];
+  disapprove: [item: Approval];
+}>();
+
+const actionItem = ref<Approval | null>(null);
+
+function emitAction(action: "approve" | "reject" | "disapprove") {
+  const item = actionItem.value;
+  if (!item) return;
+  close(); // ปิดก่อน เพื่อให้หน้าต่างยืนยัน/กรอกเหตุผลของหน้า list แสดงได้
+  switch (action) {
+    case "approve":
+      emit("approve", item);
+      break;
+    case "reject":
+      emit("reject", item);
+      break;
+    case "disapprove":
+      emit("disapprove", item);
+      break;
+  }
+}
 const isLoadingTrail = ref(false);
 
 const docType = ref("");
@@ -482,9 +539,10 @@ function getTimelineStatusText(status: TimelineStatus) {
   }
 }
 
-async function open(type: string, docNum: string) {
+async function open(type: string, docNum: string, item?: Approval) {
   docType.value = type;
   docNumber.value = docNum;
+  actionItem.value = item ?? null;
 
   isLoadingTrail.value = true;
 

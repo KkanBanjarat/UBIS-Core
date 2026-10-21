@@ -105,6 +105,210 @@ public class BenefitClaimRepos : BaseRepos<TbBenefitClaim>, IBenefitClaimRepos
         return (items, totalCount);
     }
 
+    public async Task<BenefitClaimSummaryDto> GetSummaryAsync(
+    BenefitClaimSummaryFilterDto filter, List<Guid> adminBranchIds)
+    {
+        var query = _dbSet
+            .AsNoTracking()
+            .Where(x => !x.IsDelete && adminBranchIds.Contains(x.Employee.BranchId));
+
+        if (filter.DateFrom.HasValue)
+        {
+            var from = filter.DateFrom.Value.Date;
+            query = query.Where(x => x.DocDate >= from);
+        }
+        if (filter.DateTo.HasValue)
+        {
+            var toExclusive = filter.DateTo.Value.Date.AddDays(1);
+            query = query.Where(x => x.DocDate < toExclusive);
+        }
+
+        if (filter.CompanyId.HasValue)
+            query = query.Where(x => x.Employee.Company.Id == filter.CompanyId.Value);
+
+        query = string.IsNullOrEmpty(filter.DocStatus)
+            ? query.Where(x => x.DocStatus != "Draft")
+            : query.Where(x => x.DocStatus == filter.DocStatus);
+
+        var branchDocs = await query
+            .GroupBy(x => new
+            {
+                Company = x.Employee.Company.NameTh,
+                Branch = x.Employee.Branch.NameTh
+            })
+            .Select(g => new { g.Key.Company, g.Key.Branch, DocCount = g.Count() })
+            .ToListAsync();
+
+        var branchBenefits = await query
+            .SelectMany(
+                x => x.TbBenefitClaimLines.Where(l => !l.IsDelete),
+                (x, l) => new
+                {
+                    Company = x.Employee.Company.NameTh,
+                    Branch = x.Employee.Branch.NameTh,
+                    ClaimId = x.Id,
+                    Benefit = l.Benefit.NameTh,
+                    l.Amount
+                })
+            .GroupBy(z => new { z.Company, z.Branch, z.Benefit })
+            .Select(g => new
+            {
+                g.Key.Company,
+                g.Key.Branch,
+                g.Key.Benefit,
+                DocCount = g.Select(z => z.ClaimId).Distinct().Count(),
+                LineCount = g.Count(),
+                Amount = g.Sum(z => z.Amount)
+            })
+            .ToListAsync();
+
+        var byCompany = branchDocs
+            .GroupBy(b => b.Company)
+            .Select(cg =>
+            {
+                var branches = cg.OrderBy(b => b.Branch).Select(b =>
+                {
+                    var benefits = branchBenefits
+                        .Where(x => x.Company == b.Company && x.Branch == b.Branch)
+                        .OrderBy(x => x.Benefit)
+                        .Select(x => new CompanyBenefitDto
+                        {
+                            Benefit = x.Benefit,
+                            DocCount = x.DocCount,
+                            LineCount = x.LineCount,
+                            Amount = x.Amount
+                        }).ToList();
+
+                    return new ClaimBranchSummaryDto
+                    {
+                        Branch = string.IsNullOrWhiteSpace(b.Branch) ? "ไม่ระบุสาขา" : b.Branch,
+                        DocCount = b.DocCount,
+                        LineCount = benefits.Sum(x => x.LineCount),
+                        Amount = benefits.Sum(x => x.Amount),
+                        Benefits = benefits
+                    };
+                }).ToList();
+
+                return new CompanySummaryDto
+                {
+                    Company = string.IsNullOrWhiteSpace(cg.Key) ? "ไม่ระบุบริษัท" : cg.Key,
+                    DocCount = branches.Sum(x => x.DocCount),
+                    LineCount = branches.Sum(x => x.LineCount),
+                    Amount = branches.Sum(x => x.Amount),
+                    Branches = branches
+                };
+            })
+            .OrderBy(c => c.Company)
+            .ToList();
+
+        return new BenefitClaimSummaryDto { ByCompany = byCompany };
+    }
+    public async Task<List<BenefitClaimExportRowDto>> GetExportRowsAsync(
+    BenefitClaimSummaryFilterDto filter, List<Guid> adminBranchIds, Guid? employeeId = null)
+    {
+        var q = _dbSet
+            .AsNoTracking()
+            .Where(x => !x.IsDelete && adminBranchIds.Contains(x.Employee.BranchId));
+
+        if (filter.DateFrom.HasValue)
+        {
+            var from = filter.DateFrom.Value.Date;
+            q = q.Where(x => x.DocDate >= from);
+        }
+        if (filter.DateTo.HasValue)
+        {
+            var toExclusive = filter.DateTo.Value.Date.AddDays(1);
+            q = q.Where(x => x.DocDate < toExclusive);
+        }
+        if (employeeId.HasValue)
+            q = q.Where(x => x.EmployeeId == employeeId.Value);
+
+        q = string.IsNullOrEmpty(filter.DocStatus)
+            ? q.Where(x => x.DocStatus != "Draft")
+            : q.Where(x => x.DocStatus == filter.DocStatus);
+
+        return await q
+            .SelectMany(
+                x => x.TbBenefitClaimLines.Where(l => !l.IsDelete),
+                (x, l) => new BenefitClaimExportRowDto
+                {
+                    Company = x.Employee.Company.NameTh,
+                    DocNum = x.DocNum,
+                    DocDate = x.DocDate,
+                    DocStatus = x.DocStatus,
+                    EmployeeCode = x.Employee.EmpId,
+                    EmployeeName = x.Employee.FnameTh + " " + x.Employee.LnameTh,
+                    BenefitName = l.Benefit.NameTh,
+                    Detail = l.Detail,
+                    Qty = l.Qty,
+                    Amount = l.Amount
+                })
+            .ToListAsync();
+    }
+    public async Task<(List<EmployeeSummaryDto> Items, int TotalCount)> GetEmployeeSummaryPagedAsync(
+    BenefitClaimEmployeeFilterDto filter, List<Guid> adminBranchIds)
+    {
+        var q = _dbSet
+            .AsNoTracking()
+            .Where(x => !x.IsDelete && adminBranchIds.Contains(x.Employee.BranchId));
+
+        if (filter.DateFrom.HasValue)
+        {
+            var from = filter.DateFrom.Value.Date;
+            q = q.Where(x => x.DocDate >= from);
+        }
+        if (filter.DateTo.HasValue)
+        {
+            var toExclusive = filter.DateTo.Value.Date.AddDays(1);
+            q = q.Where(x => x.DocDate < toExclusive);
+        }
+        if (filter.CompanyId.HasValue)
+            q = q.Where(x => x.Employee.Company.Id == filter.CompanyId.Value);
+
+        q = string.IsNullOrEmpty(filter.DocStatus)
+            ? q.Where(x => x.DocStatus != "Draft")
+            : q.Where(x => x.DocStatus == filter.DocStatus);
+
+        if (!string.IsNullOrWhiteSpace(filter.Search))
+        {
+            var s = filter.Search.Trim();
+            q = q.Where(x => x.Employee.EmpId.Contains(s)
+                || x.Employee.FnameTh.Contains(s)
+                || x.Employee.LnameTh.Contains(s));
+        }
+
+        var grouped = q
+            .GroupBy(x => new
+            {
+                x.EmployeeId,
+                x.Employee.EmpId,
+                x.Employee.FnameTh,
+                x.Employee.LnameTh,
+                Company = x.Employee.Company.NameTh
+            })
+            .Select(g => new EmployeeSummaryDto
+            {
+                EmployeeId = g.Key.EmployeeId,
+                EmployeeCode = g.Key.EmpId,
+                EmployeeName = g.Key.FnameTh + " " + g.Key.LnameTh,
+                Company = g.Key.Company,
+                DocCount = g.Count(),
+                Amount = g.Sum(x => x.TotalAmount)
+            });
+
+        var total = await grouped.CountAsync();
+
+        var page = Math.Max(1, filter.Page);
+        var size = Math.Clamp(filter.PageSize, 1, 100);
+
+        var items = await grouped
+            .OrderBy(x => x.Company).ThenBy(x => x.EmployeeCode)
+            .Skip((page - 1) * size)
+            .Take(size)
+            .ToListAsync();
+
+        return (items, total);
+    }
     public async Task DeleteLinesAsync(Guid benefitClaimId)
     {
         var lines = await _context.TbBenefitClaimLines
@@ -113,25 +317,5 @@ public class BenefitClaimRepos : BaseRepos<TbBenefitClaim>, IBenefitClaimRepos
 
         _context.TbBenefitClaimLines.RemoveRange(lines);
         await _context.SaveChangesAsync();
-    }
-
-    // สังกัด: ใช้ Division ถ้ามี ไม่มีใช้ Department (query เบา ไม่ต้อง Include)
-    public async Task<(string Name, string? Code)?> GetAffiliationAsync(Guid employeeId)
-    {
-        var ouId = await _context.TbEmployees
-            .AsNoTracking()
-            .Where(e => e.Id == employeeId)
-            .Select(e => e.DivisionId ?? e.DepartmentId)
-            .FirstOrDefaultAsync();
-
-        if (ouId == null || ouId == Guid.Empty) return null;
-
-        var ou = await _context.TbOrganizationUnits
-            .AsNoTracking()
-            .Where(o => o.Id == ouId && !o.IsDelete)
-            .Select(o => new { o.NameTh, o.Code })
-            .FirstOrDefaultAsync();
-
-        return ou == null ? null : (ou.NameTh, ou.Code);
     }
 }

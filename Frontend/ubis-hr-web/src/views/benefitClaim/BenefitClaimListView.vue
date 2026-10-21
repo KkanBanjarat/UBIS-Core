@@ -520,7 +520,7 @@ onMounted(() => {
   })
 
   authStore
-    .fetchCurrentEmployee(false)
+    .fetchCurrentEmployee(false,false)
     .then((emp) => {
       if (emp) {
         benefitClaimStore.setMyEmployee(emp.id, `${emp.fNameTh} ${emp.lNameTh}`)

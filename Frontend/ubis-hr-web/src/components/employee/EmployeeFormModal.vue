@@ -536,6 +536,12 @@ function close() {
   dialogRef.value?.close()
 }
 
+function reopen() {
+  isSubmitting.value = false
+  dialogRef.value?.showModal()
+}
+
+
 function onCompanyChange(companyId: string | null | undefined) {
   formData.value.companyId = companyId ?? null
   formData.value.branchId = null
@@ -560,7 +566,7 @@ async function handleSubmit() {
     }
     const payload = {
       empId: formData.value.empId,
-       prefixNameTh: prefixNameTh || null, 
+      prefixNameTh: prefixNameTh || null, 
       prefixNameEn: prefixNameEn || null,
       fNameTh: formData.value.fNameTh,
       lNameTh: formData.value.lNameTh,
@@ -586,7 +592,6 @@ async function handleSubmit() {
     emit('save', payload, props.isCreate)
     
   } catch (err: any) {
-    // ✅ เก็บ errors state
     if (err.inner && err.inner.length > 0) {
       err.inner.forEach((e: any) => {
         errors.value[e.path] = e.message
@@ -609,7 +614,7 @@ const filteredBenefitPlanOptions = computed(() => {
 const selectedBenefitPlanLabels = computed(() =>
   props.benefitPlanOptions.filter(opt => formData.value.benefitPlanIds.includes(opt.id))
 )
-defineExpose({ open, close })
+defineExpose({ open, close,dialogEl: dialogRef})
 
 
 

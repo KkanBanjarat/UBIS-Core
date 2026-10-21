@@ -112,7 +112,14 @@ public class EmployeeRepos : BaseRepos<TbEmployee>, IEmployeeRepos
             .AsNoTracking()
             .FirstOrDefaultAsync(w => w.EmpId == empId && w.IsDelete == false);
     }
-
+    public async Task<Dictionary<Guid, string>> GetEmailsByIdsAsync(List<Guid> ids)
+    {
+        return await _dbSet
+            .AsNoTracking()
+            .Where(x => ids.Contains(x.Id) && !x.IsDelete && x.Email != null && x.Email != "")
+            .Select(x => new { x.Id, x.Email })
+            .ToDictionaryAsync(x => x.Id, x => x.Email);
+    }
     public async Task<List<EmployeeOrgChartNodeDto>> GetOrgChartFlatDataAsync()
     {
         return await _dbSet
@@ -194,5 +201,24 @@ public class EmployeeRepos : BaseRepos<TbEmployee>, IEmployeeRepos
             .Where(x => ids.Contains(x.Id) && x.Position != null)
             .Select(x => new { x.Id, PositionNameTh = x.Position.NameTh })
             .ToDictionaryAsync(x => x.Id, x => x.PositionNameTh);
+    }
+
+    public async Task<(string Name, string? Code)?> GetAffiliationAsync(Guid employeeId)
+    {
+        var ouId = await _dbSet
+            .AsNoTracking()
+            .Where(e => e.Id == employeeId)
+            .Select(e => e.DivisionId ?? e.DepartmentId)
+            .FirstOrDefaultAsync();
+
+        if (ouId == null || ouId == Guid.Empty) return null;
+
+        var ou = await _context.TbOrganizationUnits
+            .AsNoTracking()
+            .Where(o => o.Id == ouId && !o.IsDelete)
+            .Select(o => new { o.NameTh, o.Code })
+            .FirstOrDefaultAsync();
+
+        return ou == null ? null : (ou.NameTh, ou.Code);
     }
 }

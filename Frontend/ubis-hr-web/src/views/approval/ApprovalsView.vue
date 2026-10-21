@@ -215,11 +215,9 @@
 
         <!-- Reason -->
         <div class="mt-5">
-
           <label class="text-xs font-medium text-base-content/60">
             เหตุผล
           </label>
-
           <textarea v-model="rejectReason" rows="4" placeholder="กรุณาระบุเหตุผล..." class="textarea textarea-bordered mt-2 w-full
                    resize-none text-sm
                    focus:border-primary focus:outline-none"></textarea>
@@ -227,17 +225,12 @@
           <p class="mt-1.5 text-[11px] text-base-content/35">
             กรุณาระบุเหตุผลเพื่อให้ผู้ขอทราบสาเหตุ
           </p>
-
         </div>
-
-
         <!-- Modal Actions -->
         <div class="mt-5 flex justify-end gap-2">
-
           <button type="button" class="btn btn-ghost btn-sm" @click="rejectDialogRef?.close()">
             ยกเลิก
           </button>
-
           <button type="button" class="btn btn-sm px-5" :class="denialMode === 'reject'
             ? 'btn-warning'
             : 'btn-error'
@@ -248,7 +241,6 @@
                 : 'ยืนยันไม่อนุมัติ'
             }}
           </button>
-
         </div>
 
       </div>
@@ -260,7 +252,12 @@
     </dialog>
 
 
-    <ApprovalDetailModal ref="detailModalRef" />
+    <ApprovalDetailModal
+      ref="detailModalRef"
+      @approve="confirmApprove"
+      @reject="openDenial($event, 'reject')"
+      @disapprove="openDenial($event, 'disapprove')"
+    />
 
   </div>
 </template>
@@ -299,10 +296,7 @@ const detailModalRef =
 
 
 function openDetail(item: Approval) {
-  detailModalRef.value?.open(
-    item.docType,
-    item.docNumber
-  )
+  detailModalRef.value?.open(item.docType, item.docNumber, item)
 }
 
 

@@ -4,17 +4,20 @@ using UBIS.HR.Application.Dtos;
 using UBIS.HR.Application.Interfaces;
 using UBIS.HR.Domain.Entities;
 using UBIS.HR.Infrastructure.Repositories;
+using UBIS.HR.Infrastructure.Excel;
 
 namespace UBIS.HR.Infrastructure.Services;
 
 public class BenefitClaimService : IBenefitClaimService, IApprovalDocumentService
 {
-    private readonly IBenefitClaimRepos _repos;
     private readonly IDocNumberService _docNumberService;
-    private readonly IEmployeeRepos _employeeRepos;
-    private readonly IPodAdminBranchRepos _podAdminBranchRepos;
     private readonly IApprovalRouteResolverService _routeResolver;
     private readonly IServiceProvider _serviceProvider;
+    private readonly ITransactionService _tx;
+    private readonly IBenefitClaimRepos _repos;
+    private readonly IEmployeeRepos _employeeRepos;
+    private readonly IPodAdminBranchRepos _podAdminBranchRepos;
+
     private readonly ILogger<BenefitClaimService> _logger;
     private readonly ICurrentUserService _currentUser;
 
@@ -22,6 +25,7 @@ public class BenefitClaimService : IBenefitClaimService, IApprovalDocumentServic
 
     public BenefitClaimService(IBenefitClaimRepos repos,
         IDocNumberService docNumberService,
+        ITransactionService tx,
         IEmployeeRepos employeeRepos,
         IPodAdminBranchRepos podAdminBranchRepos,
         IApprovalRouteResolverService routeResolver,
@@ -31,6 +35,7 @@ public class BenefitClaimService : IBenefitClaimService, IApprovalDocumentServic
     {
         _repos = repos;
         _docNumberService = docNumberService;
+        _tx = tx;
         _employeeRepos = employeeRepos;
         _podAdminBranchRepos = podAdminBranchRepos;
         _routeResolver = routeResolver;
@@ -58,6 +63,7 @@ public class BenefitClaimService : IBenefitClaimService, IApprovalDocumentServic
             PositionLevelNameEn = s.Employee?.PositionLevel?.NameEn,
             Branch = $"{s.Employee?.Branch.NameTh} ({s.Employee?.Branch.Code})",
             Company = s.Employee?.Company.NameTh,
+            CompanyCode = s.Employee?.Company.Code,
             Remark = s.Remark,
             TotalAmount = s.TotalAmount,
             LineCount = s.TbBenefitClaimLines.Count,
@@ -135,10 +141,55 @@ public class BenefitClaimService : IBenefitClaimService, IApprovalDocumentServic
         var s = await _repos.GetByDocNumAsync(docNum);
         return s == null ? null : await WithAffiliationAsync(MapToDto(s));
     }
+    public async Task<BenefitClaimSummaryDto> GetSummaryAsync(BenefitClaimSummaryFilterDto filter)
+    {
+        var adminBranches = await _podAdminBranchRepos.GetByUserIdWithBranchAsync(_currentUser.GetCurrentUserId());
+        var adminBranchIds = adminBranches.Select(b => b.BranchId).ToList();
 
+        if (adminBranchIds.Count == 0)
+            throw new UnauthorizedAccessException("เฉพาะ HR Admin เท่านั้นที่ดูรายงานสรุปได้");
+
+        return await _repos.GetSummaryAsync(filter, adminBranchIds);
+    }
+    public async Task<List<BenefitClaimExportRowDto>> GetDetailRowsAsync(BenefitClaimSummaryFilterDto filter)
+    {
+        var adminBranchIds = await GetAdminBranchIdsOrThrowAsync();
+        return await _repos.GetExportRowsAsync(filter, adminBranchIds);
+    }
+    public async Task<PagedResultDto<EmployeeSummaryDto>> GetEmployeeSummaryPagedAsync(
+    BenefitClaimEmployeeFilterDto filter)
+    {
+        var adminBranchIds = await GetAdminBranchIdsOrThrowAsync();
+        var (items, total) = await _repos.GetEmployeeSummaryPagedAsync(filter, adminBranchIds);
+        return new PagedResultDto<EmployeeSummaryDto> { Items = items, TotalCount = total };
+    }
+    public async Task<List<BenefitClaimExportRowDto>> GetEmployeeRowsAsync(
+    BenefitClaimEmployeeRowsFilterDto filter)
+    {
+        var adminBranchIds = await GetAdminBranchIdsOrThrowAsync();
+        var rows = await _repos.GetExportRowsAsync(filter, adminBranchIds, filter.EmployeeId);
+        return rows.OrderBy(x => x.DocDate).ThenBy(x => x.DocNum).ToList();
+    }
+
+    private async Task<List<Guid>> GetAdminBranchIdsOrThrowAsync()
+    {
+        var adminBranches = await _podAdminBranchRepos.GetByUserIdWithBranchAsync(_currentUser.GetCurrentUserId());
+        var ids = adminBranches.Select(b => b.BranchId).ToList();
+        if (ids.Count == 0)
+            throw new UnauthorizedAccessException("เฉพาะ HR Admin เท่านั้นที่ดูรายงานสรุปได้");
+        return ids;
+    }
+
+    public async Task<byte[]> ExportSummaryAsync(BenefitClaimSummaryFilterDto filter)
+    {
+        var adminBranchIds = await GetAdminBranchIdsOrThrowAsync();
+        var summary = await _repos.GetSummaryAsync(filter, adminBranchIds);
+        var rows = await _repos.GetExportRowsAsync(filter, adminBranchIds);
+        return BenefitClaimSummaryExcelBuilder.Build(summary, rows, filter);
+    }
     private async Task<BenefitClaimDto> WithAffiliationAsync(BenefitClaimDto dto)
     {
-        var aff = await _repos.GetAffiliationAsync(dto.EmployeeId);
+        var aff = await _employeeRepos.GetAffiliationAsync(dto.EmployeeId);
         if (aff != null)
         {
             dto.Affiliation = aff.Value.Name;
@@ -266,23 +317,21 @@ public class BenefitClaimService : IBenefitClaimService, IApprovalDocumentServic
 
             var resolvedApprovers = await _routeResolver.ResolveAsync(DocType, existing.EmployeeId);
 
-            // ออกเลขเอกสารตอนส่งอนุมัติครั้งแรก (ถ้าถูกดึงกลับมาแก้ แล้วส่งใหม่ ใช้เลขเดิม)
-            // if (string.IsNullOrEmpty(existing.DocNum))
-            //     existing.DocNum = await _docNumberService.GenerateAsync(DocType);
+            return await _tx.RunAsync<BenefitClaimDto?>(async () =>
+            {
+                existing.DocStatus = "WaitApprove";
+                existing.UpdatedAt = DateTime.Now;
+                existing.UpdatedBy = _currentUser.GetCurrentUserEmail();
+                await _repos.SaveChangesAsync();
 
-            existing.DocStatus = "WaitApprove";
-            existing.UpdatedAt = DateTime.Now;
-            existing.UpdatedBy = _currentUser.GetCurrentUserEmail();
+                await ApprovalService.CreateApprovalAsync(
+                    DocType,
+                    existing.DocNum,
+                    1,
+                    resolvedApprovers.OrderBy(x => x.StepNo).ToList());
 
-            await _repos.SaveChangesAsync();
-
-            await ApprovalService.CreateApprovalAsync(
-                DocType,
-                existing.DocNum,
-                1,
-                resolvedApprovers.OrderBy(x => x.StepNo).ToList());
-
-            return await GetByIdAsync(id);
+                return await GetByIdAsync(id);
+            });
         }
         catch (InvalidOperationException)
         {
@@ -305,15 +354,17 @@ public class BenefitClaimService : IBenefitClaimService, IApprovalDocumentServic
             if (existing.DocStatus != "WaitApprove" && existing.DocStatus != "Rejected")
                 throw new InvalidOperationException("ดึงกลับได้เฉพาะเอกสารสถานะ รออนุมัติ หรือ ตีกลับ เท่านั้น");
 
-            existing.DocStatus = "Draft";
-            existing.UpdatedAt = DateTime.Now;
-            existing.UpdatedBy = _currentUser.GetCurrentUserEmail();
+            return await _tx.RunAsync<BenefitClaimDto?>(async () =>
+            {
+                existing.DocStatus = "Draft";
+                existing.UpdatedAt = DateTime.Now;
+                existing.UpdatedBy = _currentUser.GetCurrentUserEmail();
+                await _repos.SaveChangesAsync();
 
-            await _repos.SaveChangesAsync();
+                await ApprovalService.RecallAsync(DocType, existing.DocNum, 1);
 
-            await ApprovalService.RecallAsync(DocType, existing.DocNum, 1);
-
-            return await GetByIdAsync(id);
+                return await GetByIdAsync(id);
+            });
         }
         catch (InvalidOperationException)
         {
@@ -325,7 +376,6 @@ public class BenefitClaimService : IBenefitClaimService, IApprovalDocumentServic
             throw;
         }
     }
-
     // ===== IApprovalDocumentService =====
 
     public async Task<(DateTime DocDate, string EmployeeNameTh, string? DocumentDetail)?> GetSummaryAsync(string docNumber)

@@ -137,31 +137,39 @@
                       class="input input-bordered input-sm w-full focus:border-primary" />
                   </div>
                 </div>
-
-                <!-- Limit Info -->
-                <div v-if="isOverGeneralLimit(line)" class="mt-3 flex items-center gap-1.5 rounded-lg bg-error/10 px-3 py-2.5 text-error">
-                  <CircleAlert class="size-3.5" />
-                  <span class="text-xs font-medium">
-                    เกินวงเงินเงินสดย่อย {{ GENERAL_PETTY_CASH_LIMIT.toLocaleString('th-TH') }} บาทต่อรายการ — บันทึกไม่ได้
-                  </span>
-                </div>
               </div>
             </div>
+            <p v-if="formData.lines.length > 0 && errors.lines" class="text-xs text-error mt-2">{{ errors.lines }}</p>
           </section>
         <section class="rounded-xl border border-base-200 bg-base-200/20 p-4">
           <p class="text-sm font-semibold mb-3">ไฟล์แนบ</p>
           <AttachmentList doc-type="PettyCash" :doc-number="currentDocNum || null" :target="dialogRef" />
         </section>
           <!-- Total -->
-          <div class="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 px-5 py-4">
+          <div class="flex items-center justify-between rounded-xl border px-5 py-4"
+            :class="isOverLimit ? 'border-error/30 bg-error/5' : 'border-primary/20 bg-primary/5'">
             <div>
               <p class="text-xs text-base-content/50">ยอดรวมทั้งหมด</p>
-              <p class="text-[11px] text-base-content/35 mt-0.5">จำนวนเงินที่ขอเบิก</p>
+              <p v-if="docLimit !== null" class="text-[11px] mt-0.5"
+                :class="isOverLimit ? 'text-error font-medium' : 'text-base-content/35'">
+                วงเงินต่อเอกสาร {{ docLimit.toLocaleString('th-TH') }} บาท
+              </p>
+              <p v-else class="text-[11px] text-base-content/35 mt-0.5">จำนวนเงินที่ขอเบิก</p>
             </div>
             <div class="text-right">
-              <span class="text-xl font-bold text-primary">{{ totalAmount.toLocaleString('th-TH') }}</span>
+              <span class="text-xl font-bold" :class="isOverLimit ? 'text-error' : 'text-primary'">
+                {{ totalAmount.toLocaleString('th-TH') }}
+              </span>
               <span class="text-xs text-base-content/50 ml-1">บาท</span>
             </div>
+          </div>
+
+          <!-- Over Limit Banner -->
+          <div v-if="isOverLimit"
+            class="flex items-center gap-2 rounded-lg bg-error/10 text-error px-4 py-2.5 text-xs font-medium">
+            <CircleAlert class="size-4 shrink-0" />
+            ยอดรวมเกินวงเงินเงินสดย่อย {{ (docLimit ?? 0).toLocaleString('th-TH') }} บาทต่อเอกสาร
+            (เกิน {{ (totalAmount - (docLimit ?? 0)).toLocaleString('th-TH') }} บาท) — บันทึกไม่ได้
           </div>
 
           <!-- Error Banner -->
@@ -179,7 +187,7 @@
           </div>
           <div class="flex justify-end gap-2 ml-auto">
             <button type="button" class="btn btn-ghost btn-sm rounded-lg px-5" @click="close">ยกเลิก</button>
-            <button type="submit" class="btn btn-primary btn-sm rounded-lg px-6" :disabled="isSubmitting">
+            <button type="submit" class="btn btn-primary btn-sm rounded-lg px-6" :disabled="isSubmitting || isOverLimit">
               <span v-if="isSubmitting" class="loading loading-spinner loading-xs"></span>
               {{ isSubmitting ? 'กำลังบันทึก...' : 'บันทึก' }}
             </button>
@@ -195,9 +203,10 @@
 
 <script setup lang="ts">
 import * as yup from 'yup'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { X, Plus, Trash2, ReceiptText, FileText, CircleAlert } from 'lucide-vue-next'
 import type { PettyCash } from '../../types/PettyCash.ts'
+import hrApi from '../../services/hrApi'
 import AttachmentList from '../attachment/AttachmentList.vue'
 import EmployeeSelect, { type EmployeeOption } from '../../components/ui/EmployeeSelect.vue'
 
@@ -237,8 +246,6 @@ interface LineForm {
   accountCode: string
 }
 
-const GENERAL_PETTY_CASH_LIMIT = 2000
-
 const defaultForm = () => ({
   docDate: new Date().toISOString().split('T')[0],
   remark: '',
@@ -249,9 +256,35 @@ const formData = ref(defaultForm())
 
 const totalAmount = computed(() => formData.value.lines.reduce((sum, l) => sum + (l.amount || 0), 0))
 
-function isOverGeneralLimit(line: LineForm) {
-  return !line.benefitId && line.amount > GENERAL_PETTY_CASH_LIMIT
+// ---- วงเงินต่อเอกสาร (อ่านจากตาราง tb_doc_limit ผ่าน API) ----
+const docLimit = ref<number | null>(null)
+let limitReqId = 0
+
+async function loadLimit() {
+  const reqId = ++limitReqId
+  try {
+    const res = await hrApi.get('/DocLimit/PettyCash', {
+      params: { docDate: formData.value.docDate },
+    })
+    if (reqId !== limitReqId) return
+    docLimit.value = res.data?.limitAmount ?? null
+  } catch (err) {
+    if (reqId !== limitReqId) return
+    docLimit.value = null // ดึงไม่ได้ก็ไม่ปิดกั้นหน้าเว็บ เพราะ Backend ตรวจซ้ำอยู่แล้ว
+    console.error('Failed to load petty cash limit:', err)
+  }
 }
+
+watch(
+  () => formData.value.docDate,
+  () => {
+    if (dialogRef.value?.open) loadLimit()
+  },
+)
+
+const isOverLimit = computed(
+  () => docLimit.value !== null && totalAmount.value > docLimit.value,
+)
 
 function addLine() {
   formData.value.lines.push({
@@ -277,6 +310,7 @@ async function open(item?: PettyCash | null) {
   currentDocNum.value = item?.docNum || ''
   isEditMode.value = !!item
   selectedEmployeeId.value = item?.employeeId || props.employeeId
+  docLimit.value = null
 
   if (isEditMode.value && item) {
     formData.value = {
@@ -295,6 +329,7 @@ async function open(item?: PettyCash | null) {
   }
 
   dialogRef.value?.showModal()
+  loadLimit()
 }
 
 function close() {
@@ -305,28 +340,38 @@ function getDialogEl() {
   return dialogRef.value ?? null
 }
 
-const validationSchema = yup.object({
-  docDate: yup.string().required('กรุณาระบุวันที่เอกสาร'),
-  employeeId: yup.string().required('กรุณาเลือกผู้ขอเบิก'),
-  lines: yup
-    .array()
-    .min(1, 'กรุณาเพิ่มรายการเบิกอย่างน้อย 1 รายการ')
-    .of(
-      yup.object({
-        detail: yup.string().trim().required('กรุณาระบุรายละเอียด'),
-        amount: yup
-          .number()
-          .typeError('กรุณาระบุยอดเบิก')
-          .moreThan(0, 'ยอดเบิกต้องมากกว่า 0'),
+const buildSchema = (limit: number | null) =>
+  yup.object({
+    docDate: yup.string().required('กรุณาระบุวันที่เอกสาร'),
+    employeeId: yup.string().required('กรุณาเลือกผู้ขอเบิก'),
+    lines: yup
+      .array()
+      .min(1, 'กรุณาเพิ่มรายการเบิกอย่างน้อย 1 รายการ')
+      .of(
+        yup.object({
+          detail: yup.string().trim().required('กรุณาระบุรายละเอียด'),
+          amount: yup
+            .number()
+            .typeError('กรุณาระบุยอดเบิก')
+            .moreThan(0, 'ยอดเบิกต้องมากกว่า 0'),
+        }),
+      )
+      .test('doc-limit', 'ยอดรวมเกินวงเงิน', function (lines) {
+        if (limit === null) return true
+        const total = (lines ?? []).reduce((s, l: any) => s + (Number(l?.amount) || 0), 0)
+        if (total <= limit) return true
+        return this.createError({
+          path: 'lines',
+          message: `ยอดรวมทั้งเอกสารต้องไม่เกิน ${limit.toLocaleString('th-TH')} บาท (ปัจจุบัน ${total.toLocaleString('th-TH')} บาท)`,
+        })
       }),
-    ),
-})
+  })
 
 async function handleSubmit() {
   errorMessage.value = ''
   errors.value = {}
   try {
-    await validationSchema.validate(
+    await buildSchema(docLimit.value).validate(
       {
         docDate: formData.value.docDate,
         employeeId: selectedEmployeeId.value,
@@ -339,12 +384,6 @@ async function handleSubmit() {
     return
   }
 
-  const overLimit = formData.value.lines.find(isOverGeneralLimit)
-  if (overLimit) {
-    errorMessage.value = `มีรายการที่เกินวงเงิน ${GENERAL_PETTY_CASH_LIMIT.toLocaleString('th-TH')} บาท กรุณาแก้ไขก่อนบันทึก`
-    return
-  }
-
   isSubmitting.value = true
   try {
     const payload = {
@@ -354,7 +393,7 @@ async function handleSubmit() {
       lines: formData.value.lines.map(l => ({
         benefitId: l.benefitId,
         detail: l.detail,
-        limitAmount: l.benefitId ? 0 : GENERAL_PETTY_CASH_LIMIT,
+        limitAmount: docLimit.value ?? 0,
         amount: l.amount,
         qty: l.qty,
         accountCode: l.accountCode || null,

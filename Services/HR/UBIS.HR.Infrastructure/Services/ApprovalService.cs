@@ -3,6 +3,7 @@ using UBIS.HR.Application.Dtos;
 using UBIS.HR.Application.Interfaces;
 using UBIS.HR.Domain.Entities;
 using UBIS.HR.Infrastructure.Repositories;
+using UBIS.HR.Infrastructure.Services.Teams;
 
 namespace UBIS.HR.Infrastructure.Services;
 
@@ -12,6 +13,7 @@ public class ApprovalService : IApprovalService
     private readonly IReasonApproveRepos _reasonApproveRepos;
     private readonly IEmployeeRepos _employeeRepos;
     private readonly IEnumerable<IApprovalDocumentService> _documentServices;
+    private readonly ITeamsNotifier _teamsNotifier;
     private readonly ICurrentUserService _currentUser;
     private readonly ILogger<ApprovalService> _logger;
 
@@ -19,6 +21,7 @@ public class ApprovalService : IApprovalService
         IReasonApproveRepos reasonApproveRepos,
         IEmployeeRepos employeeRepos,
         IEnumerable<IApprovalDocumentService> documentServices,
+        ITeamsNotifier teamsNotifier,
         ICurrentUserService currentUser,
         ILogger<ApprovalService> logger)
     {
@@ -26,6 +29,7 @@ public class ApprovalService : IApprovalService
         _reasonApproveRepos = reasonApproveRepos;
         _employeeRepos = employeeRepos;
         _documentServices = documentServices;
+        _teamsNotifier = teamsNotifier;
         _currentUser = currentUser;
         _logger = logger;
     }
@@ -40,7 +44,36 @@ public class ApprovalService : IApprovalService
     {
         return _documentServices.FirstOrDefault(x => x.DocType == docType);
     }
+    private async Task NotifyApproverAsync(string docType, string docNumber, Guid approverId, int stepNo, int totalSteps)
+    {
+        try
+        {
+            var emails = await _employeeRepos.GetEmailsByIdsAsync(new List<Guid> { approverId });
+            if (!emails.TryGetValue(approverId, out var email) || string.IsNullOrWhiteSpace(email))
+            {
+                _logger.LogWarning("ผู้อนุมัติ {ApproverId} ไม่มีอีเมล ข้ามการแจ้งเตือน {DocNumber}", approverId, docNumber);
+                return;
+            }
 
+            var docService = TryGetDocumentService(docType);
+            if (docService == null) return;
+
+            var batch = await docService.GetSummariesAsync(new[] { docNumber });
+            if (!batch.TryGetValue(docNumber, out var summary))
+            {
+                _logger.LogWarning("ไม่พบสรุปเอกสาร {DocType} {DocNumber} ข้ามการแจ้งเตือน", docType, docNumber);
+                return;
+            }
+
+            var (docDate, employeeNameTh, detail) = summary;
+            await _teamsNotifier.NotifyApprovalRequestAsync(new ApprovalNotification(
+                email, docType, docNumber, employeeNameTh, detail ?? "-", docDate, stepNo, totalSteps));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "แจ้งเตือนผู้อนุมัติไม่สำเร็จ {DocNumber}", docNumber);
+        }
+    }
     public async Task CreateApprovalAsync(string docType, string docNumber, int docRev, List<ResolvedApprover> steps)
     {
         var round = await _approvalRepos.GetLatestRoundAsync(docType, docNumber, docRev) + 1;
@@ -70,6 +103,9 @@ public class ApprovalService : IApprovalService
         }
 
         await _approvalRepos.SaveChangesAsync();
+        // throw new Exception("ทดสอบ rollback");
+        if (steps.Count > 0)
+            await NotifyApproverAsync(docType, docNumber, steps[0].ApproverEmployeeId, 1, steps.Count);
     }
 
     public async Task<List<MyApprovalDto>> GetMyPendingApprovalsAsync()
@@ -122,6 +158,32 @@ public class ApprovalService : IApprovalService
         return result;
     }
 
+    public async Task<List<ApprovalSummaryDto>> GetPendingApprovalsAsync(Guid actor)
+    {
+        try
+        {
+            var pendingSteps = await _approvalRepos.GetPendingByApproverAsync(actor);
+            if (!pendingSteps.Any())
+                return new List<ApprovalSummaryDto>();
+
+            var approvalSummary = pendingSteps
+                .GroupBy(s => s.DocType)
+                .Select(g => new ApprovalSummaryDto
+                {
+                    DocType = g.Key,
+                    QtyWaitApprove = g.Select(x => x.DocNumber).Distinct().Count(),
+                })
+                .OrderBy(x => x.DocType)
+                .ToList();
+
+            return approvalSummary;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "เกิดข้อผิดพลาดในการดึงข้อมูล Approval : {Message}", ex.Message);
+            throw;
+        }
+    }
     public async Task<bool> ApproveAsync(int transApproveId)
     {
         var step = await _approvalRepos.GetByIntIdAsync(transApproveId);
@@ -153,6 +215,7 @@ public class ApprovalService : IApprovalService
             nextStep.UpdatedAt = DateTime.Now;
             nextStep.UpdatedBy = currentUserEmail;
             await _approvalRepos.SaveChangesAsync();
+            await NotifyApproverAsync(step.DocType, step.DocNumber, nextStep.ApproverId, nextStep.StepNo, allSteps.Count);
         }
         else
         {

@@ -54,11 +54,11 @@ public class RoleMenuService : IRoleMenuService
     {
         try
         {
-            var roleName = await _repo.GetRoleNameAsync(roleId);
-            if (roleName == null) return false;
-
-            if (roleName == "SuperAdmin")
-                throw new InvalidOperationException("SuperAdmin เข้าถึงทุกเมนูอัตโนมัติ ไม่ต้องกำหนดสิทธิ์");
+            // var roleName = await _repo.GetRoleNameAsync(roleId);
+            // if (roleName == null) return false;
+            if (await _repo.GetRoleNameAsync(roleId) == null) return false;
+            // if (roleName == "SuperAdmin")
+            //     throw new InvalidOperationException("SuperAdmin เข้าถึงทุกเมนูอัตโนมัติ ไม่ต้องกำหนดสิทธิ์");
 
             if (data.Items.Any(i => i.AccessLevel < 0 || i.AccessLevel > 3))
                 throw new ArgumentException("ระดับสิทธิ์ต้องอยู่ระหว่าง 0 ถึง 3");

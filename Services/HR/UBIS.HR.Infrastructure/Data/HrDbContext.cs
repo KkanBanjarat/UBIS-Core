@@ -36,6 +36,8 @@ public partial class HrDbContext : DbContext
 
     public virtual DbSet<TbCompany> TbCompanies { get; set; }
 
+    public virtual DbSet<TbDocLimit> TbDocLimits { get; set; }
+
     public virtual DbSet<TbDocNumberLog> TbDocNumberLogs { get; set; }
 
     public virtual DbSet<TbEmployee> TbEmployees { get; set; }
@@ -275,6 +277,33 @@ public partial class HrDbContext : DbContext
                 .HasDefaultValueSql("now()")
                 .HasColumnType("timestamp without time zone");
             entity.Property(e => e.UpdatedBy).HasDefaultValueSql("'System'::text");
+        });
+
+        modelBuilder.Entity<TbDocLimit>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("tb_doc_limit_pkey");
+
+            entity.ToTable("tb_doc_limit");
+
+            entity.HasIndex(e => new { e.DocType, e.EffectiveFrom }, "ux_doc_limit_doctype_from")
+                .IsUnique()
+                .HasFilter("(\"IsDelete\" = false)");
+
+            entity.Property(e => e.Id).HasDefaultValueSql("gen_random_uuid()");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone");
+            entity.Property(e => e.CreatedBy).HasMaxLength(200);
+            entity.Property(e => e.DeletedAt).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.DeletedBy).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(200);
+            entity.Property(e => e.DocType).HasMaxLength(50);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.LimitAmount).HasPrecision(18, 2);
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone");
+            entity.Property(e => e.UpdatedBy).HasMaxLength(200);
         });
 
         modelBuilder.Entity<TbDocNumberLog>(entity =>

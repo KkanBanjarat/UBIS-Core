@@ -48,3 +48,11 @@ public class ApprovalTrailDto
     public List<ApprovalStepDto> Steps { get; set; } = new();
     public List<ApprovalReasonDto> Reasons { get; set; } = new();
 }
+
+
+public class ApprovalSummaryDto
+{
+    public string DocType { get; set; }
+    public int QtyWaitApprove { get; set; }
+}
+

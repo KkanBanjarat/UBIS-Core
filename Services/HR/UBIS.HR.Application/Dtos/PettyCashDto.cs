@@ -25,6 +25,10 @@ public class PettyCashDto
     public string? PositionLevel { get; set; }
     public string? PositionLevelNameTh { get; set; }
     public string? PositionLevelNameEn { get; set; }
+    public string? Company { get; set; }
+    public string? CompanyCode { get; set; }
+    public string? Affiliation { get; set; }
+    public string? AffiliationCode { get; set; }
     public string? Remark { get; set; }
     public decimal TotalAmount { get; set; }
     public string CreatedBy { get; set; }

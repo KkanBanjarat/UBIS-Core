@@ -152,6 +152,10 @@
                         title="ดูรายละเอียดและสถานะอนุมัติ" @click="openDocumentDetail(item)">
                         <Eye class="size-3.5" />
                       </button>
+                      <button class="btn btn-ghost btn-xs btn-square rounded-md text-base-content/50 hover:bg-primary/10 hover:text-primary"
+                        title="พรีวิว / พิมพ์ใบเบิก" @click="openPreview(item)">
+                        <Printer class="size-4" />
+                      </button>
                       <button v-if="item.docStatus === 'WaitApprove' || item.docStatus === 'Rejected'"
                         class="btn btn-ghost btn-xs btn-square rounded-lg text-info hover:bg-info/10"
                         title="ดึงกลับมาเป็นร่าง" @click="confirmRecall(item)">
@@ -291,6 +295,8 @@
     @save="handleSave"
   />
   <ApprovalDetailModal ref="detailModalRef" />
+  <PettyCashPreviewModal ref="previewModalRef" />
+
 </template>
 
 <script setup lang="ts">
@@ -300,13 +306,14 @@ import { usePettyCashStore } from '../../stores/pettyCashStore.ts'
 import FormSelect from '../../components/ui/FormSelect.vue'
 import PettyCashFormModal from '../../components/pettycash/PettyCashFormModal.vue'
 import ApprovalDetailModal from '../../components/approval/ApprovalDetailModal.vue'
+import PettyCashPreviewModal from '../../components/pettycash/PettyCashPreviewModal.vue'
 import AttachmentList from '../../components/attachment/AttachmentList.vue'
 import { notify, extractErrorMessage } from '../../utils/notify.ts'
 import { useAuthStore } from '../../stores/authStore.ts'
 import type { PettyCash, PettyCashFilter } from '../../types/PettyCash.ts'
 import {
   Plus, Search, Receipt, Edit, Trash2, Send, ChevronDown, ChevronUp, MessageSquare,
-  Undo2, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
+  Undo2, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, FilterX, Printer,
 } from 'lucide-vue-next'
 
 interface OptionItem {
@@ -319,6 +326,7 @@ const pettyCashStore = usePettyCashStore()
 const { items, totalCount, isLoading, errorMessage, allowedEmployees, myEmployeeId, myEmployeeName } =
   storeToRefs(pettyCashStore)
 const detailModalRef = ref<InstanceType<typeof ApprovalDetailModal>>()
+const previewModalRef = ref<InstanceType<typeof PettyCashPreviewModal>>()
 const expandedRows = ref<Set<string>>(new Set())
 
 const filter = reactive<PettyCashFilter>({
@@ -514,6 +522,14 @@ async function confirmRecall(item: PettyCash) {
   }
 }
 
+async function openPreview(item: PettyCash) {
+  try {
+    const detail = await pettyCashStore.getById(item.id)
+    previewModalRef.value?.open(detail)
+  } catch (err) {
+    await notify.error(extractErrorMessage(err), 'โหลดข้อมูลไม่สำเร็จ')
+  }
+}
 onMounted(() => {
   // ตารางหลักไม่ต้องรอใคร ยิงทันที
   fetchList()
@@ -524,7 +540,7 @@ onMounted(() => {
   })
 
   authStore
-    .fetchCurrentEmployee(false)
+    .fetchCurrentEmployee(false,false)
     .then((emp) => {
       if (emp) {
         pettyCashStore.setMyEmployee(emp.id, `${emp.fNameTh} ${emp.lNameTh}`)

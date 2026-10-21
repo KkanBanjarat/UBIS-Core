@@ -13,12 +13,44 @@ using UBIS.HR.Infrastructure.Data;
 using UBIS.HR.Infrastructure.Repositories;
 using UBIS.HR.Infrastructure.Repositories.Interfaces;
 using UBIS.HR.Api.Middleware;
+using Ubis.Hr.Api.Services.Email;
+using Microsoft.OpenApi;
+using UBIS.HR.Infrastructure.Services.Teams;
 
 
 var builder = WebApplication.CreateBuilder(args);
+// Console.WriteLine($"Environment: {builder.Environment.EnvironmentName}");
 
 builder.Services.AddControllers();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "ใส่เฉพาะตัว token (ไม่ต้องพิมพ์คำว่า Bearer)"
+    });
+
+    c.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.ApiKey,
+        Name = "X-Api-Key",              // ← ต้องตรงกับ header ที่ ApiKeyMiddleware อ่าน
+        In = ParameterLocation.Header,
+        Description = "API Key ของระบบ"
+    });
+
+    c.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = new List<string>(),
+        [new OpenApiSecuritySchemeReference("ApiKey", document)] = new List<string>()
+    });
+
+});
+
+
+
 builder.Services.AddDbContext<HrDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("HrDatabase")));
 
 builder.Services.AddScoped<IBranchRepos, BranchRepos>();
@@ -41,6 +73,7 @@ builder.Services.AddScoped<IReasonApproveRepos, ReasonApproveRepos>();
 builder.Services.AddScoped<IApprovalRepos, ApprovalRepos>();
 builder.Services.AddScoped<IRouteApproveRepos, RouteApproveRepos>();
 builder.Services.AddScoped<IBenefitClaimRepos, BenefitClaimRepos>();
+builder.Services.AddScoped<IDocLimitRepos, DocLimitRepos>();
 
 builder.Services.AddHttpClient<IAccessServiceClient, AccessServiceClient>();
 builder.Services.AddScoped<IAttachmentService, AttachmentService>();
@@ -57,6 +90,7 @@ builder.Services.AddScoped<IBenefitPlanService, BenefitPlanService>();
 builder.Services.AddScoped<IBenefitPlanItemService, BenefitPlanItemService>();
 builder.Services.AddScoped<ICompanyService, CompanyService>();
 builder.Services.AddScoped<IBranchService, BranchService>();
+builder.Services.AddScoped<IDocLimitService, DocLimitService>();
 builder.Services.AddScoped<IPodAdminBranchService, PodAdminBranchService>();
 builder.Services.AddScoped<PettyCashService>();
 builder.Services.AddScoped<IPettyCashService>(sp => sp.GetRequiredService<PettyCashService>());
@@ -65,7 +99,15 @@ builder.Services.AddScoped<IBenefitClaimService, BenefitClaimService>();
 builder.Services.AddScoped<IApprovalDocumentService>(sp => (BenefitClaimService)sp.GetRequiredService<IBenefitClaimService>());
 
 builder.Services.AddScoped<IApprovalService, ApprovalService>();
+builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddScoped<IDocNumberService, DocNumberService>();
+
+builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.Section));
+builder.Services.AddScoped<IEmailService, EmailService>();
+
+builder.Services.Configure<TeamsOptions>(builder.Configuration.GetSection("Teams"));
+builder.Services.AddHttpClient<ITeamsNotifier, TeamsNotifier>(c => c.Timeout = TimeSpan.FromSeconds(10))
+    .RemoveAllLoggers();
 
 var jwtSecret = builder.Configuration["Jwt:Secret"]
     ?? throw new InvalidOperationException("Jwt:Secret is not configured.");
@@ -153,6 +195,7 @@ if (app.Environment.IsDevelopment())
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "UBIS HR Service API v1");
         c.RoutePrefix = "BeHr";
         c.DocumentTitle = "UBIS - HR Service";
+        c.EnablePersistAuthorization();
     });
 }
 

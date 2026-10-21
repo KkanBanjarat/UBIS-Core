@@ -42,7 +42,14 @@ public class PettyCashController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create(CreatePettyCashDto data)
     {
-        return Ok(await _service.CreateAsync(data));
+        try
+        {
+            return Ok(await _service.CreateAsync(data));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ex.Message);
+        }
     }
 
     [HttpPut("{id}")]

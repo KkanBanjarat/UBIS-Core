@@ -642,8 +642,12 @@ async function handleEmployeeSave(payload: any, isCreate: boolean) {
       isCreate ? "เพิ่มพนักงานสำเร็จ" : "บันทึกการแก้ไขสำเร็จ",
     );
   } catch (err: any) {
-    await notify.error(extractErrorMessage(err));
     console.error("Save error:", err);
+    await notify.error(
+      extractErrorMessage(err),
+      "เกิดข้อผิดพลาด",
+      employeeFormModalRef.value?.dialogEl,
+    );
   }
 }
 

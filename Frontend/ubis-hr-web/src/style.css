@@ -55,7 +55,11 @@
   font-style: normal;
   font-display: swap;
 }
-
+dialog .swal2-container {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+}
 html,
 body,
 #app {

@@ -19,20 +19,18 @@
                 <div id="print-area"
                     class="mx-auto bg-white text-black shadow-md p-8 sm:p-10 w-full max-w-[794px] min-h-[600px] text-[13px] leading-relaxed">
                     <template v-if="claim">
-                        <!-- หัวเอกสาร: บริษัทของผู้ขอเบิก -->
-                        <div class="text-center mb-5">
-                            <img v-if="claim.companyLogoUrl" :src="claim.companyLogoUrl"
-                                class="h-12 mx-auto mb-2 object-contain" />
-                            <p v-if="claim.companyNameTh" class="text-base font-bold">{{ claim.companyNameTh }}</p>
-                            <p v-if="claim.companyNameEn" class="text-xs text-gray-500">{{ claim.companyNameEn }}</p>
-                            <h2 class="text-xl font-bold mt-3">ใบเบิกสวัสดิการ</h2>
-                            <!-- <p class="text-sm text-gray-500">{{ claim.company }} ({{ claim.branch }})</p> -->
-                            <p class="text-gray-500 text-sm"> {{ claim.company }}</p>
+                        <!-- หัวเอกสาร: โลโก้ซ้าย ชื่อเอกสารตรงกลาง -->
+                        <div class="mb-5 flex items-center gap-4">
+                            <div class="w-28 shrink-0">
+                                <img v-if="logoUrl && !logoFailed" :src="logoUrl" @error="logoFailed = true"
+                                    class="h-16 w-auto max-w-28 object-contain" />
+                            </div>
+                            <div class="flex-1 text-center">
+                                <h2 class="text-xl font-bold">ใบเบิกสวัสดิการ</h2>
+                                <p class="text-sm text-gray-500">{{ claim.company }}</p>
+                            </div>
+                            <div class="w-28 shrink-0"></div>
                         </div>
-                        <!-- <div class="grid grid-cols-2 gap-x-6 gap-y-1 mb-4">
-                            <p class="text-gray-500 text-sm"> {{  claim.company }}</p>
-                            <p class="text-gray-500 text-right  text-sm">สาขา {{ claim.branch || '-' }}</p>
-                         </div> -->
                         <div v-if="claim.docStatus !== 'Approved'"
                             class="mb-4 rounded border-2 border-red-500 px-3 py-2 text-center font-bold text-red-600">
                             <template v-if="claim.docStatus === 'Draft'">เอกสารนี้ยังไม่ได้ส่งอนุมัติ</template>
@@ -140,7 +138,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref ,computed} from 'vue'
 import { Printer, X } from 'lucide-vue-next'
 import type { BenefitClaim } from '../../types/BenefitClaim.ts'
 import type { ApprovalStep } from '../../types/Approval.ts'
@@ -148,13 +146,10 @@ import { useApprovalStore } from '../../stores/approvalStore.ts'
 import { thaiBahtText } from '../../utils/thaiBahtText.ts'
 import { useAuthStore } from '../../stores/authStore.ts'
 
-// ฟิลด์ที่หลังบ้านจะเพิ่มให้ (ไม่มีก็ไม่ error)
 type ClaimView = BenefitClaim & {
     companyNameTh?: string | null
     companyNameEn?: string | null
     companyLogoUrl?: string | null
-    company?: string | null
-    branch?: string | null
 }
 type StepView = ApprovalStep
 
@@ -164,10 +159,28 @@ const claim = ref<ClaimView | null>(null)
 const steps = ref<StepView[]>([])
 const isLoadingTrail = ref(false)
 const trailFailed = ref(false)
+const logoFailed = ref(false)
+const logoFiles = import.meta.glob('../../assets/logos/*.{png,jpg,jpeg,svg,webp}', {
+    eager: true,
+    query: '?url',
+    import: 'default',
+}) as Record<string, string>
 
+const logoUrl = computed(() => {
+    const code = claim.value?.companyCode?.toLowerCase()
+    if (!code) return null
+    const key = Object.keys(logoFiles).find(k =>
+        k.split('/').pop()!.replace(/\.[^.]+$/, '').toLowerCase() === code,
+    )
+    return key ? logoFiles[key] : null
+})
 const DOC_STATUS: Record<string, string> = {
-    Draft: 'ร่าง', WaitApprove: 'รออนุมัติ', Approved: 'อนุมัติแล้ว',
-    Rejected: 'ตีกลับ', Disapproved: 'ไม่อนุมัติ', Cancelled: 'ยกเลิก',
+    Draft: 'ร่าง',
+    WaitApprove: 'รออนุมัติ',
+    Approved: 'อนุมัติแล้ว',
+    Rejected: 'ตีกลับ',
+    Disapproved: 'ไม่อนุมัติ',
+    Cancelled: 'ยกเลิก',
 }
 const docStatusText = (s: string) => DOC_STATUS[s] ?? s
 const authStore = useAuthStore()
@@ -220,7 +233,7 @@ async function print() {
 
     if (!printedBy.value) {
         try {
-            const emp = await authStore.fetchCurrentEmployee(false)
+            const emp = await authStore.fetchCurrentEmployee(false,false)
             if (emp) printedBy.value = `${emp.fNameTh} ${emp.lNameTh}`
         } catch (err) {
             console.error('Failed to load current employee:', err)

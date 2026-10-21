@@ -42,7 +42,51 @@ public class BenefitClaimController : ControllerBase
     {
         try { return Ok(await _service.CreateAsync(data)); }
         catch (InvalidOperationException ex) { return Conflict(ex.Message); }
+
     }
+
+
+    [HttpPost("benefit-claim-summary-report")]
+    public async Task<IActionResult> GetSummary([FromBody] BenefitClaimSummaryFilterDto filter)
+    {
+        try
+        {
+            return Ok(await _service.GetSummaryAsync(filter));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ex.Message);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ex.Message);
+        }
+    }
+
+
+    [HttpPost("benefit-claim-summary-employees")]
+    public async Task<IActionResult> GetSummaryEmployees([FromBody] BenefitClaimEmployeeFilterDto filter)
+    => Ok(await _service.GetEmployeeSummaryPagedAsync(filter));
+
+    [HttpPost("benefit-claim-summary-employee-rows")]
+    public async Task<IActionResult> GetSummaryEmployeeRows([FromBody] BenefitClaimEmployeeRowsFilterDto filter)
+        => Ok(await _service.GetEmployeeRowsAsync(filter));
+
+    [HttpPost("benefit-claim-summary-export")]
+    public async Task<IActionResult> ExportSummary([FromBody] BenefitClaimSummaryFilterDto filter)
+    {
+        var bytes = await _service.ExportSummaryAsync(filter);
+        return File(
+            bytes,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            $"BenefitClaimSummary_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
+    }
+
+
+    [HttpPost("benefit-claim-summary-detail")]
+    public async Task<IActionResult> GetSummaryDetail([FromBody] BenefitClaimSummaryFilterDto filter)
+    => Ok(await _service.GetDetailRowsAsync(filter));
+
 
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(Guid id, CreateBenefitClaimDto data)

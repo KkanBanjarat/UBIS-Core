@@ -67,3 +67,79 @@ public class BenefitClaimFilterDto
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 20;
 }
+
+public class BenefitClaimSummaryFilterDto
+{
+    public DateTime? DateFrom { get; set; }
+    public DateTime? DateTo { get; set; }
+    public Guid? CompanyId { get; set; }
+    public string? DocStatus { get; set; }
+}
+
+
+
+public class BenefitClaimSummaryDto
+{
+    public List<CompanySummaryDto> ByCompany { get; set; } = new();
+}
+
+public class BenefitClaimExportRowDto
+{
+    public string Company { get; set; } = "";
+    public string DocNum { get; set; } = "";
+    public DateTime DocDate { get; set; }
+    public string DocStatus { get; set; } = "";
+    public string EmployeeCode { get; set; } = "";
+    public string EmployeeName { get; set; } = "";
+    public string BenefitName { get; set; } = "";
+    public string? Detail { get; set; }
+    public decimal Qty { get; set; }
+    public decimal Amount { get; set; }
+}
+
+public class CompanyBenefitDto
+{
+    public string Benefit { get; set; } = "";
+    public int DocCount { get; set; }
+    public int LineCount { get; set; }
+    public decimal Amount { get; set; }
+}
+
+public class ClaimBranchSummaryDto
+{
+    public string Branch { get; set; } = "";
+    public int DocCount { get; set; }
+    public int LineCount { get; set; }
+    public decimal Amount { get; set; }
+    public List<CompanyBenefitDto> Benefits { get; set; } = new();
+}
+
+public class CompanySummaryDto
+{
+    public string Company { get; set; } = "";
+    public int DocCount { get; set; }
+    public int LineCount { get; set; }
+    public decimal Amount { get; set; }
+    public List<ClaimBranchSummaryDto> Branches { get; set; } = new();
+}
+
+public class BenefitClaimEmployeeFilterDto : BenefitClaimSummaryFilterDto
+{
+    public string? Search { get; set; }
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 20;
+}
+
+public class EmployeeSummaryDto
+{
+    public Guid EmployeeId { get; set; }
+    public string EmployeeCode { get; set; } = "";
+    public string EmployeeName { get; set; } = "";
+    public string Company { get; set; } = "";
+    public int DocCount { get; set; }
+    public decimal Amount { get; set; }
+}
+public class BenefitClaimEmployeeRowsFilterDto : BenefitClaimSummaryFilterDto
+{
+    public Guid EmployeeId { get; set; }
+}

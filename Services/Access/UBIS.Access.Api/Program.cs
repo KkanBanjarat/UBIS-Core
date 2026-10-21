@@ -8,11 +8,36 @@ using UBIS.Access.Infrastructure.Data;
 using UBIS.Access.Infrastructure.Repositories.Interfaces;
 using UBIS.Access.Infrastructure.Repositories.Implementations;
 using UBIS.Access.Api.Middleware;
+using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "ใส่เฉพาะตัว token"
+    });
+
+    c.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.ApiKey,
+        Name = "X-Api-Key",          // ← ตรวจให้ตรงกับ middleware ของ Access
+        In = ParameterLocation.Header,
+        Description = "API Key ของ Access service"
+    });
+
+    c.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = new List<string>(),
+        [new OpenApiSecuritySchemeReference("ApiKey", document)] = new List<string>()
+    });
+});
 builder.Services.AddDbContext<AccessDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("AccessDatabase")));
 
@@ -116,6 +141,7 @@ if (app.Environment.IsDevelopment())
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "UBIS Access Service API v1");
         c.RoutePrefix = "BeAccess";
         c.DocumentTitle = "UBIS - Access Service";
+        c.EnablePersistAuthorization();
     });
 }
 

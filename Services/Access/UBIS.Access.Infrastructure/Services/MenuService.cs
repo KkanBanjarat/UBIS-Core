@@ -20,16 +20,14 @@ public class MenuService : IMenuService
     {
         try
         {
-            var (menus, access, isSuperAdmin) = await _repo.GetUserMenuAccessAsync(userId);
+            var (menus, access, _) = await _repo.GetUserMenuAccessAsync(userId);
             var byId = menus.ToDictionary(m => m.Id);
 
-            // หน้า (Page) ที่ผู้ใช้เข้าถึงได้ พร้อมระดับสิทธิ์
-            // SuperAdmin เห็นทุกหน้าที่ active ระดับ 3 เสมอ (กันล็อกตัวเองเมื่อเพิ่มเมนูใหม่)
+            // หน้า (Page) ที่ผู้ใช้เข้าถึงได้ พร้อมระดับสิทธิ์ (ทุก Role รวม SuperAdmin ใช้ tb_role_menu)
             var pageLevel = new Dictionary<Guid, short>();
             foreach (var m in menus.Where(m => m.NodeType == "Page"))
             {
-                if (isSuperAdmin) pageLevel[m.Id] = 3;
-                else if (access.TryGetValue(m.Id, out var lv) && lv > 0) pageLevel[m.Id] = lv;
+                if (access.TryGetValue(m.Id, out var lv) && lv > 0) pageLevel[m.Id] = lv;
             }
 
             // โหนดที่ต้องแสดง = หน้าที่เข้าถึงได้ + บรรพบุรุษทั้งหมด

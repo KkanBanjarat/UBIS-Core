@@ -121,10 +121,10 @@ export const useAuthStore = defineStore("auth", {
       }
     },
 
-    async fetchCurrentEmployee(includeOrgChart = true) {
+    async fetchCurrentEmployee(includeOrgChart = true, includeApprove = true) {
       if (!this.token) return null;
       const response = await hrApi.get("/employees/me", {
-        params: { includeOrgChart },
+        params: { includeOrgChart, includeApprove },
         headers: { Authorization: `Bearer ${this.token}` },
       });
       this.employee = response.data;

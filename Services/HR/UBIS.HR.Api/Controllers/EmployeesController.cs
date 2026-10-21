@@ -31,14 +31,14 @@ public class EmployeesController : ControllerBase
     }
 
     [HttpGet("me")]
-    public async Task<IActionResult> GetCurrentEmployee([FromQuery] bool includeOrgChart = true)
+    public async Task<IActionResult> GetCurrentEmployee([FromQuery] bool includeOrgChart = true, bool includeApprove = false)
     {
         var employeeCode = User.FindFirst("employeeCode")?.Value;
 
         if (string.IsNullOrEmpty(employeeCode))
             return NotFound(new { message = "บัญชีนี้ยังไม่ได้ผูกรหัสพนักงาน กรุณาติดต่อฝ่าย IT" });
 
-        var employee = await _service.GetByEmployeeCodeAsync(employeeCode, includeOrgChart);
+        var employee = await _service.GetByEmployeeCodeAsync(employeeCode, includeOrgChart, includeApprove);
 
         if (employee == null)
             return NotFound(new { message = "ไม่พบข้อมูลพนักงาน" });

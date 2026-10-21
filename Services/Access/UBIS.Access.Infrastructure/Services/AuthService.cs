@@ -70,11 +70,7 @@ public class AuthService : IAuthService
     // สร้างรายการ "resource:level" สำหรับ claim "menu"
     private async Task<List<string>> BuildMenuClaimsAsync(Guid userId)
     {
-        var (menus, access, isSuperAdmin) = await _menuRepos.GetUserMenuAccessAsync(userId);
-
-        if (isSuperAdmin)
-            return new List<string> { "*:3" };
-
+        var (menus, access, _) = await _menuRepos.GetUserMenuAccessAsync(userId);
         // หลายหน้าอาจใช้ PermissionCode เดียวกัน → เอาระดับสูงสุด
         var result = new Dictionary<string, short>();
         foreach (var m in menus.Where(m => m.NodeType == "Page" && !string.IsNullOrWhiteSpace(m.PermissionCode)))

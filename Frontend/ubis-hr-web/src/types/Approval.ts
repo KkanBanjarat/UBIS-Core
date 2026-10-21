@@ -33,3 +33,8 @@ export interface ApprovalTrail {
   steps: ApprovalStep[];
   reasons: ApprovalReason[];
 }
+
+export interface ApprovalSummary {
+  docType: string;
+  qtyWaitApprove: number;
+}

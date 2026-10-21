@@ -11,6 +11,8 @@ public class PettyCashService : IPettyCashService
 {
     private readonly IPettyCashRepos _repos;
     private readonly IDocNumberService _docNumberService;
+    private readonly ITransactionService _tx;
+    private readonly IDocLimitService _docLimitService;
     private readonly IEmployeeRepos _employeeRepos;
     private readonly IPodAdminBranchRepos _podAdminBranchRepos;
     private readonly IApprovalRouteResolverService _routeResolver;
@@ -22,6 +24,8 @@ public class PettyCashService : IPettyCashService
 
     public PettyCashService(IPettyCashRepos repos,
         IDocNumberService docNumberService,
+        ITransactionService tx,
+        IDocLimitService docLimitService,
         IEmployeeRepos employeeRepos,
         IPodAdminBranchRepos podAdminBranchRepos,
         IApprovalRouteResolverService routeResolver,
@@ -31,11 +35,13 @@ public class PettyCashService : IPettyCashService
     {
         _repos = repos;
         _docNumberService = docNumberService;
+        _docLimitService = docLimitService;
         _employeeRepos = employeeRepos;
         _podAdminBranchRepos = podAdminBranchRepos;
         _routeResolver = routeResolver;
         _serviceProvider = serviceProvider;
         _currentUser = currentUser;
+        _tx = tx;
         _logger = logger;
     }
     private IApprovalService ApprovalService => _serviceProvider.GetRequiredService<IApprovalService>();
@@ -56,6 +62,9 @@ public class PettyCashService : IPettyCashService
             EmployeeNameTh = s.Employee != null ? $"{s.Employee.FnameTh} {s.Employee.LnameTh}" : null,
             Remark = s.Remark,
             TotalAmount = s.TotalAmount,
+            Company = s.Employee?.Company?.NameTh,
+            CompanyCode = s.Employee?.Company?.Code,
+
             Lines = s.TbPettyCashLines.Select(l => new PettyCashLineDto
             {
                 Id = l.Id,
@@ -93,19 +102,33 @@ public class PettyCashService : IPettyCashService
     public async Task<PettyCashDto?> GetByIdAsync(Guid id)
     {
         var s = await _repos.GetDetailByIdAsync(id);
-        return s == null ? null : MapToDto(s);
+        return s == null ? null : await WithAffiliationAsync(MapToDto(s));
     }
 
     public async Task<PettyCashDto?> GetByDocNumAsync(string docNum)
     {
         var entity = await _repos.GetByDocNumAsync(docNum);
-        return entity == null ? null : MapToDto(entity);
+        return entity == null ? null : await WithAffiliationAsync(MapToDto(entity));
+    }
+
+    private async Task<PettyCashDto> WithAffiliationAsync(PettyCashDto dto)
+    {
+        var aff = await _employeeRepos.GetAffiliationAsync(dto.EmployeeId);
+        if (aff != null)
+        {
+            dto.Affiliation = aff.Value.Name;
+            dto.AffiliationCode = aff.Value.Code;
+        }
+        return dto;
     }
 
     public async Task<PettyCashDto> CreateAsync(CreatePettyCashDto data)
     {
         try
         {
+            var total = data.Lines.Sum(l => l.Amount);
+            await _docLimitService.EnsureWithinLimitAsync("PettyCash", data.DocDate.Date, total);
+
             var newEntity = new TbPettyCashRequest
             {
                 DocNum = await _docNumberService.GenerateAsync("PettyCash"),
@@ -113,7 +136,7 @@ public class PettyCashService : IPettyCashService
                 DocDate = data.DocDate.Date,
                 EmployeeId = data.EmployeeId,
                 Remark = data.Remark,
-                TotalAmount = data.Lines.Sum(l => l.Amount),
+                TotalAmount = total,
                 CreatedAt = DateTime.Now,
                 CreatedBy = _currentUser.GetCurrentUserEmail(),
                 UpdatedAt = DateTime.Now,
@@ -140,6 +163,7 @@ public class PettyCashService : IPettyCashService
 
             return (await GetByIdAsync(newEntity.Id))!;
         }
+        catch (InvalidOperationException) { throw; }
         catch (Exception ex)
         {
             _logger.LogError(ex, "เกิดข้อผิดพลาดในการเพิ่มข้อมูล Petty Cash: {Message}", ex.Message);
@@ -157,10 +181,13 @@ public class PettyCashService : IPettyCashService
             if (existingEntity.DocStatus != "Draft")
                 throw new InvalidOperationException("แก้ไขได้เฉพาะเอกสารสถานะ Draft เท่านั้น กรุณาตรวจสอบ");
 
-            existingEntity.DocDate = data.DocDate;
+            var total = data.Lines.Sum(l => l.Amount);
+            await _docLimitService.EnsureWithinLimitAsync("PettyCash", data.DocDate.Date, total);
+
+            existingEntity.DocDate = data.DocDate.Date;
             existingEntity.EmployeeId = data.EmployeeId;
             existingEntity.Remark = data.Remark;
-            existingEntity.TotalAmount = data.Lines.Sum(l => l.Amount);
+            existingEntity.TotalAmount = total;
             existingEntity.UpdatedAt = DateTime.Now;
             existingEntity.UpdatedBy = _currentUser.GetCurrentUserEmail();
 
@@ -225,7 +252,6 @@ public class PettyCashService : IPettyCashService
             throw;
         }
     }
-
     public async Task<PettyCashDto?> SubmitAsync(Guid id)
     {
         try
@@ -236,22 +262,25 @@ public class PettyCashService : IPettyCashService
             if (existingEntity.DocStatus != "Draft")
                 throw new InvalidOperationException("ส่งอนุมัติได้เฉพาะเอกสารสถานะ Draft เท่านั้น");
 
+            await _docLimitService.EnsureWithinLimitAsync("PettyCash", existingEntity.DocDate.Date, existingEntity.TotalAmount);
+
             var resolvedApprovers = await _routeResolver.ResolveAsync("PettyCash", existingEntity.EmployeeId);
 
-            existingEntity.DocStatus = "WaitApprove";
-            existingEntity.UpdatedAt = DateTime.Now;
-            existingEntity.UpdatedBy = _currentUser.GetCurrentUserEmail();
+            return await _tx.RunAsync<PettyCashDto?>(async () =>
+            {
+                existingEntity.DocStatus = "WaitApprove";
+                existingEntity.UpdatedAt = DateTime.Now;
+                existingEntity.UpdatedBy = _currentUser.GetCurrentUserEmail();
+                await _repos.SaveChangesAsync();
 
-            await _repos.SaveChangesAsync();
+                await ApprovalService.CreateApprovalAsync(
+                    "PettyCash",
+                    existingEntity.DocNum,
+                    1,
+                    resolvedApprovers.OrderBy(x => x.StepNo).ToList());
 
-            await ApprovalService.CreateApprovalAsync(
-                "PettyCash",
-                existingEntity.DocNum,
-                1,
-                resolvedApprovers.OrderBy(x => x.StepNo).ToList()
-            );
-
-            return await GetByIdAsync(id);
+                return await GetByIdAsync(id);
+            });
         }
         catch (InvalidOperationException)
         {
@@ -274,15 +303,17 @@ public class PettyCashService : IPettyCashService
             if (existingEntity.DocStatus != "WaitApprove" && existingEntity.DocStatus != "Rejected")
                 throw new InvalidOperationException("ดึงกลับได้เฉพาะเอกสารสถานะ รออนุมัติ หรือ ปฏิเสธ เท่านั้น");
 
-            existingEntity.DocStatus = "Draft";
-            existingEntity.UpdatedAt = DateTime.Now;
-            existingEntity.UpdatedBy = _currentUser.GetCurrentUserEmail();
+            return await _tx.RunAsync<PettyCashDto?>(async () =>
+            {
+                existingEntity.DocStatus = "Draft";
+                existingEntity.UpdatedAt = DateTime.Now;
+                existingEntity.UpdatedBy = _currentUser.GetCurrentUserEmail();
+                await _repos.SaveChangesAsync();
 
-            await _repos.SaveChangesAsync();
+                await ApprovalService.RecallAsync("PettyCash", existingEntity.DocNum!, 1);
 
-            await ApprovalService.RecallAsync("PettyCash", existingEntity.DocNum!, 1);
-
-            return await GetByIdAsync(id);
+                return await GetByIdAsync(id);
+            });
         }
         catch (InvalidOperationException)
         {
@@ -300,7 +331,7 @@ public class PettyCashService : IPettyCashService
         var entity = await _repos.GetByDocNumAsync(docNumber);
         if (entity == null) return null;
 
-        var DocDetail = $"เอกสารเบิกสวัสดิการ หรือ เงินสดย่อย จำนวนเงินรวม {entity.TotalAmount} บาท";
+        var DocDetail = $"เอกสารเบิกเงินสดย่อย จำนวนเงินรวม {entity.TotalAmount} บาท";
         var employeeName = entity.Employee != null ? $"{entity.Employee.FnameTh} {entity.Employee.LnameTh}" : "-";
 
         return (entity.DocDate, employeeName, DocDetail);
@@ -314,7 +345,7 @@ public class PettyCashService : IPettyCashService
             e => (
                 e.DocDate,
                 e.Employee != null ? $"{e.Employee.FnameTh} {e.Employee.LnameTh}" : "-",
-                (string?)$"เอกสารเบิกสวัสดิการ หรือ เงินสดย่อย จำนวนเงินรวม {e.TotalAmount} บาท"
+                (string?)$"เอกสารเบิกเงินสดย่อย จำนวนเงินรวม {e.TotalAmount} บาท"
             ));
     }
     public async Task MarkApprovedAsync(string docNumber)
