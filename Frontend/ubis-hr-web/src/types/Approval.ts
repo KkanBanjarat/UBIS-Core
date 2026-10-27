@@ -38,3 +38,10 @@ export interface ApprovalSummary {
   docType: string;
   qtyWaitApprove: number;
 }
+
+export interface ApprovalFilter {
+  search?: string;
+  docType?: string;
+  dateFrom?: string; // yyyy-MM-dd
+  dateTo?: string; // yyyy-MM-dd
+}

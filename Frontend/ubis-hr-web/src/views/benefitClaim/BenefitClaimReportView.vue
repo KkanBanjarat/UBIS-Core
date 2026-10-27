@@ -699,4 +699,4 @@ const grand = computed(() => ({
   amount: companies.value.reduce((a, c) => a + c.amount, 0),
 }));
 </script>
-<style scoped src="./BenefitClaimReportView.css"></style>
+<style scoped src="../../assets/css/BenefitClaimReportView.css"></style>

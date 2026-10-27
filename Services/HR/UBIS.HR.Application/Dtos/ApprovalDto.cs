@@ -14,6 +14,13 @@ public class MyApprovalDto
     public string? DocumentDetail { get; set; }
     public bool IsUnsupported { get; set; }
 }
+public class MyApprovalFilterDto
+{
+    public string? Search { get; set; }
+    public string? DocType { get; set; }
+    public DateTime? DateFrom { get; set; }
+    public DateTime? DateTo { get; set; }
+}
 
 public class RejectApprovalDto
 {

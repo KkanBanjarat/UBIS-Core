@@ -1,342 +1,243 @@
 <template>
-  <div class="p-4 sm:p-6 space-y-5 mx-auto">
-    <!-- Header -->
-    <div>
-      <h1 class="text-xl font-semibold text-base-content">รายชื่อพนักงาน</h1>
-      <p class="text-sm text-base-content/50 mt-0.5">
-        {{ totalCount }} รายการทั้งหมด
-      </p>
-    </div>
-
-    <!-- Filter card -->
-    <div
-      class="bg-base-100 rounded-2xl shadow-sm border border-base-200 p-5 space-y-4"
-    >
-      <div class="flex flex-col lg:flex-row gap-3 lg:items-center">
-        <!-- Search -->
-        <div class="relative flex-1 min-w-[240px]">
-          <Search
-            class="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-gray-400 pointer-events-none z-10"
-          />
-          <input
-            v-model="filter.search"
-            @input="onSearchInput"
-            type="text"
-            placeholder="ค้นหาชื่อพนักงาน, รหัสพนักงาน..."
-            class="input input-bordered w-full pl-10 text-sm focus:outline-none focus:border-primary transition-colors"
-          />
-        </div>
-
-        <!-- Quick filters + buttons -->
-        <div class="flex flex-wrap gap-2 items-center">
-          <div class="w-full sm:w-52">
-            <FormSelect
-              v-model="filter.status"
-              :options="statusOptions"
-              placeholder="สถานะ: ทั้งหมด"
-            />
-          </div>
-          <div class="w-full sm:w-60">
-            <FormSelect
-              v-model="filter.employeeTypeId"
-              :options="employeeTypeOptions"
-              placeholder="ประเภท: ทั้งหมด"
-            />
-          </div>
-          <div class="flex gap-2">
-            <button
-              @click="showFilters = !showFilters"
-              class="btn btn-sm gap-1.5"
-              :class="
-                showFilters ? 'btn-primary' : 'btn-ghost border border-base-300'
-              "
-            >
-              <SlidersHorizontal class="size-3.5" />
-              <span class="hidden sm:inline">ตัวกรอง</span>
-              <ChevronDown
-                class="size-3.5 transition-transform duration-200"
-                :class="showFilters && 'rotate-180'"
-              />
-            </button>
-            <button
-              class="btn btn-ghost btn-sm gap-1 text-base-content/55 hover:text-error"
-              :disabled="!hasActiveFilters"
-              @click="clearFilters"
-            >
-              <X class="size-3.5" />
-            </button>
-          </div>
+  <main class="employee-list-page">
+    <header class="el-heading">
+      <div class="el-heading__intro">
+        <span class="el-heading__icon">
+          <Users :size="23" />
+        </span>
+        <div>
+          <p class="el-eyebrow">UBIS CORE · PEOPLE DIRECTORY</p>
+          <h1>
+            รายชื่อพนักงาน
+            <span>{{ totalCount.toLocaleString("th-TH") }} รายการ</span>
+          </h1>
         </div>
       </div>
+      <button type="button" class="el-button el-button--primary" @click="openCreateModal">
+        <Plus :size="18" />เพิ่มพนักงานใหม่
+      </button>
+    </header>
 
-      <Transition
-        enter-active-class="transition-all duration-200 ease-out"
-        enter-from-class="opacity-0 -translate-y-1"
-        enter-to-class="opacity-100 translate-y-0"
-        leave-active-class="transition-all duration-150 ease-in"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0 -translate-y-1"
-      >
-        <div  v-if="showFilters"
-          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-4 border-t border-base-200">
-          <FormSelect
-            v-model="filter.companyId"
-            label="บริษัท"
-            :options="companyOptions"
-          />
-          <FormSelect
-            v-model="filter.branchId"
-            label="สาขา"
-            :options="filterBranchOptions"
-            :disabled="!filter.companyId"
-            :placeholder="filter.companyId ? 'เลือกสาขา' : 'เลือกบริษัทก่อน'"
-          />
-          <FormSelect
-            v-model="filter.groupId"
-            label="สายงาน"
-            :options="groupOptions"
-          />
-          <FormSelect
-            v-model="filter.departmentId"
-            label="ฝ่าย"
-            :options="divisionOptions"
-          />
-          <FormSelect
-            v-model="filter.sectionId"
-            label="ส่วนงาน"
-            :options="sectionOptions"
-          />
+    <section class="el-workspace" aria-label="รายชื่อและตัวกรองพนักงาน">
+      <div class="el-filter-bar">
+        <label class="el-search">
+          <Search :size="18" /><input v-model="filter.search" type="search" placeholder="ค้นหาชื่อหรือรหัสพนักงาน..."
+            aria-label="ค้นหาชื่อหรือรหัสพนักงาน" @input="onSearchInput" />
+        </label>
+        <div class="el-quick-select">
+          <FormSelect v-model="filter.status" :options="statusOptions" placeholder="สถานะ: ทั้งหมด" />
         </div>
-      </Transition>
-    </div>
+        <div class="el-quick-select">
+          <FormSelect v-model="filter.employeeTypeId" :options="employeeTypeOptions" placeholder="ประเภท: ทั้งหมด" />
+        </div>
+        <div class="el-filter-actions">
+          <button type="button" class="el-button el-button--outline" :class="{ 'is-active': showFilters }"
+            :aria-expanded="showFilters" aria-controls="employee-advanced-filters" @click="showFilters = !showFilters">
+            <SlidersHorizontal :size="16" />ตัวกรอง
+            <ChevronDown :size="15" :class="{ 'el-rotate': showFilters }" />
+          </button><button type="button" class="el-icon-button el-clear" :disabled="!hasActiveFilters"
+            title="ล้างตัวกรองทั้งหมด" aria-label="ล้างตัวกรองทั้งหมด" @click="clearFilters">
+            <X :size="18" />
+          </button>
+        </div>
+      </div>
+      <div v-if="showFilters" id="employee-advanced-filters" class="el-advanced-filters">
+        <FormSelect v-model="filter.companyId" label="บริษัท" :options="companyOptions" placeholder="บริษัททั้งหมด" />
+        <FormSelect v-model="filter.branchId" label="สาขา" :options="filterBranchOptions" :disabled="!filter.companyId"
+          :placeholder="filter.companyId ? 'สาขาทั้งหมด' : 'เลือกบริษัทก่อน'" />
+        <FormSelect v-model="filter.groupId" label="สายงาน" :options="groupOptions" placeholder="สายงานทั้งหมด" />
+        <FormSelect v-model="filter.departmentId" label="ฝ่าย" :options="departmentOptions" placeholder="ฝ่ายทั้งหมด" />
+        <FormSelect v-model="filter.divisionId" label="แผนก" :options="divisionOptions" placeholder="แผนกทั้งหมด" />
+        <FormSelect v-model="filter.sectionId" label="ส่วนงาน" :options="sectionOptions" placeholder="ส่วนงานทั้งหมด" />
+      </div>
+      <div class="el-table-toolbar">
+        <div class="el-table-toolbar__title">
+          <span class="el-live-dot"></span>
+          <h2>ข้อมูลพนักงาน</h2>
+          <span v-if="hasActiveFilters" class="el-filter-tag">กำลังใช้ตัวกรอง</span>
+        </div>
+        <label class="el-page-size"><span>แสดง</span><select v-model.number="filter.pageSize"
+            aria-label="จำนวนรายการต่อหน้า">
+            <option :value="10">10</option>
+            <option :value="20">20</option>
+            <option :value="50">50</option>
+            <option :value="100">100</option>
+          </select><span>รายการ / หน้า</span></label>
+      </div>
 
-    <!-- Table card -->
-    <div class="bg-base-100 rounded-2xl shadow-sm border border-base-200 overflow-hidden">
-      <!-- Table toolbar -->
-      <div class="flex items-center gap-2 px-4 sm:px-5 py-3 border-b border-base-200 text-xs text-base-content/45">
-        <span>แสดง</span>
-        <select v-model.number="filter.pageSize" class="select select-bordered select-sm w-20">
-          <option :value="10">10</option>
-          <option :value="20">20</option>
-          <option :value="50">50</option>
-          <option :value="100">100</option>
-        </select>
-        <span>รายการต่อหน้า</span>
-        <button class="btn btn-primary btn-sm gap-1.5 ml-auto" @click="openCreateModal">
-          <Plus class="size-4" />
-          เพิ่มพนักงานใหม่
+      <div v-if="isLoading" class="el-skeleton-list" aria-busy="true" role="status">
+        <span class="el-sr-only">กำลังโหลดรายชื่อพนักงาน</span>
+        <div v-for="i in 6" :key="i" class="el-skeleton" aria-hidden="true"></div>
+      </div>
+      <div v-else-if="errorMessage" class="el-state" role="alert">
+        <CircleAlert :size="32" />
+        <h3>โหลดข้อมูลไม่สำเร็จ</h3>
+        <p>{{ errorMessage }}</p>
+        <button type="button" class="el-button el-button--outline" @click="fetchEmployees">
+          ลองใหม่
         </button>
       </div>
-      <!-- Loading skeleton -->
-      <div v-if="isLoading" class="p-5 space-y-3">
-        <div
-          v-for="i in 6"
-          :key="i"
-          class="skeleton h-12 w-full rounded-lg"
-        ></div>
+      <div v-else-if="employees.length === 0" class="el-state">
+        <Users :size="34" />
+        <h3>ไม่พบข้อมูลพนักงาน</h3>
+        <p>ลองเปลี่ยนคำค้นหาหรือเงื่อนไขตัวกรอง</p>
+        <button v-if="hasActiveFilters" type="button" class="el-button el-button--outline" @click="clearFilters">
+          ล้างตัวกรอง
+        </button>
       </div>
-
-      <!-- Error -->
-      <div v-else-if="errorMessage"
-        class="flex flex-col items-center gap-2 p-14 text-center">
-        <CircleAlert class="size-8 text-error/70" />
-        <p class="text-error text-sm">{{ errorMessage }}</p>
-      </div>
-
       <template v-else>
-        <!-- Empty state -->
-        <div v-if="employees.length === 0"
-          class="flex flex-col items-center gap-2 p-14 text-center">
-          <Users class="size-8 text-base-content/25" />
-          <p class="text-base-content/50 text-sm">
-            ไม่พบข้อมูลพนักงานตามเงื่อนไขที่เลือก
-          </p>
-        </div>
-
-        <template v-else>
-          <div class="overflow-x-auto">
-            <table class="table min-w-[880px]">
-              <thead>
-                <tr
-                  class="text-xs uppercase tracking-wide text-base-content/45 border-b border-base-200"
-                >
-                  <th class="bg-base-100">พนักงาน</th>
-                  <th class="bg-base-100">บริษัท/สาขา</th>
-                  <th class="bg-base-100">ตำแหน่ง</th>
-                  <th class="bg-base-100">สังกัด</th>
-                  <th class="bg-base-100">สถานะ</th>
-                  <th class="bg-base-100 text-right">จัดการ</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(emp, idx) in employees"
-                  :key="emp.id"
-                  class="hover:bg-base-200/40 transition-colors border-b border-base-200/60 last:border-0">
-                  <td>
-                    <div class="flex items-center gap-2.5">
-                      <div class="avatar placeholder shrink-0">
-                        <div class="rounded-full w-9 h-9 flex items-center justify-center"
-                          :class="avatarColor(idx)">
-                          <span class="text-sm font-semibold leading-none">{{initials(emp.fNameEn)}}</span>
-                        </div>
-                      </div>
-                      <div class="min-w-0">
-                        <div class="font-semibold text-base-content/80 truncate flex items-center gap-1.5">
-                          <span class="truncate">{{ emp.fNameTh }} {{ emp.lNameTh }}</span>
-                        </div>
-                        <div class="text-sm text-base-content/45 truncate">
-                          {{ emp.empId }} : {{ emp.employeeTypeNameTh }}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <div class="text-base-content/80 font-semibold">
-                      {{ emp.companyCode }}
-                    </div>
-                    <div class="text-sm text-base-content/40">
-                      {{ emp.branchNameTh }}
-                    </div>
-                  </td>
-                  <td>
-                    <div class="truncate flex items-center gap-1.5">
-                      <div class="badge badge-soft badge-info badge-sm p-1 font-semibold">
-                        L{{ emp.positionLevel }}
-                      </div>
-                      <div class="text-base-content/80 font-semibold">
-                        {{ emp.positionNameTh }}
-                      </div>
-                    </div>
-                    <div class="text-sm text-base-content/40">
-                      {{ emp.positionNameEn }}
-                    </div>
-                  </td>
-                  <td>
-                    <div class="text-base-content/80 font-semibold">
-                      {{ GetAffiliationDisplay(emp).NameTh }}
-                    </div>
-                    <div class="text-sm text-base-content/40">
-                      {{ GetAffiliationDisplay(emp).NameEn }}
-                    </div>
-                  </td>
-                  <td>
-                    <span class="badge badge-sm font-normal whitespace-nowrap"
-                      :class="statusMeta(emp.status).class">
-                      {{ statusMeta(emp.status).label }}
-                    </span>
-                  </td>
-                  <td>
-                    <div class="flex items-center justify-end gap-1">
-                      <button class="btn btn-ghost btn-xs btn-square"
-                        title="ดูรายละเอียด"
+        <div class="el-table-scroll" tabindex="0" role="region"
+          aria-label="ตารางรายชื่อพนักงาน เลื่อนเพื่อดูคอลัมน์ทั้งหมด">
+          <table class="el-table">
+            <caption class="el-sr-only">
+              รายชื่อพนักงาน บริษัท ตำแหน่ง สังกัด และสถานะ
+            </caption>
+            <colgroup>
+              <col class="el-col-person" />
+              <col class="el-col-company" />
+              <col class="el-col-position" />
+              <col class="el-col-unit" />
+              <col class="el-col-status" />
+              <col class="el-col-updated" />
+              <col class="el-col-actions" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th scope="col">พนักงาน</th>
+                <th scope="col">บริษัท / สาขา</th>
+                <th scope="col">ตำแหน่ง</th>
+                <th scope="col">สังกัด</th>
+                <th scope="col">สถานะ</th>
+                <th scope="col">แก้ไขล่าสุดโดย</th>
+                <th scope="col" class="el-actions-heading">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(emp, idx) in employees" :key="emp.id">
+                <td>
+                  <div class="el-person">
+                    <span class="el-avatar" :class="avatarColor(idx)" aria-hidden="true">{{ initials(emp.fNameEn ||
+                      emp.fNameTh) }}</span>
+                    <div class="el-cell-content">
+                      <button type="button" class="el-person__name" :disabled="isLoadingEditData"
                         @click="viewEmployee(emp)">
-                        <Eye class="size-4" />
+                        {{ emp.fNameTh }} {{ emp.lNameTh }}
                       </button>
-                      <button
-                        class="btn btn-ghost btn-xs btn-square text-warning/70 hover:text-warning hover:bg-warning/10"
-                        title="แก้ไขข้อมูล"
-                        @click="openEditModal(emp)"
-                      >
-                        <Edit class="size-4" />
-                      </button>
-                      <button
-                        class="btn btn-ghost btn-xs btn-square text-error/70 hover:text-error hover:bg-error/10"
-                        title="ลบ"
-                        @click="confirmDelete(emp)"
-                      >
-                        <Trash2 class="size-4" />
-                      </button>
+                      <p class="el-cell-secondary">
+                        <span class="el-employee-id">{{ emp.empId }}</span><span v-if="emp.employeeTypeNameTh">
+                          · {{ emp.employeeTypeNameTh }}</span>
+                      </p>
                     </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+                  </div>
+                </td>
+                <td>
+                  <p class="el-cell-primary">{{ emp.companyCode || "-" }}</p>
+                  <p class="el-cell-secondary">{{ emp.branchNameTh || "-" }}</p>
+                </td>
+                <td>
+                  <div class="el-position">
+                    <span class="el-level">L{{ emp.positionLevel ?? "-" }}</span>
+                    <p class="el-cell-primary">
+                      {{ emp.positionNameTh || "-" }}
+                    </p>
+                  </div>
+                  <p class="el-cell-secondary">
+                    {{ emp.positionNameEn || "-" }}
+                  </p>
+                </td>
+                <td>
+                  <p class="el-cell-primary">
+                    {{ GetAffiliationDisplay(emp).NameTh || "-" }}
+                  </p>
+                  <p class="el-cell-secondary">
+                    {{ GetAffiliationDisplay(emp).NameEn || "-" }}
+                  </p>
+                </td>
+                <td>
+                  <span class="el-status" :class="statusMeta(emp.status).class"><span></span>{{
+                    statusMeta(emp.status).label || "ไม่ระบุ" }}</span>
+                </td>
+                <td class="el-updated-cell">
+                  <p class="el-cell-primary">
+                    {{ formatDateTime(emp.updatedAt, true) }}
+                  </p>
+                  <p class="el-cell-secondary">{{ emp.updatedBy || "-" }}</p>
+                </td>
+                <td>
+                  <div class="el-row-actions">
+                    <button type="button" class="el-icon-button" title="ดูรายละเอียด"
+                      :aria-label="`ดูรายละเอียด ${emp.fNameTh} ${emp.lNameTh}`" :disabled="isLoadingEditData"
+                      @click="viewEmployee(emp)">
+                      <Eye :size="17" />
+                    </button>
 
-          <div
-            class="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-4 border-t border-base-200"
-          >
-            <p class="text-xs text-base-content/45">
-              แสดง {{ (filter.page - 1) * filter.pageSize + 1 }}–{{
-                Math.min(filter.page * filter.pageSize, totalCount)
-              }}
-              จาก {{ totalCount }}
-              รายการ
-            </p>
-            <div class="join">
-              <button
-                class="join-item btn btn-sm btn-ghost"
-                :disabled="filter.page === 1"
-                @click="goToPage(1)"
-              >
-                <ChevronsLeft class="size-4" />
-              </button>
-              <button
-                class="join-item btn btn-sm btn-ghost"
-                :disabled="filter.page === 1"
-                @click="goToPage(filter.page - 1)"
-              >
-                <ChevronLeft class="size-4" />
-              </button>
-              <button
-                v-for="p in pageWindow"
-                :key="p"
-                class="join-item btn btn-sm"
-                :class="p === filter.page ? 'btn-primary' : 'btn-ghost'"
-                @click="goToPage(p)"
-              >
-                {{ p }}
-              </button>
-              <button
-                class="join-item btn btn-sm btn-ghost"
-                :disabled="filter.page >= totalPages"
-                @click="goToPage(filter.page + 1)"
-              >
-                <ChevronRight class="size-4" />
-              </button>
-              <button
-                class="join-item btn btn-sm btn-ghost"
-                :disabled="filter.page >= totalPages"
-                @click="goToPage(totalPages)"
-              >
-                <ChevronsRight class="size-4" />
-              </button>
-            </div>
-          </div>
-        </template>
+                    <button type="button" class="el-icon-button el-icon-button--edit" title="แก้ไขข้อมูล"
+                      :aria-label="`แก้ไข ${emp.fNameTh} ${emp.lNameTh}`" :disabled="isLoadingEditData"
+                      @click="openEditModal(emp)">
+                      <Edit :size="17" />
+                    </button>
+
+                    <button type="button" class="el-icon-button el-icon-button--delete" title="ลบพนักงาน"
+                      :aria-label="`ลบ ${emp.fNameTh} ${emp.lNameTh}`" @click="confirmDelete(emp)">
+                      <Trash2 :size="17" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <footer class="el-footer">
+          <p role="status">
+            แสดง
+            <strong>{{ (filter.page - 1) * filter.pageSize + 1 }}–{{
+              Math.min(filter.page * filter.pageSize, totalCount)
+            }}</strong>
+            จาก {{ totalCount.toLocaleString("th-TH") }} รายการ
+          </p>
+          <nav class="el-pagination" aria-label="เปลี่ยนหน้ารายชื่อพนักงาน">
+            <button type="button" class="el-page-button" aria-label="หน้าแรก" :disabled="filter.page === 1"
+              @click="goToPage(1)">
+              <ChevronsLeft :size="17" />
+            </button><button type="button" class="el-page-button" aria-label="หน้าก่อนหน้า"
+              :disabled="filter.page === 1" @click="goToPage(filter.page - 1)">
+              <ChevronLeft :size="17" />
+            </button><button v-for="p in pageWindow" :key="p" type="button" class="el-page-button"
+              :class="{ 'is-current': p === filter.page }" :aria-current="p === filter.page ? 'page' : undefined"
+              :aria-label="`หน้า ${p}`" @click="goToPage(p)">
+              {{ p }}</button><button type="button" class="el-page-button" aria-label="หน้าถัดไป"
+              :disabled="filter.page >= totalPages" @click="goToPage(filter.page + 1)">
+              <ChevronRight :size="17" />
+            </button><button type="button" class="el-page-button" aria-label="หน้าสุดท้าย"
+              :disabled="filter.page >= totalPages" @click="goToPage(totalPages)">
+              <ChevronsRight :size="17" />
+            </button>
+          </nav>
+        </footer>
       </template>
-    </div>
-  </div>
+    </section>
+  </main>
 
-  <!-- Modal -->
-  <EmployeeFormModal
-    :key="selectedEmployee?.id ?? 'create'"
-    ref="employeeFormModalRef"
-    :is-create="isCreateMode"
-    :employee="selectedEmployee"
-    :position-options="positionOptions"
-    :position-level-options="positionLevelOptions"
-    :employee-type-options="employeeTypeOptions"
-    :company-options="companyOptions"
-    :branch-options="branchOptions"
-    :group-options="groupOptions"
-    :department-options="departmentOptions"
-    :division-options="divisionOptions"
-    :section-options="sectionOptions"
-    :benefit-plan-options="benefitPlanOptions"
-    @company-changed="handleCompanyChanged"
-    @save="handleEmployeeSave"
-  />
+  <EmployeeFormModal :key="selectedEmployee?.id ?? 'create'" ref="employeeFormModalRef" :is-create="isCreateMode"
+    :employee="selectedEmployee" :position-options="positionOptions" :position-level-options="positionLevelOptions"
+    :employee-type-options="employeeTypeOptions" :company-options="companyOptions" :branch-options="branchOptions"
+    :group-options="groupOptions" :department-options="departmentOptions" :division-options="divisionOptions"
+    :section-options="sectionOptions" :benefit-plan-options="benefitPlanOptions" @company-changed="handleCompanyChanged"
+    @save="handleEmployeeSave" />
 
-  <EmployeeDetailModal
-    ref="employeeDetailModalRef"
-    :employee="selectedEmployee"
-    @edit="openEditModal"
-  />
+  <EmployeeDetailModal ref="employeeDetailModalRef" :employee="selectedEmployee" @edit="openEditModal" />
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, reactive, nextTick } from "vue";
+import {
+  ref,
+  computed,
+  watch,
+  onMounted,
+  reactive,
+  nextTick,
+  onBeforeUnmount,
+} from "vue";
 import { storeToRefs } from "pinia";
 import {
   useEmployeeStore,
@@ -363,12 +264,10 @@ import {
   Trash2,
   Edit,
 } from "lucide-vue-next";
-
 const emit = defineEmits<{
   view: [id: string];
   delete: [id: string];
 }>();
-
 const employeeStore = useEmployeeStore();
 const {
   employees,
@@ -385,7 +284,6 @@ const {
   sectionOptions,
   benefitPlanOptions,
 } = storeToRefs(employeeStore);
-
 const defaultFilter: EmployeeFilter = {
   search: "",
   status: null,
@@ -399,18 +297,15 @@ const defaultFilter: EmployeeFilter = {
   page: 1,
   pageSize: 10,
 };
-
 // ========================================
 // UI State
 // ========================================
 const showFilters = ref(false);
 const isLoadingEditData = ref(false);
-
 // ========================================
 // Filter & Pagination State
 // ========================================
 const filter = reactive<EmployeeFilter>({ ...defaultFilter });
-
 // ========================================
 // Modal State
 // ========================================
@@ -418,56 +313,24 @@ const employeeFormModalRef = ref<InstanceType<typeof EmployeeFormModal>>();
 const employeeDetailModalRef = ref<InstanceType<typeof EmployeeDetailModal>>();
 const isCreateMode = ref(true);
 const selectedEmployee = ref<Employee | null>(null);
-
 // ========================================
 // Branch Options (แยก 2 ชุด: ของ Filter กับของ Form)
 // ========================================
 const branchOptions = ref<OptionItem[]>([]);
 const filterBranchOptions = ref<OptionItem[]>([]);
-
-// dropdown "หน่วยงาน" รวม 4 ประเภท map เข้า filter จริง
-const organizationUnitId = computed<string | null>({
-  get() {
-    return (
-      filter.groupId ||
-      filter.departmentId ||
-      filter.divisionId ||
-      filter.sectionId ||
-      null
-    );
-  },
-  set(id) {
-    filter.groupId = null;
-    filter.departmentId = null;
-    filter.divisionId = null;
-    filter.sectionId = null;
-    if (!id) return;
-    if (groupOptions.value.some((o) => o.id === id)) filter.groupId = id;
-    else if (departmentOptions.value.some((o) => o.id === id))
-      filter.departmentId = id;
-    else if (divisionOptions.value.some((o) => o.id === id))
-      filter.divisionId = id;
-    else if (sectionOptions.value.some((o) => o.id === id))
-      filter.sectionId = id;
-  },
-});
-
-// ========================================
 // Static Options
 // ========================================
 const statusOptions: OptionItem[] = [
   { id: "Active", label: "ทำงานอยู่" },
   { id: "Resigned", label: "ลาออก" },
-  { id: 'FailedProbation', label: 'ไม่ผ่านทดลองงาน' },
+  { id: "FailedProbation", label: "ไม่ผ่านทดลองงาน" },
 ];
-
 // ========================================
 // Computed
 // ========================================
 const totalPages = computed(
   () => Math.ceil(totalCount.value / filter.pageSize) || 1,
 );
-
 const hasActiveFilters = computed(
   () =>
     !!filter.search ||
@@ -480,7 +343,6 @@ const hasActiveFilters = computed(
     !!filter.divisionId ||
     !!filter.sectionId,
 );
-
 const pageWindow = computed(() => {
   const maxButtons = 5;
   let start = Math.max(1, filter.page - Math.floor(maxButtons / 2));
@@ -493,7 +355,6 @@ const pageWindow = computed(() => {
   for (let p = start; p <= end; p++) pages.push(p);
   return pages;
 });
-
 // ========================================
 // Avatar & Status Helpers
 // ========================================
@@ -505,11 +366,9 @@ const avatarPalette = [
   "bg-cyan-100 text-cyan-700",
   "bg-emerald-200 text-emerald-800",
 ];
-
 function avatarColor(idx: number) {
   return avatarPalette[idx % avatarPalette.length];
 }
-
 function statusMeta(rawStatus: string) {
   if (rawStatus === "ปกติ" || rawStatus === "Active") {
     return { label: "ทำงานอยู่", class: "badge-success text-success-content" };
@@ -517,12 +376,14 @@ function statusMeta(rawStatus: string) {
   if (rawStatus === "ลาออก" || rawStatus === "Resigned") {
     return { label: "ลาออก", class: "badge-error text-error-content" };
   }
-  if (rawStatus === "ไม่ผ่านทดลองงาน" || rawStatus === "FailedProbationห") {
-    return { label: "ไม่ผ่านทดลองงาน", class: "badge-error text-error-content" };
+  if (rawStatus === "ไม่ผ่านทดลองงาน" || rawStatus === "FailedProbation") {
+    return {
+      label: "ไม่ผ่านทดลองงาน",
+      class: "badge-error text-error-content",
+    };
   }
   return { label: rawStatus, class: "badge-ghost" };
 }
-
 function GetAffiliationDisplay(emp: Employee) {
   if (emp.sectionId)
     return { NameTh: emp.sectionNameTh, NameEn: emp.sectionNameEn };
@@ -532,18 +393,15 @@ function GetAffiliationDisplay(emp: Employee) {
     return { NameTh: emp.departmentNameTh, NameEn: emp.departmentNameEn };
   else return { NameTh: emp.groupNameTh, NameEn: emp.groupNameEn };
 }
-
 function initials(name: string) {
   return name?.charAt(0)?.toUpperCase() ?? "?";
 }
-
 // ========================================
 // Fetch
 // ========================================
 function fetchEmployees() {
   return employeeStore.fetchList(filter);
 }
-
 // ========================================
 // Modal Actions
 // ========================================
@@ -554,7 +412,6 @@ async function openCreateModal() {
   await nextTick();
   employeeFormModalRef.value?.open();
 }
-
 async function viewEmployee(emp: Employee) {
   isLoadingEditData.value = true;
   try {
@@ -567,22 +424,18 @@ async function viewEmployee(emp: Employee) {
     isLoadingEditData.value = false;
   }
 }
-
 async function openEditModal(employee: Employee) {
   isCreateMode.value = false;
   isLoadingEditData.value = true;
-
   try {
     // หน้าแก้ไขไม่ได้ใช้แผนผังองค์กร จึงไม่ต้องให้ Backend คำนวณมาให้
     const data = await employeeStore.getById(employee.id, false);
     selectedEmployee.value = data;
-
     if (data.companyId) {
       await handleCompanyChanged(data.companyId);
     } else {
       branchOptions.value = [];
     }
-
     await nextTick();
     employeeFormModalRef.value?.open();
   } catch (err) {
@@ -592,7 +445,6 @@ async function openEditModal(employee: Employee) {
     isLoadingEditData.value = false;
   }
 }
-
 // ========================================
 // Event: Company Changed (from Modal)
 // ========================================
@@ -609,7 +461,6 @@ async function handleCompanyChanged(companyId: string | null) {
     branchOptions.value = [];
   }
 }
-
 async function loadFilterBranches(companyId: string | null | undefined) {
   if (!companyId) {
     filterBranchOptions.value = [];
@@ -623,7 +474,6 @@ async function loadFilterBranches(companyId: string | null | undefined) {
     filterBranchOptions.value = [];
   }
 }
-
 // ========================================
 // Event: Employee Save (from Modal)
 // ========================================
@@ -634,7 +484,6 @@ async function handleEmployeeSave(payload: any, isCreate: boolean) {
     } else {
       await employeeStore.update(selectedEmployee.value!.id, payload);
     }
-
     employeeFormModalRef.value?.close();
     filter.page = 1;
     await fetchEmployees();
@@ -650,55 +499,72 @@ async function handleEmployeeSave(payload: any, isCreate: boolean) {
     );
   }
 }
-
 async function confirmDelete(emp: Employee) {
   const ok = await notify.confirm(
     `ยืนยันลบพนักงาน "${emp.fNameTh} ${emp.lNameTh}" ใช่หรือไม่`,
     "ยืนยันการลบ",
   );
   if (!ok) return;
-
   try {
     await employeeStore.remove(emp.id);
     await notify.success("ลบพนักงานสำเร็จ");
-
     if (employees.value.length === 1 && filter.page > 1) {
       filter.page -= 1;
     }
     await fetchEmployees();
-
     emit("delete", emp.id);
   } catch (err: any) {
     await notify.error(extractErrorMessage(err), "ลบไม่สำเร็จ");
     console.error("Delete error:", err);
   }
 }
-
 // ========================================
 // Filter & Search Handlers
 // ========================================
 function clearFilters() {
+  clearTimeout(debounceTimer);
   Object.assign(filter, defaultFilter);
   filterBranchOptions.value = [];
   fetchEmployees();
 }
-
 function resetPageAndFetch() {
   filter.page = 1;
   fetchEmployees();
 }
-
 let debounceTimer: ReturnType<typeof setTimeout>;
 function onSearchInput() {
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(resetPageAndFetch, 300);
 }
-
 function goToPage(p: number) {
   filter.page = p;
   fetchEmployees();
 }
+function formatDateTime(
+  value: string | null | undefined,
+  showTime: boolean = false,
+) {
+  if (!value) return "-";
 
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+
+  const dateText = new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+
+  if (!showTime) return dateText;
+
+  const timeText = new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(date);
+
+  return `${dateText} ${timeText}`;
+}
 // ========================================
 // Watchers
 // ========================================
@@ -706,12 +572,14 @@ watch(
   () => [
     filter.status,
     filter.employeeTypeId,
-    organizationUnitId.value,
+    filter.groupId,
+    filter.departmentId,
+    filter.divisionId,
+    filter.sectionId,
     filter.pageSize,
   ],
   resetPageAndFetch,
 );
-
 watch(
   () => filter.companyId,
   (newCompanyId) => {
@@ -720,9 +588,7 @@ watch(
     resetPageAndFetch();
   },
 );
-
 watch(() => filter.branchId, resetPageAndFetch);
-
 // ========================================
 // Lifecycle
 // ========================================
@@ -731,4 +597,7 @@ onMounted(() => {
   employeeStore.fetchOptions(); // มี Cache ในตัว เข้ารอบ 2 จะไม่ยิงซ้ำ
   fetchEmployees();
 });
+onBeforeUnmount(() => clearTimeout(debounceTimer));
 </script>
+
+<style scoped src="../../assets/css/EmployeeList.css"></style>

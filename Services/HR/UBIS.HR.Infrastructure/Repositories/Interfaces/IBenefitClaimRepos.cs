@@ -8,7 +8,7 @@ public interface IBenefitClaimRepos : IBaseRepos<TbBenefitClaim>
 {
     Task<TbBenefitClaim?> GetDetailByIdAsync(Guid id);
     Task<TbBenefitClaim?> GetByDocNumAsync(string docNum);
-    Task<List<TbBenefitClaim>> GetSummariesByDocNumsAsync(IEnumerable<string> docNums);
+    Task<List<TbBenefitClaim>> GetSummariesByDocNumsAsync(IEnumerable<string> docNums, MyApprovalFilterDto? filter = null);
     Task<BenefitClaimSummaryDto> GetSummaryAsync(BenefitClaimSummaryFilterDto filter, List<Guid> adminBranchIds);
     Task<List<BenefitClaimExportRowDto>> GetExportRowsAsync(
     BenefitClaimSummaryFilterDto filter, List<Guid> adminBranchIds, Guid? employeeId = null);

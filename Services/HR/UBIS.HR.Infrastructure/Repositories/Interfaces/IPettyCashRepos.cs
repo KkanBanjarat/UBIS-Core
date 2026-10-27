@@ -8,7 +8,7 @@ public interface IPettyCashRepos : IBaseRepos<TbPettyCashRequest>
 {
     Task<TbPettyCashRequest?> GetDetailByIdAsync(Guid id);
     Task<TbPettyCashRequest?> GetByDocNumAsync(string docNum);
-    Task<List<TbPettyCashRequest>> GetSummariesByDocNumsAsync(IEnumerable<string> docNums);
+    Task<List<TbPettyCashRequest>> GetSummariesByDocNumsAsync(IEnumerable<string> docNums, MyApprovalFilterDto? filter = null);
     Task<(IEnumerable<PettyCashDto> Items, int TotalCount)> GetFilteredPagedAsync(
     PettyCashFilterDto filter, List<Guid> adminBranchIds);
     Task DeleteLinesAsync(Guid pettyCashId);

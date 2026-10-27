@@ -1,23 +1,46 @@
 import { defineStore } from "pinia";
 import hrApi from "../services/hrApi";
-import type { Approval, ApprovalTrail } from "../types/Approval";
+import type {
+  Approval,
+  ApprovalFilter,
+  ApprovalTrail,
+} from "../types/Approval";
 
 let pendingReqId = 0;
+
+// ตัดค่าว่างทิ้ง เพื่อไม่ส่ง ?search=&docType= ไปที่ API
+function cleanParams(filter: ApprovalFilter) {
+  const params: Record<string, string> = {};
+  (Object.keys(filter) as (keyof ApprovalFilter)[]).forEach((k) => {
+    const v = filter[k]?.trim();
+    if (v) params[k] = v;
+  });
+  return params;
+}
 
 export const useApprovalStore = defineStore("approval", {
   state: () => ({
     items: [] as Approval[],
-    isLoading: true, // เดิม false — กันเห็น "ไม่มีรายการ" วาบก่อนโหลด
-    errorMessage: "", // เพิ่มใหม่
+    filter: {} as ApprovalFilter, // filter ล่าสุดที่ใช้โหลด
+    isLoading: true, // กันเห็น "ไม่มีรายการ" วาบก่อนโหลด
+    errorMessage: "",
   }),
 
   actions: {
-    async fetchMyPending() {
+    /**
+     * ส่ง filter มา = ตั้งค่าใหม่ แล้วโหลด
+     * ไม่ส่ง = โหลดซ้ำด้วย filter เดิม (ใช้หลังอนุมัติ/ไม่อนุมัติ)
+     */
+    async fetchMyPending(filter?: ApprovalFilter) {
+      if (filter) this.filter = { ...filter };
+
       const reqId = ++pendingReqId;
       this.isLoading = true;
       this.errorMessage = "";
       try {
-        const res = await hrApi.get("/Approval/my-pending");
+        const res = await hrApi.get("/Approval/my-pending", {
+          params: cleanParams(this.filter),
+        });
         if (reqId !== pendingReqId) return;
         this.items = res.data;
       } catch (err) {

@@ -336,12 +336,13 @@ public class PettyCashService : IPettyCashService
 
         return (entity.DocDate, employeeName, DocDetail);
     }
-    public async Task<Dictionary<string, (DateTime DocDate, string EmployeeNameTh, string? DocumentDetail)>> GetSummariesAsync(IEnumerable<string> docNumbers)
+    public async Task<Dictionary<string, (DateTime DocDate, string EmployeeNameTh, string? DocumentDetail)>> GetSummariesAsync(
+    IEnumerable<string> docNumbers, MyApprovalFilterDto? filter = null)
     {
-        var entities = await _repos.GetSummariesByDocNumsAsync(docNumbers);
+        var entities = await _repos.GetSummariesByDocNumsAsync(docNumbers, filter);
 
         return entities.ToDictionary(
-            e => e.DocNum,   // DocNum มี Unique Index (ux_Petty_cash_docnum) จึงไม่ซ้ำ
+            e => e.DocNum,
             e => (
                 e.DocDate,
                 e.Employee != null ? $"{e.Employee.FnameTh} {e.Employee.LnameTh}" : "-",

@@ -28,14 +28,40 @@ public class BenefitClaimRepos : BaseRepos<TbBenefitClaim>, IBenefitClaimRepos
             .FirstOrDefaultAsync(x => x.DocNum == docNum && !x.IsDelete);
     }
 
-    public async Task<List<TbBenefitClaim>> GetSummariesByDocNumsAsync(IEnumerable<string> docNums)
+    public async Task<List<TbBenefitClaim>> GetSummariesByDocNumsAsync(
+    IEnumerable<string> docNums, MyApprovalFilterDto? filter = null)
     {
         var list = docNums.Distinct().ToList();
-        return await _dbSet
+        var query = _dbSet
             .AsNoTracking()
             .Include(x => x.Employee)
-            .Where(x => list.Contains(x.DocNum) && !x.IsDelete)
-            .ToListAsync();
+            .Where(x => list.Contains(x.DocNum) && !x.IsDelete);
+
+        if (filter != null)
+        {
+            if (filter.DateFrom.HasValue)
+            {
+                var from = filter.DateFrom.Value.Date;
+                query = query.Where(x => x.DocDate >= from);
+            }
+            if (filter.DateTo.HasValue)
+            {
+                var toExclusive = filter.DateTo.Value.Date.AddDays(1);
+                query = query.Where(x => x.DocDate < toExclusive);
+            }
+            if (!string.IsNullOrWhiteSpace(filter.Search))
+            {
+                var pattern = $"%{filter.Search.Trim()}%";
+                query = query.Where(x =>
+                    EF.Functions.ILike(x.DocNum, pattern)
+                    || (x.Remark != null && EF.Functions.ILike(x.Remark, pattern))
+                    || EF.Functions.ILike(x.Employee.FnameTh, pattern)
+                    || EF.Functions.ILike(x.Employee.LnameTh, pattern)
+                    || EF.Functions.ILike(x.Employee.EmpId, pattern));
+            }
+        }
+
+        return await query.ToListAsync();
     }
 
     public async Task<TbBenefitClaim?> GetDetailByIdAsync(Guid id)

@@ -14,6 +14,7 @@ public class ApprovalService : IApprovalService
     private readonly IEmployeeRepos _employeeRepos;
     private readonly IEnumerable<IApprovalDocumentService> _documentServices;
     private readonly ITeamsNotifier _teamsNotifier;
+    private readonly ITransactionService _tx;
     private readonly ICurrentUserService _currentUser;
     private readonly ILogger<ApprovalService> _logger;
 
@@ -22,6 +23,7 @@ public class ApprovalService : IApprovalService
         IEmployeeRepos employeeRepos,
         IEnumerable<IApprovalDocumentService> documentServices,
         ITeamsNotifier teamsNotifier,
+        ITransactionService tx,
         ICurrentUserService currentUser,
         ILogger<ApprovalService> logger)
     {
@@ -30,6 +32,7 @@ public class ApprovalService : IApprovalService
         _employeeRepos = employeeRepos;
         _documentServices = documentServices;
         _teamsNotifier = teamsNotifier;
+        _tx = tx;
         _currentUser = currentUser;
         _logger = logger;
     }
@@ -44,6 +47,7 @@ public class ApprovalService : IApprovalService
     {
         return _documentServices.FirstOrDefault(x => x.DocType == docType);
     }
+
     private async Task NotifyApproverAsync(string docType, string docNumber, Guid approverId, int stepNo, int totalSteps)
     {
         try
@@ -74,6 +78,7 @@ public class ApprovalService : IApprovalService
             _logger.LogWarning(ex, "แจ้งเตือนผู้อนุมัติไม่สำเร็จ {DocNumber}", docNumber);
         }
     }
+
     public async Task CreateApprovalAsync(string docType, string docNumber, int docRev, List<ResolvedApprover> steps)
     {
         var round = await _approvalRepos.GetLatestRoundAsync(docType, docNumber, docRev) + 1;
@@ -103,21 +108,24 @@ public class ApprovalService : IApprovalService
         }
 
         await _approvalRepos.SaveChangesAsync();
-        // throw new Exception("ทดสอบ rollback");
+
         if (steps.Count > 0)
-            await NotifyApproverAsync(docType, docNumber, steps[0].ApproverEmployeeId, 1, steps.Count);
+        {
+            var firstApprover = steps[0].ApproverEmployeeId;
+            var total = steps.Count;
+            await _tx.OnCommittedAsync(() => NotifyApproverAsync(docType, docNumber, firstApprover, 1, total));
+        }
     }
 
-    public async Task<List<MyApprovalDto>> GetMyPendingApprovalsAsync()
+    public async Task<List<MyApprovalDto>> GetMyPendingApprovalsAsync(MyApprovalFilterDto? filter = null)
     {
         var employeeCode = _currentUser.GetCurrentUserEmployeeCode();
         var currentEmployeeId = await _employeeRepos.GetIdByEmpIdAsync(employeeCode);
         if (currentEmployeeId == null) return new List<MyApprovalDto>();
 
-        var pendingSteps = await _approvalRepos.GetPendingByApproverAsync(currentEmployeeId.Value);
+        var pendingSteps = await _approvalRepos.GetPendingByApproverAsync(currentEmployeeId.Value, filter?.DocType);
         var result = new List<MyApprovalDto>();
 
-        // ดึงสรุปเอกสารเป็นชุดเดียวต่อ DocType แทนการยิงทีละใบ
         var summaries = new Dictionary<(string DocType, string DocNumber),
             (DateTime DocDate, string EmployeeNameTh, string? DocumentDetail)>();
 
@@ -131,7 +139,7 @@ public class ApprovalService : IApprovalService
                 continue;
             }
 
-            var batch = await docService.GetSummariesAsync(group.Select(s => s.DocNumber));
+            var batch = await docService.GetSummariesAsync(group.Select(s => s.DocNumber), filter);
             foreach (var kv in batch)
                 summaries[(group.Key, kv.Key)] = kv.Value;
         }
@@ -166,7 +174,7 @@ public class ApprovalService : IApprovalService
             if (!pendingSteps.Any())
                 return new List<ApprovalSummaryDto>();
 
-            var approvalSummary = pendingSteps
+            return pendingSteps
                 .GroupBy(s => s.DocType)
                 .Select(g => new ApprovalSummaryDto
                 {
@@ -175,8 +183,6 @@ public class ApprovalService : IApprovalService
                 })
                 .OrderBy(x => x.DocType)
                 .ToList();
-
-            return approvalSummary;
         }
         catch (Exception ex)
         {
@@ -184,115 +190,131 @@ public class ApprovalService : IApprovalService
             throw;
         }
     }
-    public async Task<bool> ApproveAsync(int transApproveId)
+
+    public Task<bool> ApproveAsync(int transApproveId)
     {
-        var step = await _approvalRepos.GetByIntIdAsync(transApproveId);
-        if (step == null) return false;
-
-        if (step.Status != "WaitApprove")
-            throw new InvalidOperationException("รายการนี้ไม่ได้อยู่ในสถานะรออนุมัติแล้ว");
-
-        var employeeCode = _currentUser.GetCurrentUserEmployeeCode();
-        var currentEmployeeId = await _employeeRepos.GetIdByEmpIdAsync(employeeCode);
-        if (currentEmployeeId != step.ApproverId)
-            throw new InvalidOperationException("คุณไม่มีสิทธิ์อนุมัติรายการนี้");
-
-        var currentUserEmail = _currentUser.GetCurrentUserEmail();
-
-        step.Status = "Approved";
-        step.ActualApproveId = currentEmployeeId;
-        step.ApprovedDate = DateTime.Now;
-        step.UpdatedAt = DateTime.Now;
-        step.UpdatedBy = currentUserEmail;
-        await _approvalRepos.SaveChangesAsync();
-
-        var allSteps = await _approvalRepos.GetByDocumentAsync(step.DocType, step.DocNumber, step.DocRev, step.Round);
-        var nextStep = allSteps.FirstOrDefault(x => x.StepNo == step.StepNo + 1);
-
-        if (nextStep != null)
+        return _tx.RunAsync<bool>(async () =>
         {
-            nextStep.Status = "WaitApprove";
-            nextStep.UpdatedAt = DateTime.Now;
-            nextStep.UpdatedBy = currentUserEmail;
-            await _approvalRepos.SaveChangesAsync();
-            await NotifyApproverAsync(step.DocType, step.DocNumber, nextStep.ApproverId, nextStep.StepNo, allSteps.Count);
-        }
-        else
-        {
-            await GetDocumentService(step.DocType).MarkApprovedAsync(step.DocNumber);
-        }
+            var step = await _approvalRepos.GetByIntIdAsync(transApproveId);
+            if (step == null) return false;
 
-        return true;
-    }
+            if (step.Status != "WaitApprove")
+                throw new InvalidOperationException("รายการนี้ไม่ได้อยู่ในสถานะรออนุมัติแล้ว");
 
-    public async Task<bool> DenyAsync(int transApproveId, string reason, bool isDisapprove)
-    {
-        var denialStatus = isDisapprove ? "Disapproved" : "Rejected";
-        var step = await _approvalRepos.GetByIntIdAsync(transApproveId);
-        if (step == null) return false;
+            var employeeCode = _currentUser.GetCurrentUserEmployeeCode();
+            var currentEmployeeId = await _employeeRepos.GetIdByEmpIdAsync(employeeCode);
+            if (currentEmployeeId != step.ApproverId)
+                throw new InvalidOperationException("คุณไม่มีสิทธิ์อนุมัติรายการนี้");
 
-        if (step.Status != "WaitApprove")
-            throw new InvalidOperationException("รายการนี้ไม่ได้อยู่ในสถานะรออนุมัติแล้ว");
+            var currentUserEmail = _currentUser.GetCurrentUserEmail();
 
-        var employeeCode = _currentUser.GetCurrentUserEmployeeCode();
-        var currentEmployeeId = await _employeeRepos.GetIdByEmpIdAsync(employeeCode);
-        if (currentEmployeeId != step.ApproverId)
-            throw new InvalidOperationException($"คุณไม่มีสิทธิ์{(isDisapprove ? "ไม่อนุมัติ" : "ตีกลับ")}รายการนี้");
-
-        var currentUserEmail = _currentUser.GetCurrentUserEmail();
-
-        step.Status = denialStatus;
-        step.ActualApproveId = currentEmployeeId;
-        step.ApprovedDate = DateTime.Now;
-        step.UpdatedAt = DateTime.Now;
-        step.UpdatedBy = currentUserEmail;
-        await _approvalRepos.SaveChangesAsync();
-
-        var allSteps = await _approvalRepos.GetByDocumentAsync(step.DocType, step.DocNumber, step.DocRev, step.Round);
-        foreach (var remaining in allSteps.Where(x => x.StepNo > step.StepNo))
-        {
-            remaining.Status = denialStatus;
-            remaining.UpdatedAt = DateTime.Now;
-            remaining.UpdatedBy = currentUserEmail;
-        }
-        await _approvalRepos.SaveChangesAsync();
-
-        await _reasonApproveRepos.AddAsync(new TbReasonApprove
-        {
-            DocType = step.DocType,
-            DocNumber = step.DocNumber,
-            DocRev = step.DocRev,
-            Round = step.Round,
-            Status = denialStatus,
-            Reason = reason,
-            CreatedAt = DateTime.Now,
-            CreatedBy = currentUserEmail,
-            UpdatedAt = DateTime.Now,
-            UpdatedBy = currentUserEmail,
-        });
-        await _reasonApproveRepos.SaveChangesAsync();
-
-        await GetDocumentService(step.DocType).MarkDeniedAsync(step.DocNumber, isDisapprove);
-
-        return true;
-    }
-
-    public async Task RecallAsync(string docType, string docNumber, int docRev)
-    {
-        var round = await _approvalRepos.GetLatestRoundAsync(docType, docNumber, docRev);
-        if (round == 0) return;
-
-        var currentUserEmail = _currentUser.GetCurrentUserEmail();
-        var steps = await _approvalRepos.GetByDocumentAsync(docType, docNumber, docRev, round);
-
-        foreach (var step in steps.Where(x => x.Status == "WaitApprove" || x.Status == "Pending"))
-        {
-            step.Status = "Recalled";
+            step.Status = "Approved";
+            step.ActualApproveId = currentEmployeeId;
+            step.ApprovedDate = DateTime.Now;
             step.UpdatedAt = DateTime.Now;
             step.UpdatedBy = currentUserEmail;
-        }
+            await _approvalRepos.SaveChangesAsync();
 
-        await _approvalRepos.SaveChangesAsync();
+            var allSteps = await _approvalRepos.GetByDocumentAsync(step.DocType, step.DocNumber, step.DocRev, step.Round);
+            var nextStep = allSteps.FirstOrDefault(x => x.StepNo == step.StepNo + 1);
+
+            if (nextStep != null)
+            {
+                nextStep.Status = "WaitApprove";
+                nextStep.UpdatedAt = DateTime.Now;
+                nextStep.UpdatedBy = currentUserEmail;
+                await _approvalRepos.SaveChangesAsync();
+
+                var docType = step.DocType;
+                var docNumber = step.DocNumber;
+                var nextApproverId = nextStep.ApproverId;
+                var nextStepNo = nextStep.StepNo;
+                var total = allSteps.Count;
+                await _tx.OnCommittedAsync(() => NotifyApproverAsync(docType, docNumber, nextApproverId, nextStepNo, total));
+            }
+            else
+            {
+                await GetDocumentService(step.DocType).MarkApprovedAsync(step.DocNumber);
+            }
+
+            return true;
+        });
+    }
+
+    public Task<bool> DenyAsync(int transApproveId, string reason, bool isDisapprove)
+    {
+        return _tx.RunAsync<bool>(async () =>
+        {
+            var denialStatus = isDisapprove ? "Disapproved" : "Rejected";
+            var step = await _approvalRepos.GetByIntIdAsync(transApproveId);
+            if (step == null) return false;
+
+            if (step.Status != "WaitApprove")
+                throw new InvalidOperationException("รายการนี้ไม่ได้อยู่ในสถานะรออนุมัติแล้ว");
+
+            var employeeCode = _currentUser.GetCurrentUserEmployeeCode();
+            var currentEmployeeId = await _employeeRepos.GetIdByEmpIdAsync(employeeCode);
+            if (currentEmployeeId != step.ApproverId)
+                throw new InvalidOperationException($"คุณไม่มีสิทธิ์{(isDisapprove ? "ไม่อนุมัติ" : "ตีกลับ")}รายการนี้");
+
+            var currentUserEmail = _currentUser.GetCurrentUserEmail();
+
+            step.Status = denialStatus;
+            step.ActualApproveId = currentEmployeeId;
+            step.ApprovedDate = DateTime.Now;
+            step.UpdatedAt = DateTime.Now;
+            step.UpdatedBy = currentUserEmail;
+            await _approvalRepos.SaveChangesAsync();
+
+            var allSteps = await _approvalRepos.GetByDocumentAsync(step.DocType, step.DocNumber, step.DocRev, step.Round);
+            foreach (var remaining in allSteps.Where(x => x.StepNo > step.StepNo))
+            {
+                remaining.Status = denialStatus;
+                remaining.UpdatedAt = DateTime.Now;
+                remaining.UpdatedBy = currentUserEmail;
+            }
+            await _approvalRepos.SaveChangesAsync();
+
+            await _reasonApproveRepos.AddAsync(new TbReasonApprove
+            {
+                DocType = step.DocType,
+                DocNumber = step.DocNumber,
+                DocRev = step.DocRev,
+                Round = step.Round,
+                Status = denialStatus,
+                Reason = reason,
+                CreatedAt = DateTime.Now,
+                CreatedBy = currentUserEmail,
+                UpdatedAt = DateTime.Now,
+                UpdatedBy = currentUserEmail,
+            });
+            await _reasonApproveRepos.SaveChangesAsync();
+
+            await GetDocumentService(step.DocType).MarkDeniedAsync(step.DocNumber, isDisapprove);
+
+            return true;
+        });
+    }
+
+    public Task RecallAsync(string docType, string docNumber, int docRev)
+    {
+        return _tx.RunAsync(async () =>
+        {
+            var round = await _approvalRepos.GetLatestRoundAsync(docType, docNumber, docRev);
+            if (round == 0) return;
+
+            var currentUserEmail = _currentUser.GetCurrentUserEmail();
+            var steps = await _approvalRepos.GetByDocumentAsync(docType, docNumber, docRev, round);
+
+            foreach (var step in steps.Where(x => x.Status == "WaitApprove" || x.Status == "Pending"))
+            {
+                step.Status = "Recalled";
+                step.UpdatedAt = DateTime.Now;
+                step.UpdatedBy = currentUserEmail;
+            }
+
+            await _approvalRepos.SaveChangesAsync();
+        });
     }
 
     public async Task<ApprovalTrailDto> GetTrailAsync(string docType, string docNumber)
@@ -318,8 +340,8 @@ public class ApprovalService : IApprovalService
             : new Dictionary<Guid, string>();
 
         var positionMap = employeeIds.Count > 0
-        ? await _employeeRepos.GetPositionNamesByIdsAsync(employeeIds)
-        : new Dictionary<Guid, string>();
+            ? await _employeeRepos.GetPositionNamesByIdsAsync(employeeIds)
+            : new Dictionary<Guid, string>();
 
         return new ApprovalTrailDto
         {
@@ -331,8 +353,8 @@ public class ApprovalService : IApprovalService
                 ActualApproveNameTh = s.ActualApproveId.HasValue ? nameMap.GetValueOrDefault(s.ActualApproveId.Value, "-") : null,
                 ApproverPosition = positionMap.GetValueOrDefault(s.ApproverId, ""),
                 ActualApprovePosition = s.ActualApproveId.HasValue
-                ? positionMap.GetValueOrDefault(s.ActualApproveId.Value, "")
-                : null,
+                    ? positionMap.GetValueOrDefault(s.ActualApproveId.Value, "")
+                    : null,
                 ApprovedDate = s.ApprovedDate,
                 ApproverType = s.ApproverType,
                 StepName = s.StepName

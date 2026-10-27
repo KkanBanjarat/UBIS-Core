@@ -387,9 +387,10 @@ public class BenefitClaimService : IBenefitClaimService, IApprovalDocumentServic
         return (entity.DocDate, name, $"เอกสารเบิกสวัสดิการ จำนวนเงินรวม {entity.TotalAmount} บาท");
     }
 
-    public async Task<Dictionary<string, (DateTime DocDate, string EmployeeNameTh, string? DocumentDetail)>> GetSummariesAsync(IEnumerable<string> docNumbers)
+    public async Task<Dictionary<string, (DateTime DocDate, string EmployeeNameTh, string? DocumentDetail)>> GetSummariesAsync(
+    IEnumerable<string> docNumbers, MyApprovalFilterDto? filter = null)
     {
-        var entities = await _repos.GetSummariesByDocNumsAsync(docNumbers);
+        var entities = await _repos.GetSummariesByDocNumsAsync(docNumbers, filter);
 
         return entities.ToDictionary(
             e => e.DocNum,
