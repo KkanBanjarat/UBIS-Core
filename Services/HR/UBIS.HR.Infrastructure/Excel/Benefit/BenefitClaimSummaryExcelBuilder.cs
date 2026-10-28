@@ -28,178 +28,272 @@ public static class BenefitClaimSummaryExcelBuilder
     private static void BuildCompanySheet(
         IXLWorksheet ws, BenefitClaimSummaryDto summary, BenefitClaimSummaryFilterDto filter)
     {
+        // สไตล์เดียวกับชีตรายบุคคล: พื้นขาว เส้นดำบาง แถวรวมพื้นเทาอ่อน
         const int lastCol = 2;
         ExcelStyles.Init(ws);
 
-        var r = 1;
-        ExcelStyles.Title(ws, r++, "รายงานสรุปการเบิกสวัสดิการ (ตามบริษัท / สาขา)", lastCol);
-        ws.Cell(r++, 1).Value = FilterText(filter);
-        r++;
+        var title = ws.Range(1, 1, 1, lastCol).Merge();
+        title.Value = "รายงานสรุปการเบิกสวัสดิการ (ตามบริษัท / สาขา)";
+        title.Style.Font.Bold = true;
+        title.Style.Font.FontSize = 14;
+        title.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        ws.Row(1).Height = 26;
 
-        var headerRow = r;
-        ws.Cell(r, 1).Value = "รายการสวัสดิการ";
-        // ws.Cell(r, 2).Value = "จำนวนเอกสาร";
-        // ws.Cell(r, 3).Value = "จำนวนรายการ";
-        ws.Cell(r, 2).Value = "จำนวนเงิน (บาท)";
-        ExcelStyles.HeaderRow(ws, r++, lastCol);
+        var sub = ws.Range(2, 1, 2, lastCol).Merge();
+        sub.Value = FilterText(filter);
+        sub.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
+        const int headerRow = 4;
+        ws.Cell(headerRow, 1).Value = "รายการสวัสดิการ";
+        ws.Cell(headerRow, 2).Value = "จำนวนเงิน (บาท)";
+        var header = ws.Range(headerRow, 1, headerRow, lastCol);
+        header.Style.Font.Bold = true;
+        header.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        ws.Row(headerRow).Height = 22;
+
+        var r = headerRow + 1;
         decimal grandAmount = 0;
-        var grandDocs = 0;
-        var grandLines = 0;
+        var totalRows = new List<int>();
+        var spacerRows = new List<int>();
 
         foreach (var c in summary.ByCompany)
         {
-            ExcelStyles.BandRow(ws, r++, $"{c.Company}", lastCol);
+            // ชื่อบริษัท
+            var companyRow = ws.Range(r++, 1, r - 1, lastCol).Merge();
+            companyRow.Value = c.Company;
+            companyRow.Style.Font.Bold = true;
 
             foreach (var b in c.Branches)
             {
                 // ชื่อสาขา
-                var branchRow = ws.Range(r, 1, r, lastCol).Merge();
+                var branchRow = ws.Range(r++, 1, r - 1, lastCol).Merge();
                 branchRow.Value = $"สาขา: {b.Branch}";
                 branchRow.Style.Font.Bold = true;
-                ExcelStyles.Body(branchRow);
-                branchRow.Style.Font.Bold = true;
-                r++;
 
-                var first = r;
                 foreach (var x in b.Benefits)
                 {
                     ws.Cell(r, 1).Value = "    " + x.Benefit;
-                    // ws.Cell(r, 2).Value = x.DocCount;
-                    // ws.Cell(r, 3).Value = x.LineCount;
                     ws.Cell(r, 2).Value = x.Amount;
                     r++;
                 }
-                if (r > first)
-                {
-                    ExcelStyles.Body(ws.Range(first, 1, r - 1, lastCol));
-                    ExcelStyles.Int(ws.Range(first, 2, r - 1, 3));
-                    ExcelStyles.Money(ws.Range(first, 4, r - 1, 4));
-                }
 
-                // รวมสาขา
-                ws.Cell(r, 1).Value = $"รวมสาขา {b.Branch}";
-                // ws.Cell(r, 2).Value = b.DocCount;
-                // ws.Cell(r, 3).Value = b.LineCount;
-                ws.Cell(r, 2).Value = b.Amount;
-                ExcelStyles.TotalRow(ws, r, 1, lastCol, XLAlignmentHorizontalValues.Right);
-                ExcelStyles.Int(ws.Range(r, 2, r, 3));
-                ExcelStyles.Money(ws.Cell(r, 2).AsRange());
-                r++;
+                WriteTotal(r++, $"รวมสาขา {b.Branch}", b.Amount);
             }
 
-            // รวมบริษัท
-            ws.Cell(r, 1).Value = $"รวม {c.Company}";
-            // ws.Cell(r, 2).Value = c.DocCount;
-            // ws.Cell(r, 3).Value = c.LineCount;
-            ws.Cell(r, 2).Value = c.Amount;
-            ExcelStyles.TotalRow(ws, r, 1, lastCol, XLAlignmentHorizontalValues.Right);
-            ExcelStyles.Int(ws.Range(r, 2, r, 3));
-            ExcelStyles.Money(ws.Cell(r, 2).AsRange());
-            r += 2;
-
-            grandDocs += c.DocCount;
-            grandLines += c.LineCount;
+            WriteTotal(r++, $"รวม {c.Company}", c.Amount);
             grandAmount += c.Amount;
+
+            // เว้น 1 บรรทัดแบ่งบริษัท
+            spacerRows.Add(r++);
         }
 
-        // รวมทั้งหมด
-        ws.Cell(r, 1).Value = "รวมทั้งหมด";
-        // ws.Cell(r, 2).Value = grandDocs;
-        // ws.Cell(r, 3).Value = grandLines;
-        ws.Cell(r, 2).Value = grandAmount;
-        ExcelStyles.TotalRow(ws, r, 1, lastCol, XLAlignmentHorizontalValues.Right);
-        ExcelStyles.Int(ws.Range(r, 2, r, 3));
-        ExcelStyles.Money(ws.Cell(r, 2).AsRange());
+        WriteTotal(r, "รวมทั้งหมด", grandAmount);
+
+        // ---------- Format ----------
+        var table = ws.Range(headerRow, 1, r, lastCol);
+        table.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+        table.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+        table.Style.Border.OutsideBorderColor = XLColor.Black;
+        table.Style.Border.InsideBorderColor = XLColor.Black;
+
+        ExcelStyles.Money(ws.Range(headerRow + 1, 2, r, 2));
+
+        foreach (var row in totalRows)
+        {
+            var total = ws.Range(row, 1, row, lastCol);
+            total.Style.Font.Bold = true;
+            total.Style.Fill.BackgroundColor = ExcelStyles.Total;
+            ws.Cell(row, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+        }
+
+        foreach (var row in spacerRows)
+        {
+            var spacer = ws.Range(row, 1, row, lastCol);
+            spacer.Style.Border.InsideBorder = XLBorderStyleValues.None;
+            spacer.Style.Border.LeftBorder = XLBorderStyleValues.None;
+            spacer.Style.Border.RightBorder = XLBorderStyleValues.None;
+        }
+
+        ws.Column(1).Width = 45;
+        ws.Column(2).Width = 18;
+        for (var row = headerRow + 1; row <= r; row++)
+            if (ws.Row(row).Height < 20) ws.Row(row).Height = 20;
 
         ExcelStyles.FreezeHeader(ws, headerRow);
-        ExcelStyles.AutoFit(ws, 12, 45);
+
+        void WriteTotal(int row, string label, decimal amount)
+        {
+            ws.Cell(row, 1).Value = label;
+            ws.Cell(row, 2).Value = amount;
+            totalRows.Add(row);
+        }
     }
 
     // ================= Sheet 2 =================
+    // รูปแบบตามตัวอย่างของ HR: พื้นขาว เส้นตารางดำบาง ไม่มีสี
+    // คอลัมน์ผู้เบิก/บริษัท Merge ตามกลุ่ม เพื่อให้อ่านรายการของแต่ละคนได้ง่าย
     private static void BuildEmployeeSheet(
-        IXLWorksheet ws, List<BenefitClaimExportRowDto> rows, BenefitClaimSummaryFilterDto filter)
+        IXLWorksheet ws,
+        List<BenefitClaimExportRowDto> rows,
+        BenefitClaimSummaryFilterDto filter)
     {
-        const int lastCol = 9;
+        const int lastCol = 8;
+        const int colCompany = 1, colCode = 2, colName = 3, colDocNum = 4,
+                  colDate = 5, colBenefit = 6, colDetail = 7, colAmount = 8;
+
         ExcelStyles.Init(ws);
 
-        var r = 1;
-        ExcelStyles.Title(ws, r++, "รายละเอียดการเบิกสวัสดิการรายบุคคล", lastCol);
-        ws.Cell(r++, 1).Value = FilterText(filter);
-        r++;
+        // ---------- Title ----------
+        var title = ws.Range(1, 1, 1, lastCol).Merge();
+        title.Value = "ข้อมูลค่าใช้จ่ายสวัสดิการ (รายบุคคล)";
+        title.Style.Font.Bold = true;
+        title.Style.Font.FontSize = 14;
+        title.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        ws.Row(1).Height = 26;
 
-        var headerRow = r;
-        string[] heads =
+        var sub = ws.Range(2, 1, 2, lastCol).Merge();
+        sub.Value = FilterText(filter);
+        sub.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+        // ---------- Header ----------
+        const int headerRow = 4;
+        string[] headers =
         {
-            "เลขที่เอกสาร", "วันที่", "สถานะ", "รหัสพนักงาน", "ชื่อ-สกุล",
-            "สวัสดิการ", "รายละเอียด", "จำนวน", "จำนวนเงิน (บาท)"
+            "บริษัท", "รหัสพนักงาน", "ชื่อพนักงาน", "เลขที่เอกสาร",
+            "วันที่", "สวัสดิการ", "รายละเอียด", "จำนวนเงิน"
         };
-        for (var i = 0; i < heads.Length; i++) ws.Cell(r, i + 1).Value = heads[i];
-        ExcelStyles.HeaderRow(ws, r++, lastCol);
+        for (var i = 0; i < headers.Length; i++)
+            ws.Cell(headerRow, i + 1).Value = headers[i];
 
-        decimal grand = 0;
+        var header = ws.Range(headerRow, 1, headerRow, lastCol);
+        header.Style.Font.Bold = true;
+        header.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        ws.Row(headerRow).Height = 22;
+
+        // ---------- Body ----------
+        var r = headerRow + 1;
+        decimal grandTotal = 0;
+        var totalRows = new List<int>();
+        var spacerRows = new List<int>();
 
         foreach (var company in rows
-                     .GroupBy(x => string.IsNullOrWhiteSpace(x.Company) ? "ไม่ระบุบริษัท" : x.Company)
-                     .OrderBy(g => g.Key))
+            .GroupBy(x => string.IsNullOrWhiteSpace(x.Company) ? "ไม่ระบุบริษัท" : x.Company)
+            .OrderBy(g => g.Key))
         {
-            ExcelStyles.BandRow(ws, r++, $"บริษัท: {company.Key}", lastCol);
-            decimal companyTotal = 0;
+            var companyFirst = r;
 
-            foreach (var emp in company
-                         .GroupBy(x => new { x.EmployeeCode, x.EmployeeName })
-                         .OrderBy(g => g.Key.EmployeeCode))
+            foreach (var employee in company
+                .GroupBy(x => new { x.EmployeeCode, x.EmployeeName })
+                .OrderBy(g => g.Key.EmployeeCode)
+                .ThenBy(g => g.Key.EmployeeName))
             {
-                var first = r;
-                foreach (var x in emp.OrderBy(x => x.DocDate).ThenBy(x => x.DocNum))
+                var employeeFirst = r;
+
+                foreach (var item in employee.OrderBy(x => x.DocDate).ThenBy(x => x.DocNum))
                 {
-                    ws.Cell(r, 1).Value = x.DocNum;
-                    ws.Cell(r, 2).Value = x.DocDate;
-                    ws.Cell(r, 3).Value = StatusText(x.DocStatus);
-                    ws.Cell(r, 4).Value = x.EmployeeCode;
-                    ws.Cell(r, 5).Value = x.EmployeeName;
-                    ws.Cell(r, 6).Value = x.BenefitName;
-                    ws.Cell(r, 7).Value = x.Detail;
-                    ws.Cell(r, 8).Value = x.Qty;
-                    ws.Cell(r, 9).Value = x.Amount;
+                    ws.Cell(r, colDetail).Value = string.IsNullOrWhiteSpace(item.Detail) ? "-" : item.Detail;
+                    ws.Cell(r, colAmount).Value = item.Amount;
+                    ws.Cell(r, colBenefit).Value = item.BenefitName;
+                    ws.Cell(r, colDocNum).Value = item.DocNum;
+                    ws.Cell(r, colDate).Value = item.DocDate;
                     r++;
                 }
 
-                var body = ws.Range(first, 1, r - 1, lastCol);
-                ExcelStyles.Body(body);
-                ExcelStyles.Date(ws.Range(first, 2, r - 1, 2));
-                ExcelStyles.Int(ws.Range(first, 8, r - 1, 8));
-                ExcelStyles.Money(ws.Range(first, 9, r - 1, 9));
-                ws.Range(first, 7, r - 1, 7).Style.Alignment.WrapText = true;
-
-                var empTotal = emp.Sum(x => x.Amount);
-                ws.Cell(r, 1).Value = $"รวม {emp.Key.EmployeeCode} {emp.Key.EmployeeName}";
-                ws.Cell(r, 9).Value = empTotal;
-                ExcelStyles.TotalRow(ws, r, 1, lastCol);
-                ExcelStyles.Money(ws.Cell(r, 9).AsRange());
-                r++;
-
-                companyTotal += empTotal;
+                ws.Cell(employeeFirst, colCode).Value = employee.Key.EmployeeCode;
+                ws.Cell(employeeFirst, colName).Value = employee.Key.EmployeeName;
+                MergeGroup(employeeFirst, r - 1, colCode);
+                MergeGroup(employeeFirst, r - 1, colName);
             }
 
-            ws.Cell(r, 1).Value = $"รวมบริษัท {company.Key}";
-            ws.Cell(r, 9).Value = companyTotal;
-            ExcelStyles.TotalRow(ws, r, 1, lastCol);
-            ExcelStyles.Money(ws.Cell(r, 9).AsRange());
-            r += 2;
+            ws.Cell(companyFirst, colCompany).Value = company.Key;
+            MergeGroup(companyFirst, r - 1, colCompany);
 
-            grand += companyTotal;
+            // รวมบริษัท
+            var companyTotal = company.Sum(x => x.Amount);
+            WriteTotal(r++, $"รวม {company.Key}", companyTotal);
+            grandTotal += companyTotal;
+
+            // เว้น 1 บรรทัดแบ่งบริษัท
+            spacerRows.Add(r++);
         }
 
-        ws.Cell(r, 1).Value = "รวมทั้งหมด";
-        ws.Cell(r, 9).Value = grand;
-        ExcelStyles.TotalRow(ws, r, 1, lastCol);
-        ExcelStyles.Money(ws.Cell(r, 9).AsRange());
+        WriteTotal(r, "รวมทั้งหมด", grandTotal);
 
-        ExcelStyles.FreezeHeader(ws, headerRow);
-        ExcelStyles.AutoFit(ws, 10, 45);
+        // ---------- Format ----------
+        var table = ws.Range(headerRow, 1, r, lastCol);
+        table.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+        table.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+        table.Style.Border.OutsideBorderColor = XLColor.Black;
+        table.Style.Border.InsideBorderColor = XLColor.Black;
+
+        var data = ws.Range(headerRow + 1, 1, r, lastCol);
+        ws.Range(headerRow + 1, colDetail, r, colDetail).Style.Alignment.WrapText = true;
+        ExcelStyles.Money(ws.Range(headerRow + 1, colAmount, r, colAmount));
+        ExcelStyles.Date(ws.Range(headerRow + 1, colDate, r, colDate));
+        ws.Range(headerRow + 1, colCompany, r, colCompany).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        ws.Range(headerRow + 1, colCode, r, colCode).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        ws.Range(headerRow + 1, colDocNum, r, colDocNum).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        ws.Range(headerRow + 1, colBenefit, r, colBenefit).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+        data.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+        // แถวรวม: ชิดขวา ตัวหนา พื้นเทาอ่อน (ทำหลังจัดคอลัมน์ ไม่งั้นโดนจัดกึ่งกลางทับ)
+        foreach (var row in totalRows)
+        {
+            var total = ws.Range(row, 1, row, lastCol);
+            total.Style.Font.Bold = true;
+            total.Style.Fill.BackgroundColor = ExcelStyles.Total;
+            ws.Cell(row, colCompany).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+        }
+
+        // บรรทัดเว้นระหว่างบริษัท: ไม่มีเส้นตาราง
+        foreach (var row in spacerRows)
+        {
+            var spacer = ws.Range(row, 1, row, lastCol);
+            spacer.Style.Border.InsideBorder = XLBorderStyleValues.None;
+            spacer.Style.Border.LeftBorder = XLBorderStyleValues.None;
+            spacer.Style.Border.RightBorder = XLBorderStyleValues.None;
+        }
+
+        ws.Column(colCompany).Width = 18;
+        ws.Column(colCode).Width = 13;
+        ws.Column(colName).Width = 26;
+        ws.Column(colBenefit).Width = 22;
+        ws.Column(colDocNum).Width = 18;
+        ws.Column(colDate).Width = 12;
+        ws.Column(colDetail).Width = 55;
+        ws.Column(colAmount).Width = 14;
+
+        // ความสูงตามรายละเอียดที่ตัดบรรทัด (คอลัมน์ Merge ไม่นำมาคิด)
+        for (var row = headerRow + 1; row <= r; row++)
+        {
+            ws.Row(row).AdjustToContents(colDetail, colDetail);
+            if (ws.Row(row).Height < 20) ws.Row(row).Height = 20;
+        }
+
+        ws.SheetView.FreezeRows(headerRow);
+
+        // ---------- Print ----------
+        ws.PageSetup.PageOrientation = XLPageOrientation.Landscape;
+        ws.PageSetup.PaperSize = XLPaperSize.A4Paper;
+        ws.PageSetup.FitToPages(1, 0);
+        ws.PageSetup.SetRowsToRepeatAtTop(headerRow, headerRow);
+        ws.PageSetup.PrintAreas.Add(1, 1, r, lastCol);
+
+        // ---------- Local helpers ----------
+        void MergeGroup(int first, int last, int column)
+        {
+            if (last <= first) return;
+            ws.Range(first, column, last, column).Merge();
+        }
+
+        void WriteTotal(int row, string label, decimal amount)
+        {
+            // Merge ตั้งแต่บริษัทถึงรายละเอียด แล้วแสดงยอดที่คอลัมน์จำนวนเงิน
+            ws.Range(row, colCompany, row, colAmount - 1).Merge().Value = label;
+            ws.Cell(row, colAmount).Value = amount;
+            totalRows.Add(row);
+        }
     }
-
     // ================= helpers =================
     private static string StatusText(string? s) => s switch
     {

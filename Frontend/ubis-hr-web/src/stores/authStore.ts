@@ -84,10 +84,14 @@ export const useAuthStore = defineStore("auth", {
       localStorage.removeItem("displayName");
       localStorage.removeItem("employeeCode");
       localStorage.removeItem("permissions");
+      // ล้างบัญชี Microsoft ใน Cache ด้วย ไม่งั้นรอบหน้าจะไปใช้บัญชี/Token เก่า
+      msalInstance.clearCache?.();
     },
 
     async loginWithSso() {
       await ensureMsalInitialized();
+      // เคลียร์สถานะ Interaction ที่ค้างจากรอบก่อน (เช่นหลัง Logout โดยไม่ Reload) ไม่งั้นจะเจอ interaction_in_progress
+      await msalInstance.handleRedirectPromise().catch(() => null);
       await msalInstance.loginRedirect({ scopes: ["User.Read"] });
     },
 

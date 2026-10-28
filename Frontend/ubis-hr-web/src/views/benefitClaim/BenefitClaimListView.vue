@@ -12,7 +12,7 @@
         <p class="text-xs text-base-content/45 mt-1 ml-11">จัดการและติดตามรายการเบิกสวัสดิการ</p>
       </div>
 
-      <button class="btn btn-primary btn-sm gap-1.5 rounded-lg" @click="openCreateModal">
+      <button v-if="canWrite" class="btn btn-primary btn-sm gap-1.5 rounded-lg" @click="openCreateModal">
         <Plus class="size-4" /> สร้างใบเบิกสวัสดิการ
       </button>
     </div>
@@ -93,8 +93,8 @@
                   <td class="py-3">
                     <div class="flex flex-col gap-1">
                       <p class="font-semibold text-sm text-base-content leading-tight">
-                    {{ item.docNum }}
-                    </p>
+                        {{ item.docNum }}
+                      </p>
                       <span class="text-xs text-base-content/55">
                         วันที่เอกสาร : {{ formatDate(item.docDate) }}
                       </span>
@@ -107,7 +107,8 @@
                   </td>
 
                   <td>
-                    <span class="text-sm text-base-content/70">{{ item.positionLevel }} : {{ item.positionLevelNameTh }}</span>
+                    <span class="text-sm text-base-content/70">{{ item.positionLevel }} : {{ item.positionLevelNameTh
+                    }}</span>
                     <p class="text-[12px] text-base-content/35 mt-0.5">{{ item.positionLevelNameEn }}</p>
                   </td>
 
@@ -129,12 +130,12 @@
 
                   <td>
                     <div class="flex items-center justify-end gap-0.5">
-                      <button v-if="item.docStatus === 'Draft'"
+                      <button v-if="canWrite && item.docStatus === 'Draft'"
                         class="btn btn-ghost btn-xs btn-square rounded-lg text-warning/70 hover:bg-warning/10 hover:text-warning"
                         title="แก้ไข" @click="openEditModal(item)" :disabled="editLoadingId === item.id">
                         <Edit class="size-4" />
                       </button>
-                      <button v-if="item.docStatus === 'Draft'"
+                      <button v-if="canWrite && item.docStatus === 'Draft'"
                         class="btn btn-ghost btn-xs btn-square rounded-lg text-primary hover:bg-primary/10"
                         title="ส่งอนุมัติ" @click="confirmSubmit(item)">
                         <Send class="size-4" />
@@ -149,12 +150,12 @@
                         title="พรีวิว / พิมพ์ใบเบิก" @click="openPreview(item)">
                         <Printer class="size-3.5" />
                       </button>
-                      <button v-if="item.docStatus === 'WaitApprove' || item.docStatus === 'Rejected'"
+                      <button v-if="canWrite && (item.docStatus === 'WaitApprove' || item.docStatus === 'Rejected')"
                         class="btn btn-ghost btn-xs btn-square rounded-lg text-info hover:bg-info/10"
                         title="ดึงกลับมาเป็นร่าง" @click="confirmRecall(item)">
                         <Undo2 class="size-4" />
                       </button>
-                      <button v-if="item.docStatus === 'Draft'"
+                      <button v-if="canWrite && item.docStatus === 'Draft'"
                         class="btn btn-ghost btn-xs btn-square rounded-lg text-error/60 hover:bg-error/10 hover:text-error"
                         title="ลบ" @click="confirmDelete(item)">
                         <Trash2 class="size-4" />
@@ -172,7 +173,8 @@
                             <p class="text-base font-semibold">รายละเอียดการเบิก</p>
                             <p class="text-sm text-base-content/40 mt-0.5">รายการสวัสดิการในใบเบิกนี้</p>
                           </div>
-                          <span class="text-sm text-base-content/40">{{ detailMap[item.id]?.lines?.length ?? item.lineCount ?? 0 }} รายการ</span>
+                          <span class="text-sm text-base-content/40">{{ detailMap[item.id]?.lines?.length ??
+                            item.lineCount ?? 0 }} รายการ</span>
                         </div>
 
                         <div v-if="detailLoading[item.id] && !detailMap[item.id]" class="space-y-2">
@@ -189,16 +191,20 @@
                           class="rounded-xl border border-base-300 bg-base-100 overflow-hidden">
                           <div v-for="(line, lineIndex) in detailMap[item.id]?.lines ?? []" :key="line.id ?? lineIndex"
                             class="flex flex-col sm:grid sm:grid-cols-[40px_minmax(180px,1fr)_minmax(180px,1.5fr)_130px] gap-3 items-start sm:items-center px-4 py-3 border-b border-base-300/70 last:border-0">
-                            <div class="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary text-xs font-semibold">
+                            <div
+                              class="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary text-xs font-semibold">
                               {{ lineIndex + 1 }}
                             </div>
                             <div class="min-w-0">
-                              <span class="badge badge-xs font-normal mb-0.5 badge-primary text-primary-content">สวัสดิการ</span>
-                              <p class="text-sm font-medium truncate">{{ line.benefitNameTh || getBenefitName(line.benefitId) }}</p>
+                              <span
+                                class="badge badge-xs font-normal mb-0.5 badge-primary text-primary-content">สวัสดิการ</span>
+                              <p class="text-sm font-medium truncate">{{ line.benefitNameTh ||
+                                getBenefitName(line.benefitId) }}</p>
                             </div>
                             <div class="min-w-0">
                               <p class="text-xs text-base-content/40 mb-0.5">รายละเอียด</p>
-                              <p class="text-sm text-base-content/65 truncate" :title="line.detail">{{ line.detail || '-' }}</p>
+                              <p class="text-sm text-base-content/65 truncate" :title="line.detail">{{ line.detail ||
+                                '-' }}</p>
                             </div>
                             <div class="sm:text-right">
                               <p class="text-xs text-base-content/40 mb-0.5">ยอดเบิก</p>
@@ -228,7 +234,7 @@
                       <div class="rounded-xl border border-base-300 bg-base-100 p-3">
                         <p class="text-base font-semibold mb-2">ไฟล์แนบ</p>
                         <AttachmentList doc-type="BenefitClaim" :doc-number="item.docNum || null"
-                          :readonly="item.docStatus !== 'Draft'" />
+                          :readonly="item.docStatus !== 'Draft' || !canWrite" />
                       </div>
                     </div>
                   </td>
@@ -238,16 +244,20 @@
           </table>
         </div>
 
-        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-5 py-3 border-t border-base-200">
+        <div
+          class="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-5 py-3 border-t border-base-200">
           <p class="text-xs text-base-content/45">
-            แสดง {{ totalCount === 0 ? 0 : (filter.page - 1) * filter.pageSize + 1 }}–{{ Math.min(filter.page * filter.pageSize, totalCount) }}
+            แสดง {{ totalCount === 0 ? 0 : (filter.page - 1) * filter.pageSize + 1 }}–{{ Math.min(filter.page *
+              filter.pageSize,
+              totalCount) }}
             จาก {{ totalCount }} รายการ
           </p>
           <div class="join">
             <button class="join-item btn btn-sm btn-ghost" :disabled="filter.page === 1" @click="goToPage(1)">
               <ChevronsLeft class="size-4" />
             </button>
-            <button class="join-item btn btn-sm btn-ghost" :disabled="filter.page === 1" @click="goToPage(filter.page - 1)">
+            <button class="join-item btn btn-sm btn-ghost" :disabled="filter.page === 1"
+              @click="goToPage(filter.page - 1)">
               <ChevronLeft class="size-4" />
             </button>
             <button v-for="p in pageWindow" :key="p" class="join-item btn btn-sm"
@@ -268,15 +278,9 @@
     </div>
   </div>
 
-  <BenefitClaimFormModal
-    ref="formModalRef"
-    :is-create="isCreateMode"
-    :employee-id="myEmployeeId"
-    :employee-name="myEmployeeName"
-    :benefit-options="benefitOptions"
-    :allowed-employees="allowedEmployees"
-    @save="handleSave"
-  />
+  <BenefitClaimFormModal ref="formModalRef" :is-create="isCreateMode" :employee-id="myEmployeeId"
+    :employee-name="myEmployeeName" :benefit-options="benefitOptions" :allowed-employees="allowedEmployees"
+    @save="handleSave" />
   <ApprovalDetailModal ref="detailModalRef" />
   <BenefitClaimPreviewModal ref="previewModalRef" />
 </template>
@@ -285,6 +289,7 @@
 import { ref, reactive, watch, onMounted, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useBenefitClaimStore } from '../../stores/benefitClaimStore.ts'
+import { usePermission } from '../../composables/usePermission'
 import FormSelect from '../../components/ui/FormSelect.vue'
 import BenefitClaimFormModal from '../../components/benefitClaim/BenefitClaimFormModal.vue'
 import ApprovalDetailModal from '../../components/approval/ApprovalDetailModal.vue'
@@ -293,7 +298,7 @@ import AttachmentList from '../../components/attachment/AttachmentList.vue'
 import { notify, extractErrorMessage } from '../../utils/notify.ts'
 import { useAuthStore } from '../../stores/authStore.ts'
 import type { BenefitClaim, BenefitClaimFilter } from '../../types/BenefitClaim.ts'
-import { Plus, Search, Gift, Edit, Trash2, Send, ChevronDown, ChevronUp, MessageSquare, Undo2, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,Printer } from 'lucide-vue-next'
+import { Plus, Search, Gift, Edit, Trash2, Send, ChevronDown, ChevronUp, MessageSquare, Undo2, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Printer } from 'lucide-vue-next'
 
 interface OptionItem {
   id: string
@@ -302,6 +307,7 @@ interface OptionItem {
 
 const authStore = useAuthStore()
 const benefitClaimStore = useBenefitClaimStore()
+const { canWrite, canAll } = usePermission('benefit-claim')
 const { items, totalCount, isLoading, errorMessage, benefitOptions, allowedEmployees, myEmployeeId, myEmployeeName } = storeToRefs(benefitClaimStore)
 const detailModalRef = ref<InstanceType<typeof ApprovalDetailModal>>()
 const previewModalRef = ref<InstanceType<typeof BenefitClaimPreviewModal>>()
@@ -520,7 +526,7 @@ onMounted(() => {
   })
 
   authStore
-    .fetchCurrentEmployee(false,false)
+    .fetchCurrentEmployee(false, false)
     .then((emp) => {
       if (emp) {
         benefitClaimStore.setMyEmployee(emp.id, `${emp.fNameTh} ${emp.lNameTh}`)

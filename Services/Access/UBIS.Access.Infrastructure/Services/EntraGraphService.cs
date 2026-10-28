@@ -60,9 +60,11 @@ public class EntraGraphService : IEntraGraphService
             throw new InvalidOperationException(
                 $"เรียก Microsoft Graph ไม่สำเร็จ: {ex.Error?.Message} (ตรวจสอบสิทธิ์ User.Read.All และ Admin consent)");
         }
-        catch (AuthenticationFailedException)
+        catch (AuthenticationFailedException ex)
         {
-            throw new InvalidOperationException("ขอ Token จาก Entra ไม่สำเร็จ ตรวจสอบ TenantId / ClientId / ClientSecret");
+            var detail = ex.InnerException?.Message ?? ex.Message;
+            throw new InvalidOperationException(
+                $"ขอ Token จาก Entra ไม่สำเร็จ: {detail}");
         }
     }
 }

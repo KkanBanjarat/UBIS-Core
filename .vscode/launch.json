@@ -21,7 +21,8 @@
             "request": "launch",
             "url": "http://localhost:5173",
             "webRoot": "${workspaceFolder}/Frontend/ubis-hr-web",
-            "preLaunchTask": "frontend: dev"
+            "preLaunchTask": "frontend: dev",
+            "postDebugTask": "frontend: stop"
         }
     ],
     "compounds": [
