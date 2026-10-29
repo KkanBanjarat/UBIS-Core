@@ -1,18 +1,43 @@
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using UBIS.Access.Application.Interfaces;
 using UBIS.Access.Infrastructure.Services;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using UBIS.Access.Api.Services;
 using UBIS.Access.Infrastructure.Data;
 using UBIS.Access.Infrastructure.Repositories.Interfaces;
 using UBIS.Access.Infrastructure.Repositories.Implementations;
 using UBIS.Access.Api.Middleware;
+using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "ใส่เฉพาะตัว token"
+    });
+
+    c.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.ApiKey,
+        Name = "X-Api-Key",          // ← ตรวจให้ตรงกับ middleware ของ Access
+        In = ParameterLocation.Header,
+        Description = "API Key ของ Access service"
+    });
+
+    c.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = new List<string>(),
+        [new OpenApiSecuritySchemeReference("ApiKey", document)] = new List<string>()
+    });
+});
 builder.Services.AddDbContext<AccessDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("AccessDatabase")));
 
@@ -22,34 +47,59 @@ builder.Services.AddScoped<IUserRepos, UserRepos>();
 builder.Services.AddScoped<IPermissionRepos, PermissionRepos>();
 builder.Services.AddScoped<IRolePermissionRepos, RolePermissionRepos>();
 builder.Services.AddScoped<IUserRoleRepos, UserRoleRepos>();
+builder.Services.AddScoped<IMenuRepos, MenuRepos>();
 
 // ✅ Services 
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IEntraGraphService, EntraGraphService>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IRolePermissionService, RolePermissionService>();
 builder.Services.AddScoped<IUserRoleService, UserRoleService>();
+builder.Services.AddScoped<IMenuService, MenuService>();
+builder.Services.AddScoped<IRoleMenuService, RoleMenuService>();
+builder.Services.AddScoped<IMenuAdminService, MenuAdminService>();
+builder.Services.AddScoped<IRoleMemberService, RoleMemberService>();
 
-builder.Services.AddAuthentication().AddJwtBearer("EntraID", options =>
+var jwtSecret = builder.Configuration["Jwt:Secret"]
+    ?? throw new InvalidOperationException("Jwt:Secret ยังไม่ได้ตั้งค่า");
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                System.Text.Encoding.UTF8.GetBytes(jwtSecret))
+        };
+    })
+    .AddJwtBearer("EntraID", options =>
+    {
+        options.Authority = $"https://login.microsoftonline.com/{builder.Configuration["Azure:TenantId"]}/v2.0";
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidAudience = builder.Configuration["Azure:ClientId"]
+        };
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = context => Task.CompletedTask,
+            OnTokenValidated = context => Task.CompletedTask
+        };
+    });
+
+builder.Services.AddAuthorization(options =>
 {
-    options.Authority = $"https://login.microsoftonline.com/{builder.Configuration["Azure:TenantId"]}/v2.0";
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidAudience = builder.Configuration["Azure:ClientId"]
-    };
-    options.Events = new JwtBearerEvents
-    {
-        OnAuthenticationFailed = context =>
-        {
-            return Task.CompletedTask;
-        },
-        OnTokenValidated = context =>
-        {
-            return Task.CompletedTask;
-        }
-    };
+    options.AddPolicy("system.admin", policy => policy.RequireAssertion(ctx =>
+        ctx.User.HasClaim(c => c.Type == "perm" &&
+            (c.Value == "*" || c.Value.StartsWith("*:") ||
+             c.Value == "system.admin" || c.Value.StartsWith("system.admin:")))));
 });
 
 builder.Services.AddHttpContextAccessor();
@@ -59,13 +109,29 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
+        policy.WithOrigins(
+                  "http://localhost:5173",
+                  "http://127.0.0.1:5173")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<AccessDbContext>();
+        _ = db.Model;
+        await db.Database.ExecuteSqlRawAsync("SELECT 1");
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "Warm-up ไม่สำเร็จ (ข้ามไป)");
+    }
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -75,12 +141,41 @@ if (app.Environment.IsDevelopment())
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "UBIS Access Service API v1");
         c.RoutePrefix = "BeAccess";
         c.DocumentTitle = "UBIS - Access Service";
+        c.EnablePersistAuthorization();
     });
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+    app.UseHttpsRedirection();
+
 app.UseCors("AllowFrontend");
-// ตรวจ API Key ก่อน Authentication — ถ้าไม่มี Key ก็ไม่ต้องเสียเวลา Validate Token
+
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (UnauthorizedAccessException ex)
+    {
+        app.Logger.LogWarning(ex, "Forbidden: {Path}", context.Request.Path);
+        if (!context.Response.HasStarted)
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await context.Response.WriteAsJsonAsync(new { message = ex.Message });
+        }
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Unhandled exception: {Method} {Path}", context.Request.Method, context.Request.Path);
+        if (!context.Response.HasStarted)
+        {
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            await context.Response.WriteAsJsonAsync(new { message = "เกิดข้อผิดพลาดภายในระบบ กรุณาลองใหม่อีกครั้ง" });
+        }
+    }
+});
+
 app.UseMiddleware<ApiKeyMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();

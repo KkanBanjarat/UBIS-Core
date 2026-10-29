@@ -11,11 +11,20 @@ public class RolePermissionRepos : BaseRepos<TbRolePermission>, IRolePermissionR
     {
     }
 
+    public async Task<IEnumerable<TbRolePermission>> GetAllWithDetailsAsync()
+    {
+        return await _dbSet
+            .Where(x => !x.IsDelete)
+            .Include(x => x.Role)
+            .Include(x => x.Permission)
+            .AsNoTracking()
+            .ToListAsync();
+    }
     public async Task<bool> IsPermissionAssignedAsync(Guid roleId, Guid permissionId)
     {
-        return await _dbSet.AnyAsync(x => 
-            x.RoleId == roleId && 
-            x.PermissionId == permissionId && 
+        return await _dbSet.AnyAsync(x =>
+            x.RoleId == roleId &&
+            x.PermissionId == permissionId &&
             !x.IsDelete);
     }
 

@@ -5,7 +5,8 @@ using UBIS.HR.Application.Interfaces;
 
 namespace UBIS.HR.Api.Controllers;
 
-[Authorize(Policy = "system.admin")]
+// [Authorize(Policy = "system.admin")]
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class PodAdminBranchesController : ControllerBase

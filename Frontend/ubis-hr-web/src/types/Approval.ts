@@ -15,7 +15,11 @@ export interface ApprovalStep {
   approverNameTh: string;
   status: string;
   actualApproveNameTh: string | null;
+  approverPosition?: string | null;
+  actualApprovePosition?: string | null;
   approvedDate: string | null;
+  stepName: string | null;
+  approverType: string | null;
 }
 
 export interface ApprovalReason {
@@ -28,4 +32,16 @@ export interface ApprovalReason {
 export interface ApprovalTrail {
   steps: ApprovalStep[];
   reasons: ApprovalReason[];
+}
+
+export interface ApprovalSummary {
+  docType: string;
+  qtyWaitApprove: number;
+}
+
+export interface ApprovalFilter {
+  search?: string;
+  docType?: string;
+  dateFrom?: string; // yyyy-MM-dd
+  dateTo?: string; // yyyy-MM-dd
 }

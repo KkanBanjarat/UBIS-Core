@@ -13,12 +13,44 @@ using UBIS.HR.Infrastructure.Data;
 using UBIS.HR.Infrastructure.Repositories;
 using UBIS.HR.Infrastructure.Repositories.Interfaces;
 using UBIS.HR.Api.Middleware;
+using Ubis.Hr.Api.Services.Email;
+using Microsoft.OpenApi;
+using UBIS.HR.Infrastructure.Services.Teams;
 
 
 var builder = WebApplication.CreateBuilder(args);
+// Console.WriteLine($"Environment: {builder.Environment.EnvironmentName}");
 
 builder.Services.AddControllers();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "ใส่เฉพาะตัว token (ไม่ต้องพิมพ์คำว่า Bearer)"
+    });
+
+    c.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.ApiKey,
+        Name = "X-Api-Key",              // ← ต้องตรงกับ header ที่ ApiKeyMiddleware อ่าน
+        In = ParameterLocation.Header,
+        Description = "API Key ของระบบ"
+    });
+
+    c.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = new List<string>(),
+        [new OpenApiSecuritySchemeReference("ApiKey", document)] = new List<string>()
+    });
+
+});
+
+
+
 builder.Services.AddDbContext<HrDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("HrDatabase")));
 
 builder.Services.AddScoped<IBranchRepos, BranchRepos>();
@@ -34,12 +66,14 @@ builder.Services.AddScoped<IPodAdminBranchRepos, PodAdminBranchRepos>();
 builder.Services.AddScoped<IPositionRepos, PositionRepos>();
 builder.Services.AddScoped<IPositionLevelRepos, PositionLevelRepos>();
 builder.Services.AddScoped<IEmployeeBenefitPlanRepos, EmployeeBenefitPlanRepos>();
-builder.Services.AddScoped<IPrettyCashRepos, PrettyCashRepos>();
+builder.Services.AddScoped<IPettyCashRepos, PettyCashRepos>();
 builder.Services.AddScoped<IPrefixRepos, PrefixRepos>();
 builder.Services.AddScoped<IAttachmentRepos, AttachmentRepos>();
 builder.Services.AddScoped<IReasonApproveRepos, ReasonApproveRepos>();
 builder.Services.AddScoped<IApprovalRepos, ApprovalRepos>();
 builder.Services.AddScoped<IRouteApproveRepos, RouteApproveRepos>();
+builder.Services.AddScoped<IBenefitClaimRepos, BenefitClaimRepos>();
+builder.Services.AddScoped<IDocLimitRepos, DocLimitRepos>();
 
 builder.Services.AddHttpClient<IAccessServiceClient, AccessServiceClient>();
 builder.Services.AddScoped<IAttachmentService, AttachmentService>();
@@ -56,13 +90,24 @@ builder.Services.AddScoped<IBenefitPlanService, BenefitPlanService>();
 builder.Services.AddScoped<IBenefitPlanItemService, BenefitPlanItemService>();
 builder.Services.AddScoped<ICompanyService, CompanyService>();
 builder.Services.AddScoped<IBranchService, BranchService>();
+builder.Services.AddScoped<IDocLimitService, DocLimitService>();
 builder.Services.AddScoped<IPodAdminBranchService, PodAdminBranchService>();
-builder.Services.AddScoped<PrettyCashService>();
-builder.Services.AddScoped<IPrettyCashService>(sp => sp.GetRequiredService<PrettyCashService>());
-builder.Services.AddScoped<IApprovalDocumentService>(sp => sp.GetRequiredService<PrettyCashService>());
+builder.Services.AddScoped<PettyCashService>();
+builder.Services.AddScoped<IPettyCashService>(sp => sp.GetRequiredService<PettyCashService>());
+builder.Services.AddScoped<IApprovalDocumentService>(sp => sp.GetRequiredService<PettyCashService>());
+builder.Services.AddScoped<IBenefitClaimService, BenefitClaimService>();
+builder.Services.AddScoped<IApprovalDocumentService>(sp => (BenefitClaimService)sp.GetRequiredService<IBenefitClaimService>());
 
 builder.Services.AddScoped<IApprovalService, ApprovalService>();
+builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddScoped<IDocNumberService, DocNumberService>();
+
+builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.Section));
+builder.Services.AddScoped<IEmailService, EmailService>();
+
+builder.Services.Configure<TeamsOptions>(builder.Configuration.GetSection("Teams"));
+builder.Services.AddHttpClient<ITeamsNotifier, TeamsNotifier>(c => c.Timeout = TimeSpan.FromSeconds(10))
+    .RemoveAllLoggers();
 
 var jwtSecret = builder.Configuration["Jwt:Secret"]
     ?? throw new InvalidOperationException("Jwt:Secret is not configured.");
@@ -96,6 +141,7 @@ builder.Services.AddAuthentication()
     });
 
 builder.Services.AddSingleton<IAuthorizationHandler, PermissionHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, MenuAccessHandler>();
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
 builder.Services.AddAuthorization(options =>
 {
@@ -117,13 +163,29 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        policy.WithOrigins(
+          "http://localhost:5173",
+          "http://127.0.0.1:5173")
+        .AllowAnyHeader()
+        .AllowAnyMethod();
     });
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<HrDbContext>();
+        _ = db.Model;
+        await db.Database.ExecuteSqlRawAsync("SELECT 1");
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "Warm-up ไม่สำเร็จ (ข้ามไป)");
+    }
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -133,12 +195,45 @@ if (app.Environment.IsDevelopment())
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "UBIS HR Service API v1");
         c.RoutePrefix = "BeHr";
         c.DocumentTitle = "UBIS - HR Service";
+        c.EnablePersistAuthorization();
     });
 }
 
-app.UseHttpsRedirection();
-app.UseCors("AllowFrontend");
+if (!app.Environment.IsDevelopment())
+    app.UseHttpsRedirection();
 
+app.UseCors("AllowFrontend");
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+    {
+        // Browser ยกเลิก Request เอง (เช่น ปิดแท็บ) ไม่ต้องทำอะไร
+    }
+    catch (Exception ex) when (!context.Response.HasStarted)
+    {
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+
+        if (ex is UnauthorizedAccessException)
+        {
+            logger.LogWarning(ex, "Forbidden: {Method} {Path}",
+                context.Request.Method, context.Request.Path);
+
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await context.Response.WriteAsJsonAsync(new { message = ex.Message });
+            return;
+        }
+
+        logger.LogError(ex, "Unhandled exception: {Method} {Path}",
+            context.Request.Method, context.Request.Path);
+
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        await context.Response.WriteAsJsonAsync(new { message = "เกิดข้อผิดพลาดภายในระบบ กรุณาลองใหม่หรือติดต่อฝ่าย IT" });
+    }
+});
 // ตรวจ API Key ก่อน Authentication — ถ้าไม่มี Key ก็ไม่ต้องเสียเวลา Validate Token
 app.UseMiddleware<ApiKeyMiddleware>();
 

@@ -196,7 +196,7 @@ const routesByDocType = computed(() => routeStore.routesByDocType);
 // ========================================
 function docTypeLabel(docType: string) {
   const map: Record<string, string> = {
-    PrettyCash: "เบิกสวัสดิการ / เงินสดย่อย",
+    PettyCash: "เบิกสวัสดิการ / เงินสดย่อย",
   };
   return map[docType] ?? docType;
 }

@@ -14,6 +14,7 @@ public class EmployeeService : IEmployeeService
 
     private readonly ILogger<EmployeeService> _logger;
     private readonly IOrganizationUnitService _serviceOrgUnit;
+    private readonly IApprovalService _serviceApprove;
     private readonly ICurrentUserService _currentUser;
 
     public EmployeeService(IEmployeeRepos repos,
@@ -21,6 +22,7 @@ public class EmployeeService : IEmployeeService
         IPodAdminBranchRepos podAdminBranchRepos,
         IOrganizationUnitService serviceOrgUnit,
         ICurrentUserService currentUser,
+        IApprovalService serviceApprove,
         ILogger<EmployeeService> logger)
     {
         _repos = repos;
@@ -28,6 +30,7 @@ public class EmployeeService : IEmployeeService
         _podAdminBranchRepos = podAdminBranchRepos;
         _logger = logger;
         _serviceOrgUnit = serviceOrgUnit;
+        _serviceApprove = serviceApprove;
         _currentUser = currentUser;
     }
 
@@ -149,7 +152,7 @@ public class EmployeeService : IEmployeeService
         }
     }
 
-    public async Task<EmployeeDetailDto?> GetByEmployeeCodeAsync(string employeeCode)
+    public async Task<EmployeeDetailDto?> GetByEmployeeCodeAsync(string employeeCode, bool includeOrgChart = true, bool includeApproval = false)
     {
         try
         {
@@ -157,7 +160,11 @@ public class EmployeeService : IEmployeeService
             if (s == null) return null;
 
             var dto = MapToDetailDto(s);
-            dto.OrgChart = await BuildOrgChartAsync(s.Id);
+            if (includeOrgChart)
+                dto.OrgChart = await BuildOrgChartAsync(s.Id);
+
+            if (includeApproval && s != null)
+                dto.ApprovalSummary = await _serviceApprove.GetPendingApprovalsAsync(s.Id);
             return dto;
         }
         catch (Exception ex)
@@ -166,7 +173,6 @@ public class EmployeeService : IEmployeeService
             throw;
         }
     }
-
     public async Task<PagedResultDto<EmployeeSearchDto>> SearchEmployeesAsync(SearchEmployeeRequestDto request)
     {
         var (emps, totalCount) = await _repos.SearchAsync(request);

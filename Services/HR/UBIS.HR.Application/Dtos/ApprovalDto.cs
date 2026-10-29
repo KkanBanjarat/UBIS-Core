@@ -14,6 +14,13 @@ public class MyApprovalDto
     public string? DocumentDetail { get; set; }
     public bool IsUnsupported { get; set; }
 }
+public class MyApprovalFilterDto
+{
+    public string? Search { get; set; }
+    public string? DocType { get; set; }
+    public DateTime? DateFrom { get; set; }
+    public DateTime? DateTo { get; set; }
+}
 
 public class RejectApprovalDto
 {
@@ -25,9 +32,14 @@ public class ApprovalStepDto
 {
     public int StepNo { get; set; }
     public string ApproverNameTh { get; set; }
+    public string? ApproverPosition { get; set; }
     public string Status { get; set; }
     public string? ActualApproveNameTh { get; set; }
+    public string? ActualApprovePosition { get; set; }
     public DateTime? ApprovedDate { get; set; }
+    public string? StepName { get; set; }
+    public string? ApproverType { get; set; }
+
 }
 
 public class ApprovalReasonDto
@@ -43,3 +55,11 @@ public class ApprovalTrailDto
     public List<ApprovalStepDto> Steps { get; set; } = new();
     public List<ApprovalReasonDto> Reasons { get; set; } = new();
 }
+
+
+public class ApprovalSummaryDto
+{
+    public string DocType { get; set; }
+    public int QtyWaitApprove { get; set; }
+}
+

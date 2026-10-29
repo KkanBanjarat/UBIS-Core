@@ -31,21 +31,20 @@ public class EmployeesController : ControllerBase
     }
 
     [HttpGet("me")]
-    public async Task<IActionResult> GetCurrentEmployee()
+    public async Task<IActionResult> GetCurrentEmployee([FromQuery] bool includeOrgChart = true, bool includeApprove = false)
     {
         var employeeCode = User.FindFirst("employeeCode")?.Value;
 
         if (string.IsNullOrEmpty(employeeCode))
-            return Unauthorized(new { message = "ไม่พบรหัสพนักงาน" });
+            return NotFound(new { message = "บัญชีนี้ยังไม่ได้ผูกรหัสพนักงาน กรุณาติดต่อฝ่าย IT" });
 
-        var employee = await _service.GetByEmployeeCodeAsync(employeeCode);
+        var employee = await _service.GetByEmployeeCodeAsync(employeeCode, includeOrgChart, includeApprove);
 
         if (employee == null)
             return NotFound(new { message = "ไม่พบข้อมูลพนักงาน" });
 
         return Ok(employee);
     }
-
     // [Authorize(Policy = "employee.read")]
     [HttpPost("employee-list")]
     public async Task<ActionResult<PagedResultDto<EmployeeDto>>> GetAll(EmployeeFilterDto filter)
@@ -66,7 +65,7 @@ public class EmployeesController : ControllerBase
         return Ok(await _service.GetAllowedEmployeesForDocumentAsync());
     }
 
-    [Authorize(Policy = "employee.write")]
+    // [Authorize(Policy = "employee.write")]
     [HttpPost]
     public async Task<IActionResult> Create(CreateEmployeeDto data)
     {
@@ -82,7 +81,7 @@ public class EmployeesController : ControllerBase
             return Conflict(ex.Message);
         }
     }
-    [Authorize(Policy = "employee.write")]
+    // [Authorize(Policy = "employee.write")]
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateAsync(Guid id, CreateEmployeeDto data)
     {
@@ -102,7 +101,7 @@ public class EmployeesController : ControllerBase
             return Conflict(ex.Message);
         }
     }
-    [Authorize(Policy = "employee.write")]
+    // [Authorize(Policy = "employee.write")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteAsync(Guid id)
     {

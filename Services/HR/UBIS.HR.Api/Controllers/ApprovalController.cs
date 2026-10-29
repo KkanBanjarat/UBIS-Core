@@ -18,9 +18,9 @@ public class ApprovalController : ControllerBase
     }
 
     [HttpGet("my-pending")]
-    public async Task<IActionResult> GetMyPending()
+    public async Task<IActionResult> GetMyPending([FromQuery] MyApprovalFilterDto filter)
     {
-        return Ok(await _service.GetMyPendingApprovalsAsync());
+        return Ok(await _service.GetMyPendingApprovalsAsync(filter));
     }
 
     [HttpPost("{transApproveId}/approve")]

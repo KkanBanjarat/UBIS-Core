@@ -4,6 +4,7 @@ public class ResolvedApprover
 {
     public int StepNo { get; set; }
     public string StepName { get; set; }
+    public string ApproverType { get; set; }
     public Guid ApproverEmployeeId { get; set; }
 }
 

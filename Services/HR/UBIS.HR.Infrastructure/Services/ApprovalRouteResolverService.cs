@@ -50,6 +50,7 @@ public class ApprovalRouteResolverService : IApprovalRouteResolverService
                 StepNo = route.StepNo,
                 StepName = route.StepName,
                 ApproverEmployeeId = approverId,
+                ApproverType = route.ApproverType
             });
         }
 
