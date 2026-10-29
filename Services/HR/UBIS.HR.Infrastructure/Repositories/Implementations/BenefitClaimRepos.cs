@@ -14,10 +14,12 @@ public class BenefitClaimRepos : BaseRepos<TbBenefitClaim>, IBenefitClaimRepos
     private IQueryable<TbBenefitClaim> IncludeAll()
     {
         return _dbSet
+
             .Include(x => x.Employee).ThenInclude(e => e.Position)
             .Include(x => x.Employee).ThenInclude(e => e.PositionLevel)
             .Include(x => x.Employee).ThenInclude(e => e.Company)
             .Include(x => x.Employee).ThenInclude(e => e.Branch)
+            .Include(x => x.DocForm)
             .Include(x => x.TbBenefitClaimLines.Where(l => !l.IsDelete))
                 .ThenInclude(l => l.Benefit);
     }
@@ -26,6 +28,22 @@ public class BenefitClaimRepos : BaseRepos<TbBenefitClaim>, IBenefitClaimRepos
     {
         return await IncludeAll()
             .FirstOrDefaultAsync(x => x.DocNum == docNum && !x.IsDelete);
+    }
+    public async Task<List<DocFormDto>> GetDocFormsAsync(string docType)
+    {
+        return await _context.TbDocForms
+            .AsNoTracking()
+            .Where(f => f.DocType == docType && f.IsActive && !f.IsDelete)
+            .OrderBy(f => f.Code)
+            .Select(f => new DocFormDto
+            {
+                Id = f.Id,
+                Code = f.Code,
+                NameTh = f.NameTh,
+                NameEn = f.NameEn,
+                Layout = f.Layout
+            })
+            .ToListAsync();
     }
 
     public async Task<List<TbBenefitClaim>> GetSummariesByDocNumsAsync(
@@ -119,6 +137,12 @@ public class BenefitClaimRepos : BaseRepos<TbBenefitClaim>, IBenefitClaimRepos
                 PositionLevelNameEn = x.Employee.PositionLevel.NameEn,
                 PositionLevelNameTh = x.Employee.PositionLevel.NameTh,
                 Remark = x.Remark,
+                DocFormId = x.DocFormId,
+                DocFormCode = x.DocForm.Code,
+                DocFormNameTh = x.DocForm.NameTh,
+                DocFormLayout = x.DocForm.Layout,
+                Destination = x.Destination,
+                TripType = x.TripType,
                 TotalAmount = x.TotalAmount,
                 LineCount = x.TbBenefitClaimLines.Count(l => !l.IsDelete),
                 CreatedBy = x.CreatedBy,
@@ -334,6 +358,46 @@ public class BenefitClaimRepos : BaseRepos<TbBenefitClaim>, IBenefitClaimRepos
             .ToListAsync();
 
         return (items, total);
+    }
+    public async Task<TbFuelRate?> GetFuelRateAsync(string fuelType, decimal price, DateTime date)
+    {
+        var p = Math.Round(price, 2);
+        var d = date.Date;
+        return await _context.TbFuelRates
+            .AsNoTracking()
+            .Where(x => x.IsActive && !x.IsDelete
+                        && x.FuelType == fuelType
+                        && x.MinPrice <= p && p <= x.MaxPrice
+                        && x.EffectiveFrom <= d
+                        && (x.EffectiveTo == null || x.EffectiveTo >= d))
+            .OrderByDescending(x => x.EffectiveFrom)
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task<List<TbPerDiemRate>> GetPerDiemRatesAsync(string region, DateTime date)
+    {
+        var d = date.Date;
+        return await _context.TbPerDiemRates
+            .AsNoTracking()
+            .Where(x => x.IsActive && !x.IsDelete
+                        && x.Region == region
+                        && x.EffectiveFrom <= d
+                        && (x.EffectiveTo == null || x.EffectiveTo >= d))
+            .OrderBy(x => x.DayFrom)
+            .ToListAsync();
+    }
+
+    public async Task<TbAccommodationRate?> GetAccommodationRateAsync(int level, DateTime date)
+    {
+        var d = date.Date;
+        return await _context.TbAccommodationRates
+            .AsNoTracking()
+            .Where(x => x.IsActive && !x.IsDelete
+                        && x.LevelFrom <= level && level <= x.LevelTo
+                        && x.EffectiveFrom <= d
+                        && (x.EffectiveTo == null || x.EffectiveTo >= d))
+            .OrderByDescending(x => x.EffectiveFrom)
+            .FirstOrDefaultAsync();
     }
     public async Task DeleteLinesAsync(Guid benefitClaimId)
     {
