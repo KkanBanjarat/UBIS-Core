@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace UBIS.HR.Domain.Entities;
 
@@ -12,7 +11,6 @@ public partial class TbDocLimit
 
     public decimal LimitAmount { get; set; }
 
-    [Column(TypeName = "date")]
     public DateTime EffectiveFrom { get; set; }
 
     public string? Description { get; set; }

@@ -120,6 +120,16 @@ public class EmployeeRepos : BaseRepos<TbEmployee>, IEmployeeRepos
             .Select(x => new { x.Id, x.Email })
             .ToDictionaryAsync(x => x.Id, x => x.Email);
     }
+    public async Task<(int Level, string? BankAccountNo, string? PhoneNo)?> GetClaimSnapshotAsync(Guid employeeId)
+    {
+        var row = await _dbSet
+            .AsNoTracking()
+            .Where(e => e.Id == employeeId && !e.IsDelete)
+            .Select(e => new { e.PositionLevel.Level, e.BankAccountNo, e.PhoneNo })
+            .FirstOrDefaultAsync();
+
+        return row == null ? null : (row.Level, row.BankAccountNo, row.PhoneNo);
+    }
     public async Task<List<EmployeeOrgChartNodeDto>> GetOrgChartFlatDataAsync()
     {
         return await _dbSet

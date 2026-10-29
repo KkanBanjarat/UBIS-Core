@@ -8,17 +8,9 @@ import type {
   BenefitClaimDetailRow,
   BenefitClaimEmployeeFilter,
   EmployeeSummary,
+  DocForm,
+  AvailableBenefit,
 } from "../types/BenefitClaim";
-
-interface OptionItem {
-  id: string;
-  label: string;
-}
-
-interface BenefitLimitInfo {
-  limitAmount: number;
-  description: string | null;
-}
 
 interface EmployeeOption {
   id: string;
@@ -38,8 +30,8 @@ export const useBenefitClaimStore = defineStore("benefitClaim", {
     totalCount: 0,
     isLoading: true,
     errorMessage: "",
-    benefitOptions: [] as OptionItem[],
     allowedEmployees: [] as EmployeeOption[],
+    docForms: [] as DocForm[],
     myEmployeeId: "",
     myEmployeeName: "",
     summary: null as BenefitClaimSummary | null,
@@ -77,14 +69,11 @@ export const useBenefitClaimStore = defineStore("benefitClaim", {
     },
 
     async fetchInitData() {
-      const [benefitRes, allowedRes] = await Promise.all([
-        hrApi.get("/benefits"),
+      const [allowedRes, formsRes] = await Promise.all([
         hrApi.get("/Employees/allowed-for-document"),
+        hrApi.get("/BenefitClaim/forms"),
       ]);
-
-      this.benefitOptions = benefitRes.data
-        .filter((x: any) => x.isActive)
-        .map((x: any) => ({ id: x.id, label: `${x.nameTh} (${x.nameEn})` }));
+      this.docForms = formsRes.data;
 
       this.allowedEmployees = allowedRes.data.map((x: any) => ({
         id: x.id,
@@ -119,25 +108,35 @@ export const useBenefitClaimStore = defineStore("benefitClaim", {
       await hrApi.post(`/BenefitClaim/${id}/recall`);
     },
 
-    async getBenefitLimitsFor(
-      employeeId: string,
-    ): Promise<Record<string, BenefitLimitInfo>> {
-      const res = await hrApi.get(`/Employees/${employeeId}`);
-      const limits: Record<string, BenefitLimitInfo> = {};
-      for (const plan of res.data.benefitPlans ?? []) {
-        for (const item of plan.items ?? []) {
-          const current = limits[item.benefitId]?.limitAmount ?? 0;
-          if (item.limitAmount >= current) {
-            limits[item.benefitId] = {
-              limitAmount: item.limitAmount,
-              description: item.description ?? null,
-            };
-          }
-        }
-      }
-      return limits;
-    },
 
+    async getAvailableBenefits(
+      employeeId: string,
+      docFormId: number,
+    ): Promise<AvailableBenefit[]> {
+      const res = await hrApi.get("/BenefitClaim/available-benefits", {
+        params: { employeeId, docFormId },
+      });
+      return res.data;
+    },
+    async calculateLine(payload: {
+      employeeId: string;
+      docFormId: number;
+      docDate: string;
+      line: {
+        benefitId: string;
+        amount?: number;
+        qty?: number;
+        startDate?: string | null;
+        endDate?: string | null;
+        fuelPrice?: number | null;
+      };
+    }) {
+      const { data } = await hrApi.post(
+        "/BenefitClaim/calculate-line",
+        payload,
+      );
+      return data; // { amount, qty, rate, breakdown[] }
+    },
     async getByDocNum(docNum: string): Promise<BenefitClaim> {
       const res = await hrApi.get(`/BenefitClaim/by-docnum/${docNum}`);
       return res.data;

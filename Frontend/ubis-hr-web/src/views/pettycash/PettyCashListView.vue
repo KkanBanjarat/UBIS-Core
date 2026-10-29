@@ -111,7 +111,8 @@
 
                   <!-- ระดับตำแหน่ง -->
                   <td>
-                    <span class="text-sm text-base-content/70">{{ item.positionLevel }} : {{ item.positionLevelNameTh }}</span>
+                    <span class="text-sm text-base-content/70">{{ item.positionLevel }} : {{ item.positionLevelNameTh
+                    }}</span>
                     <p class="text-[12px] text-base-content/35 mt-0.5">{{ item.positionLevelNameEn }}</p>
                   </td>
 
@@ -152,7 +153,8 @@
                         title="ดูรายละเอียดและสถานะอนุมัติ" @click="openDocumentDetail(item)">
                         <Eye class="size-3.5" />
                       </button>
-                      <button class="btn btn-ghost btn-xs btn-square rounded-md text-base-content/50 hover:bg-primary/10 hover:text-primary"
+                      <button
+                        class="btn btn-ghost btn-xs btn-square rounded-md text-base-content/50 hover:bg-primary/10 hover:text-primary"
                         title="พรีวิว / พิมพ์ใบเบิก" @click="openPreview(item)">
                         <Printer class="size-4" />
                       </button>
@@ -199,7 +201,8 @@
                           class="rounded-xl border border-base-300 bg-base-100 overflow-hidden">
                           <div v-for="(line, lineIndex) in detailMap[item.id]?.lines ?? []" :key="line.id ?? lineIndex"
                             class="flex flex-col sm:grid sm:grid-cols-[40px_minmax(0,1fr)_130px] gap-3 items-start sm:items-center px-4 py-3 border-b border-base-300/70 last:border-0">
-                            <div class="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary text-xs font-semibold">
+                            <div
+                              class="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary text-xs font-semibold">
                               {{ lineIndex + 1 }}
                             </div>
 
@@ -286,30 +289,25 @@
     </div>
   </div>
 
-  <PettyCashFormModal
-    ref="formModalRef"
-    :is-create="isCreateMode"
-    :employee-id="myEmployeeId"
-    :employee-name="myEmployeeName"
-    :allowed-employees="allowedEmployees"
-    @save="handleSave"
-  />
+  <PettyCashFormModal ref="formModalRef" :is-create="isCreateMode" :employee-id="myEmployeeId"
+    :employee-name="myEmployeeName" :allowed-employees="allowedEmployees" @save="handleSave" />
   <ApprovalDetailModal ref="detailModalRef" />
   <PettyCashPreviewModal ref="previewModalRef" />
 
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch, onMounted, computed } from 'vue'
 import { storeToRefs } from 'pinia'
+import { ref, reactive, watch, onMounted, computed } from 'vue'
 import { usePettyCashStore } from '../../stores/pettyCashStore.ts'
+import { useAuthStore } from '../../stores/authStore.ts'
 import FormSelect from '../../components/ui/FormSelect.vue'
 import PettyCashFormModal from '../../components/pettycash/PettyCashFormModal.vue'
 import ApprovalDetailModal from '../../components/approval/ApprovalDetailModal.vue'
 import PettyCashPreviewModal from '../../components/pettycash/PettyCashPreviewModal.vue'
 import AttachmentList from '../../components/attachment/AttachmentList.vue'
 import { notify, extractErrorMessage } from '../../utils/notify.ts'
-import { useAuthStore } from '../../stores/authStore.ts'
+
 import type { PettyCash, PettyCashFilter } from '../../types/PettyCash.ts'
 import {
   Plus, Search, Receipt, Edit, Trash2, Send, ChevronDown, ChevronUp, MessageSquare,
@@ -540,7 +538,7 @@ onMounted(() => {
   })
 
   authStore
-    .fetchCurrentEmployee(false,false)
+    .fetchCurrentEmployee(false, false)
     .then((emp) => {
       if (emp) {
         pettyCashStore.setMyEmployee(emp.id, `${emp.fNameTh} ${emp.lNameTh}`)

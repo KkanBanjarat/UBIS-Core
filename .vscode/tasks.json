@@ -10,14 +10,23 @@
       },
       "isBackground": true,
       "problemMatcher": {
-        "pattern": { "regexp": "." },
+        "owner": "vite",
+        "pattern": { "regexp": "^\\s*\\[vite\\] Internal server error: (.*)$", "message": 1 },
         "background": {
           "activeOnStart": true,
-          "beginsPattern": ".",
+          "beginsPattern": "VITE v\\d",
           "endsPattern": "ready in"
         }
       },
       "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      // ปิด vite เมื่อ Stop debug เพื่อให้รันรอบหน้าเริ่มใหม่ ไม่ค้างรอ "ready in"
+      "label": "frontend: stop",
+      "type": "shell",
+      "command": "echo ${input:terminateFrontend}",
+      "presentation": { "reveal": "never" },
+      "problemMatcher": []
     },
     {
       "label": "build: BeHr",
@@ -38,6 +47,14 @@
         "${workspaceFolder}/Services/Access/UBIS.Access.Api/UBIS.Access.Api.csproj"
       ],
       "problemMatcher": "$msCompile"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "terminateFrontend",
+      "type": "command",
+      "command": "workbench.action.tasks.terminate",
+      "args": "frontend: dev"
     }
   ]
 }

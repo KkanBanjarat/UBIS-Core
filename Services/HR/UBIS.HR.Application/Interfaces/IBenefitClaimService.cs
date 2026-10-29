@@ -7,6 +7,9 @@ public interface IBenefitClaimService
     Task<PagedResultDto<BenefitClaimDto>> GetAllAsync(BenefitClaimFilterDto filter);
     Task<BenefitClaimDto?> GetByIdAsync(Guid id);
     Task<BenefitClaimDto?> GetByDocNumAsync(string docNum);
+    Task<List<DocFormDto>> GetDocFormsAsync();
+    Task<CalculateLineResultDto> CalculateLineAsync(CalculateLineRequestDto req);
+    Task<List<AvailableBenefitDto>> GetAvailableBenefitsAsync(Guid employeeId, int docFormId);
     Task<BenefitClaimSummaryDto> GetSummaryAsync(BenefitClaimSummaryFilterDto filter);
     Task<List<BenefitClaimExportRowDto>> GetDetailRowsAsync(BenefitClaimSummaryFilterDto filter);
     Task<PagedResultDto<EmployeeSummaryDto>> GetEmployeeSummaryPagedAsync(BenefitClaimEmployeeFilterDto filter);

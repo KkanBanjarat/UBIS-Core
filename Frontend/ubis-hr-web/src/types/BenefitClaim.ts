@@ -7,6 +7,14 @@ export interface BenefitClaimLine {
   amount: number;
   qty: number;
   accountCode: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  route?: string | null;
+  fuelPrice?: number | null;
+  rate?: number | null;
+  region?: string | null;
+  calcType?: string | null;
+  breakdown?: BreakdownRow[];
 }
 
 export interface BenefitClaim {
@@ -27,6 +35,18 @@ export interface BenefitClaim {
   companyCode?: string | null;
   branch: string | null;
   remark: string | null;
+  docFormId: number;
+  docFormCode?: string | null;
+  docFormNameTh?: string | null;
+  docFormLayout?: string | null;
+  bankAccountNo?: string | null;
+  phoneNo?: string | null;
+  tripPurpose?: string | null;
+  destination?: string | null;
+  tripType?: string | null;
+  departAt?: string | null;
+  returnAt?: string | null;
+  isOvernight?: boolean | null;
   totalAmount: number;
   lineCount?: number;
   createdBy: string;
@@ -34,6 +54,30 @@ export interface BenefitClaim {
   updatedBy: string;
   updatedAt: string;
   lines: BenefitClaimLine[];
+}
+export interface BreakdownRow {
+  from: number | null;
+  to: number | null;
+  qty: number;
+  rate: number;
+  amount: number;
+}
+
+export interface DocForm {
+  id: number;
+  code: string;
+  nameTh: string;
+  nameEn: string;
+  layout: string | null;
+}
+
+export interface AvailableBenefit {
+  benefitId: string;
+  nameTh: string;
+  nameEn: string;
+  limitAmount: number;
+  calcType: string | null;
+  region: string | null;
 }
 
 export interface BenefitClaimFilter {

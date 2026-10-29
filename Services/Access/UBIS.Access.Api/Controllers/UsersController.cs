@@ -71,37 +71,39 @@ public class UsersController : ControllerBase
         try { return await _users.DeleteAsync(id) ? NoContent() : NotFound(); }
         catch (InvalidOperationException ex) { return Conflict(ex.Message); }
     }
-    [HttpPost("sync-entra")]
-    public async Task<IActionResult> SyncEntra()
-    {
-        try
-        {
-            var list = await _graph.GetUsersAsync();
-            if (list.Count == 0) return BadRequest("ไม่พบรายชื่อจาก Microsoft");
-            return Ok(await _users.SyncUsersAsync(list));
-        }
-        catch (InvalidOperationException ex) { return Conflict(ex.Message); }
-    }
-
+    // แบบ App-only (ต้องใช้ Azure:ClientSecret ฝั่ง Backend)
     // [HttpPost("sync-entra")]
-    // public async Task<IActionResult> SyncEntra([FromBody] List<EntraUserInputDto> users)
+    // public async Task<IActionResult> SyncEntra()
     // {
-    //     if (users == null || users.Count == 0)
-    //         return BadRequest("ไม่มีรายชื่อให้ Sync");
-    //     if (users.Count > 20000)
-    //         return BadRequest("รายชื่อมากเกินไป");
-    //     if (users.Any(u => !Guid.TryParse(u.EntraObjectId, out _)))
-    //         return BadRequest("EntraObjectId ไม่ถูกต้อง");
-
-    //     var list = users.Select(u => new UserDto
+    //     try
     //     {
-    //         EntraObjectId = u.EntraObjectId,
-    //         Email = u.Email,
-    //         DisplayName = u.DisplayName,
-    //         EmployeeCode = u.EmployeeCode,
-    //         IsActive = u.IsActive,
-    //     }).ToList();
-
-    //     return Ok(await _users.SyncUsersAsync(list));
+    //         var list = await _graph.GetUsersAsync();
+    //         if (list.Count == 0) return BadRequest("ไม่พบรายชื่อจาก Microsoft");
+    //         return Ok(await _users.SyncUsersAsync(list));
+    //     }
+    //     catch (InvalidOperationException ex) { return Conflict(ex.Message); }
     // }
+
+    // Frontend ดึงรายชื่อด้วย token ของแอดมิน (Delegated) แล้วส่งมาให้บันทึก
+    [HttpPost("sync-entra")]
+    public async Task<IActionResult> SyncEntra([FromBody] List<EntraUserInputDto> users)
+    {
+        if (users == null || users.Count == 0)
+            return BadRequest("ไม่มีรายชื่อให้ Sync");
+        if (users.Count > 20000)
+            return BadRequest("รายชื่อมากเกินไป");
+        if (users.Any(u => !Guid.TryParse(u.EntraObjectId, out _)))
+            return BadRequest("EntraObjectId ไม่ถูกต้อง");
+
+        var list = users.Select(u => new UserDto
+        {
+            EntraObjectId = u.EntraObjectId,
+            Email = u.Email,
+            DisplayName = u.DisplayName,
+            EmployeeCode = u.EmployeeCode,
+            IsActive = u.IsActive,
+        }).ToList();
+
+        return Ok(await _users.SyncUsersAsync(list));
+    }
 }

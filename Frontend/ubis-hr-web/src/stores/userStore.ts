@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import accessApi from "../services/accessApi";
-// import { fetchEntraUsers } from "../auth/graphUsers";
+import { fetchEntraUsers } from "../auth/graphUsers";
 import type {
   UserItem,
   UserFilter,
@@ -67,12 +67,12 @@ export const useUserStore = defineStore("user", {
     async syncEntra(): Promise<SyncResult> {
       this.isSyncing = true;
       try {
+        // ดึงรายชื่อจาก Microsoft ด้วย token ของแอดมิน แล้วส่งให้ Backend บันทึก
+        const entraUsers = await fetchEntraUsers();
         return (
-          await accessApi.post<SyncResult>(
-            "/Users/sync-entra",
-            {},
-            { timeout: 120000 },
-          )
+          await accessApi.post<SyncResult>("/Users/sync-entra", entraUsers, {
+            timeout: 120000,
+          })
         ).data;
       } finally {
         this.isSyncing = false;

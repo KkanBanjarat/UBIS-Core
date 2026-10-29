@@ -35,6 +35,20 @@ public partial class TbBenefitClaimLine
 
     public DateTime? DeletedAt { get; set; }
 
+    public DateTime? StartDate { get; set; }
+
+    public DateTime? EndDate { get; set; }
+
+    public string? Route { get; set; }
+
+    public decimal? FuelPrice { get; set; }
+
+    public decimal? Rate { get; set; }
+
+    public string? Region { get; set; }
+
+    public string? CalcBreakdown { get; set; }
+
     public virtual TbBenefit Benefit { get; set; } = null!;
 
     public virtual TbBenefitClaim BenefitClaim { get; set; } = null!;

@@ -20,28 +20,26 @@ export interface EntraUserInput {
 
 async function getGraphToken(): Promise<string> {
   await ensureMsalInitialized();
-
+  const request = { scopes: GRAPH_SCOPES };
   const account =
     msalInstance.getActiveAccount() ?? msalInstance.getAllAccounts()[0];
-  if (!account) {
-    throw new Error(
-      "ต้อง Login ด้วย Microsoft ก่อนจึงจะ Sync ได้ (ถ้า Login ด้วยรหัสผ่านหรือเพิ่งปิดแท็บไป ให้ Logout แล้ว Login ด้วย Microsoft ใหม่)",
-    );
-  }
 
   try {
-    const result = await msalInstance.acquireTokenSilent({
-      scopes: GRAPH_SCOPES,
-      account,
-    });
-    return result.accessToken;
-  } catch (err) {
-    if (err instanceof InteractionRequiredAuthError) {
-      throw new Error(
-        "ยังไม่ได้รับสิทธิ์อ่านรายชื่อผู้ใช้ ให้แอดมินของ tenant กด Grant admin consent สิทธิ์ User.Read.All (Delegated) ที่ Azure แล้ว Login ใหม่",
-      );
+    if (!account) {
+      // login ด้วย local password → เปิด popup ให้ admin เข้า Microsoft
+      const res = await msalInstance.loginPopup(request);
+      msalInstance.setActiveAccount(res.account);
+      return res.accessToken;
     }
-    throw err;
+    const res = await msalInstance.acquireTokenSilent({ ...request, account });
+    return res.accessToken;
+  } catch (e) {
+    if (e instanceof InteractionRequiredAuthError) {
+      const res = await msalInstance.acquireTokenPopup(request);
+      msalInstance.setActiveAccount(res.account);
+      return res.accessToken;
+    }
+    throw e;
   }
 }
 

@@ -9,7 +9,8 @@ const msalConfig: Configuration = {
     redirectUri: window.location.origin,
   },
   cache: {
-    cacheLocation: "sessionStorage",
+    // ใช้ localStorage ให้อยู่ได้นานเท่า Token ของระบบ (ปิดแท็บ/เปิดแท็บใหม่แล้วไม่ต้อง Login Microsoft ซ้ำ)
+    cacheLocation: "localStorage",
   },
   system: {
     loggerOptions: {

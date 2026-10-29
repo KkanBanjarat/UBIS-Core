@@ -33,6 +33,28 @@ public partial class TbBenefitClaim
 
     public DateTime? DeletedAt { get; set; }
 
+    public int DocFormId { get; set; }
+
+    public int PositionLevel { get; set; }
+
+    public string? BankAccountNo { get; set; }
+
+    public string? PhoneNo { get; set; }
+
+    public string? TripPurpose { get; set; }
+
+    public string? Destination { get; set; }
+
+    public string? TripType { get; set; }
+
+    public DateTime? DepartAt { get; set; }
+
+    public DateTime? ReturnAt { get; set; }
+
+    public bool? IsOvernight { get; set; }
+
+    public virtual TbDocForm DocForm { get; set; } = null!;
+
     public virtual TbEmployee Employee { get; set; } = null!;
 
     public virtual ICollection<TbBenefitClaimLine> TbBenefitClaimLines { get; set; } = new List<TbBenefitClaimLine>();

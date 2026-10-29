@@ -29,7 +29,20 @@ public class BenefitClaimController : ControllerBase
         var result = await _service.GetByDocNumAsync(docNum);
         return result == null ? NotFound() : Ok(result);
     }
+    [HttpGet("forms")]
+    public async Task<IActionResult> GetForms()
+    => Ok(await _service.GetDocFormsAsync());
 
+    [HttpGet("available-benefits")]
+    public async Task<IActionResult> GetAvailableBenefits([FromQuery] Guid employeeId, [FromQuery] int docFormId)
+        => Ok(await _service.GetAvailableBenefitsAsync(employeeId, docFormId));
+
+    [HttpPost("calculate-line")]
+    public async Task<IActionResult> CalculateLine([FromBody] CalculateLineRequestDto req)
+    {
+        try { return Ok(await _service.CalculateLineAsync(req)); }
+        catch (InvalidOperationException ex) { return Conflict(ex.Message); }
+    }
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(Guid id)
     {
