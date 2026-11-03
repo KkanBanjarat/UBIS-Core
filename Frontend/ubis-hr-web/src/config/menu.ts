@@ -5,6 +5,7 @@ import {
   Receipt,
   ClipboardCheck,
   Settings,
+  Gift,
 } from "lucide-vue-next";
 import type { Component } from "vue";
 
@@ -27,13 +28,19 @@ export const menuGroups: MenuGroup[] = [
     items: [
       { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
       {
-        path: "/pretty-cash",
-        label: "เบิกสวัสดิการ/เงินสดย่อย",
+        path: "/benefit-claim",
+        label: "เบิกสวัสดิการ",
+        icon: Gift,
+      },
+      {
+        path: "/petty-cash",
+        label: "เบิกเงินสดย่อย",
         icon: Receipt,
       },
       { path: "/approvals", label: "รายการรออนุมัติ", icon: ClipboardCheck },
     ],
   },
+
   {
     label: "จัดการ HR",
     items: [
@@ -69,6 +76,8 @@ export const menuGroups: MenuGroup[] = [
         children: [
           { path: "/settings/approve-routes", label: "สายอนุมัติเอกสาร" },
           { path: "/settings/branch-admins", label: "ผู้ดูแลสาขา" },
+          { path: "/settings/users", label: "ผู้ใช้งาน" },
+          { path: "/settings/roles", label: "Role และสิทธิ์" },
         ],
       },
     ],

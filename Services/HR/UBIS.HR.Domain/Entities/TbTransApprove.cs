@@ -32,4 +32,8 @@ public partial class TbTransApprove
     public string UpdatedBy { get; set; } = null!;
 
     public DateTime UpdatedAt { get; set; }
+
+    public string? StepName { get; set; }
+
+    public string? ApproverType { get; set; }
 }

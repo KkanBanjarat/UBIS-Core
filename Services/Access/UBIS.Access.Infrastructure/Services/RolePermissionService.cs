@@ -33,7 +33,7 @@ public class RolePermissionService : IRolePermissionService
         try
         {
             // ✅ ดึงข้อมูล RolePermission ทั้งหมด พร้อม Role และ Permission
-            var raw = await _repo.FindAsync(w => !w.IsDelete);
+            var raw = await _repo.GetAllWithDetailsAsync();
 
             // ✅ GroupBy ตาม RoleId - แบ่งกลุ่มตาม Role
             var result = raw
@@ -47,6 +47,7 @@ public class RolePermissionService : IRolePermissionService
                         Id = x.Permission.Id,
                         Code = x.Permission.Code,
                         Description = x.Permission.Description,
+                        RolePermissionId = x.Id,
                     }).ToList()
                 })
                 .ToList();
@@ -102,7 +103,8 @@ public class RolePermissionService : IRolePermissionService
                     {
                         Id = permission.Id,
                         Code = permission.Code,
-                        Description = permission.Description
+                        Description = permission.Description,
+                        RolePermissionId = newEntity.Id,
                     }
                 }
             };

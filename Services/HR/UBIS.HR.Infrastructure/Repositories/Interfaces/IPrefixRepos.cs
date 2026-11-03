@@ -5,5 +5,6 @@ namespace UBIS.HR.Infrastructure.Repositories;
 
 public interface IPrefixRepos : IBaseRepos<TbPrefix>
 {
-    Task<string> GenerateDocNumberAsync(string docType, string generatedBy);
+    Task<TbPrefix?> GetByDocTypeAsync(string docType);
+    void AddDocNumberLog(TbDocNumberLog log);
 }

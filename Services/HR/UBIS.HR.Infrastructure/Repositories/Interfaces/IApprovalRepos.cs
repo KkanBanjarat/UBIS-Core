@@ -7,6 +7,6 @@ public interface IApprovalRepos : IBaseRepos<TbTransApprove>
 {
     Task<List<TbTransApprove>> GetByDocumentAsync(string docType, string docNumber, int docRev, int round);
     Task<int> GetLatestRoundAsync(string docType, string docNumber, int docRev);
-    Task<List<TbTransApprove>> GetPendingByApproverAsync(Guid approverId);
+    Task<List<TbTransApprove>> GetPendingByApproverAsync(Guid approverId, string? docType = null);
     Task<TbTransApprove?> GetByIntIdAsync(int id);
 }

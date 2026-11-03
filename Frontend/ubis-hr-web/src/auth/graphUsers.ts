@@ -1,0 +1,74 @@
+import { InteractionRequiredAuthError } from "@azure/msal-browser";
+import { msalInstance, ensureMsalInitialized } from "./msalConfig";
+
+// สิทธิ์แบบ Delegated (ทำแทนผู้ที่ Login อยู่) ต้องให้แอดมินของ tenant กด Grant admin consent ที่ Azure ครั้งเดียว
+const GRAPH_SCOPES = ["User.Read.All"];
+
+const GRAPH_USERS_URL =
+  "https://graph.microsoft.com/v1.0/users" +
+  "?$select=id,displayName,mail,userPrincipalName,accountEnabled,employeeId,userType" +
+  "&$top=999";
+
+// ตรงกับ EntraUserInputDto ฝั่ง .NET
+export interface EntraUserInput {
+  entraObjectId: string;
+  email: string;
+  displayName: string;
+  employeeCode: string | null;
+  isActive: boolean;
+}
+
+async function getGraphToken(): Promise<string> {
+  await ensureMsalInitialized();
+  const request = { scopes: GRAPH_SCOPES };
+  const account =
+    msalInstance.getActiveAccount() ?? msalInstance.getAllAccounts()[0];
+
+  try {
+    if (!account) {
+      // login ด้วย local password → เปิด popup ให้ admin เข้า Microsoft
+      const res = await msalInstance.loginPopup(request);
+      msalInstance.setActiveAccount(res.account);
+      return res.accessToken;
+    }
+    const res = await msalInstance.acquireTokenSilent({ ...request, account });
+    return res.accessToken;
+  } catch (e) {
+    if (e instanceof InteractionRequiredAuthError) {
+      const res = await msalInstance.acquireTokenPopup(request);
+      msalInstance.setActiveAccount(res.account);
+      return res.accessToken;
+    }
+    throw e;
+  }
+}
+
+export async function fetchEntraUsers(): Promise<EntraUserInput[]> {
+  const token = await getGraphToken();
+
+  const raw: any[] = [];
+  let url: string | null = GRAPH_USERS_URL;
+  while (url) {
+    const res: Response = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      throw new Error(`เรียก Microsoft Graph ไม่สำเร็จ (${res.status})`);
+    }
+    const json = await res.json();
+    raw.push(...json.value);
+    url = json["@odata.nextLink"] ?? null;
+  }
+
+  return raw
+    .filter((u) => u.id && u.userType !== "Guest")
+    .map((u) => ({
+      entraObjectId: u.id as string,
+      email: String(u.mail ?? u.userPrincipalName ?? "")
+        .trim()
+        .toLowerCase(),
+      displayName: (u.displayName ?? "") as string,
+      employeeCode: u.employeeId ? String(u.employeeId).trim() : null,
+      isActive: u.accountEnabled ?? true,
+    }));
+}

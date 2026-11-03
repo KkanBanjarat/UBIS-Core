@@ -10,8 +10,12 @@ public interface IEmployeeRepos : IBaseRepos<TbEmployee>
     Task<TbEmployee?> GetDetailByIdAsync(Guid id);
     Task<Guid?> GetIdByEmpIdAsync(string empId);
     Task<TbEmployee?> GetDetailByEmpIdAsync(string empId);
+    Task<(int Level, string? BankAccountNo, string? PhoneNo)?> GetClaimSnapshotAsync(Guid employeeId);
+    Task<Dictionary<Guid, string>> GetEmailsByIdsAsync(List<Guid> ids);
     Task<(IEnumerable<TbEmployee> Items, int TotalCount)> SearchAsync(SearchEmployeeRequestDto request);
     Task<bool> ExistsByEmpIdAsync(string empId, Guid? excludeId = null);
     Task<List<EmployeeOrgChartNodeDto>> GetOrgChartFlatDataAsync();
     Task<Dictionary<Guid, string>> GetNamesByIdsAsync(List<Guid> ids);
+    Task<Dictionary<Guid, string>> GetPositionNamesByIdsAsync(List<Guid> ids);
+    Task<(string Name, string? Code)?> GetAffiliationAsync(Guid employeeId);
 }

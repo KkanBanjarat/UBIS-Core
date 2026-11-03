@@ -4,6 +4,7 @@ import accessApi from "../services/accessApi";
 import hrApi from "../services/hrApi";
 import type { Employee } from "../types/Employee";
 import { jwtDecode } from "jwt-decode"; // npm install jwt-decode
+import { useMenuStore } from "./menuStore";
 
 interface LoginResponse {
   token: string;
@@ -77,15 +78,20 @@ export const useAuthStore = defineStore("auth", {
       this.employeeCode = null;
       this.permissions = [];
       this.employee = null;
+      useMenuStore().reset();
       localStorage.removeItem("token");
       localStorage.removeItem("email");
       localStorage.removeItem("displayName");
       localStorage.removeItem("employeeCode");
       localStorage.removeItem("permissions");
+      // ล้างบัญชี Microsoft ใน Cache ด้วย ไม่งั้นรอบหน้าจะไปใช้บัญชี/Token เก่า
+      msalInstance.clearCache?.();
     },
 
     async loginWithSso() {
       await ensureMsalInitialized();
+      // เคลียร์สถานะ Interaction ที่ค้างจากรอบก่อน (เช่นหลัง Logout โดยไม่ Reload) ไม่งั้นจะเจอ interaction_in_progress
+      await msalInstance.handleRedirectPromise().catch(() => null);
       await msalInstance.loginRedirect({ scopes: ["User.Read"] });
     },
 
@@ -119,19 +125,14 @@ export const useAuthStore = defineStore("auth", {
       }
     },
 
-    // เพิ่ม method นี้
-    async fetchCurrentEmployee() {
+    async fetchCurrentEmployee(includeOrgChart = true, includeApprove = true) {
       if (!this.token) return null;
-      try {
-        const response = await hrApi.get("/employees/me", {
-          headers: { Authorization: `Bearer ${this.token}` },
-        });
-        this.employee = response.data;
-        return response.data;
-      } catch (error) {
-        console.error("Failed to fetch employee:", error);
-        return null;
-      }
+      const response = await hrApi.get("/employees/me", {
+        params: { includeOrgChart, includeApprove },
+        headers: { Authorization: `Bearer ${this.token}` },
+      });
+      this.employee = response.data;
+      return response.data;
     },
   },
 });

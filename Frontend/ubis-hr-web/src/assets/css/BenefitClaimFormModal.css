@@ -1,0 +1,769 @@
+/* ===== Modal ===== */
+.benefit-form-modal {
+  --benefit-green: #078552;
+  --benefit-dark: #07543c;
+  --benefit-text: #294438;
+  --benefit-muted: #788a80;
+  --benefit-border: #d9e5dd;
+}
+
+.benefit-form-modal::backdrop {
+  background: rgb(15 35 25 / 42%);
+  backdrop-filter: blur(4px);
+}
+
+.benefit-form-modal > .modal-box {
+  width: min(960px, calc(100% - 32px));
+  max-width: 960px;
+  max-height: 92vh;
+  max-height: 92dvh;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #d7e4db;
+  border-radius: 28px;
+  background: #fff;
+  color: var(--benefit-text);
+  font-size: 14px;
+  line-height: 1.7;
+  box-shadow: 0 28px 90px rgb(11 41 27 / 22%);
+}
+
+.benefit-form-modal > .modal-box > form {
+  min-height: 0;
+}
+
+/* ===== Header ===== */
+.benefit-form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-shrink: 0;
+  padding: 17px 24px;
+  border-bottom: 1px solid #dce8df;
+  background: #fff;
+}
+
+.benefit-form-heading {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+}
+
+.benefit-form-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border: 1px solid #d2e9dc;
+  border-radius: 16px;
+  background: #ecf7f0;
+  color: var(--benefit-green);
+}
+
+.benefit-form-heading h3 {
+  margin: 0;
+  color: #214d36;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.benefit-form-heading p {
+  margin: 3px 0 0;
+  color: var(--benefit-muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.benefit-document-number {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin-top: 3px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.benefit-document-number > span {
+  color: var(--benefit-muted);
+}
+
+.benefit-document-number strong {
+  color: var(--benefit-green);
+  overflow-wrap: anywhere;
+}
+
+.benefit-close-button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 1px solid #e0e8e2;
+  border-radius: 12px;
+  background: #f6f9f7;
+  color: #788a80;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+
+.benefit-close-button:hover {
+  background: #eaf4ee;
+  color: var(--benefit-dark);
+}
+
+/* ===== Body ===== */
+.benefit-form-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding: 22px 24px;
+  background: #f5f8f6;
+  scrollbar-width: thin;
+  scrollbar-color: #c5d7cb transparent;
+}
+
+.benefit-form-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.benefit-form-body::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  background: #c5d7cb;
+}
+
+.benefit-form-body > section {
+  min-width: 0;
+  flex-shrink: 0;
+  padding: 19px;
+  border: 1px solid var(--benefit-border);
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 3px 12px rgb(29 67 43 / 3%);
+}
+
+/* ข้อความทั่วไป */
+.benefit-form-body :deep(.text-xs),
+.benefit-form-body :deep(.text-sm),
+.benefit-form-body :deep(.text-\[11px\]),
+.benefit-form-body :deep(.text-\[10px\]) {
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.benefit-form-body h4,
+.benefit-form-body > section > p.font-semibold {
+  color: #24513a;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.benefit-form-body :deep(label) {
+  color: #607467;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.7;
+}
+
+/* ===== Inputs ===== */
+.benefit-form-body :deep(.input),
+.benefit-form-body :deep(.select),
+.benefit-form-body :deep(.textarea) {
+  border: 1px solid #d6e3da;
+  border-radius: 13px;
+  outline: none;
+  background: #fff;
+  color: var(--benefit-text);
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.6;
+  box-shadow: none;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.benefit-form-body :deep(.input),
+.benefit-form-body :deep(.select) {
+  min-height: 44px;
+  height: 44px;
+}
+
+.benefit-form-body :deep(.textarea) {
+  min-height: 84px;
+  padding: 11px 13px;
+  line-height: 1.8;
+}
+
+.benefit-form-body :deep(.input:focus),
+.benefit-form-body :deep(.select:focus),
+.benefit-form-body :deep(.textarea:focus) {
+  border-color: #299968;
+  box-shadow: 0 0 0 3px rgb(7 133 82 / 7%);
+}
+
+.benefit-form-body :deep(input::placeholder),
+.benefit-form-body :deep(textarea::placeholder) {
+  color: #9aa99f;
+}
+
+.benefit-form-body :deep(.input:disabled),
+.benefit-form-body :deep(.select:disabled),
+.benefit-form-body :deep(.textarea:disabled) {
+  background: #f1f5f2;
+  color: #7a8d80;
+  cursor: not-allowed;
+}
+
+/* ===== Employee ===== */
+.benefit-form-body .benefit-employee-card {
+  padding: 14px 16px;
+  border: 1px solid #cfe5d7;
+  border-left: 3px solid var(--benefit-green);
+  border-radius: 16px;
+  background: #f0f8f3;
+}
+
+.benefit-employee-card > p:first-child {
+  color: #24553b;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.7;
+}
+
+.benefit-employee-card > button {
+  color: var(--benefit-green);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.benefit-employee-card ul {
+  margin-top: 10px;
+  padding: 9px 12px;
+  border: 1px solid #dce9e0;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.benefit-employee-card li {
+  padding: 7px 0;
+  border-bottom: 1px solid #edf2ee;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.benefit-employee-card li:last-child {
+  border-bottom: 0;
+}
+
+/* ===== Line cards ===== */
+.benefit-line-card {
+  min-width: 0;
+  padding: 17px;
+  border: 1px solid #d8e5dc;
+  border-radius: 19px;
+  background: #fff;
+  box-shadow: 0 2px 7px rgb(33 72 48 / 3%);
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.benefit-line-card:hover {
+  border-color: #b2d5bf;
+  box-shadow: 0 5px 16px rgb(33 72 48 / 5%);
+}
+
+.benefit-line-card:focus-within {
+  border-color: #8ec4a4;
+}
+
+.benefit-line-card > .flex:first-child {
+  margin-bottom: 14px;
+}
+
+.benefit-line-card .rounded-lg {
+  border-radius: 13px;
+}
+
+/* ===== Buttons ===== */
+.benefit-form-body .btn-primary {
+  min-height: 40px;
+  height: auto;
+  padding: 8px 13px;
+  border: 1px solid var(--benefit-green);
+  border-radius: 13px;
+  background: var(--benefit-green);
+  color: #fff;
+  font-size: 14px;
+  line-height: 1.5;
+  box-shadow: 0 3px 8px rgb(7 133 82 / 10%);
+}
+
+.benefit-form-body .btn-primary:hover:not(:disabled) {
+  border-color: #066e45;
+  background: #066e45;
+}
+
+.benefit-form-body .btn-primary:disabled {
+  border-color: #e0e7e2;
+  background: #edf2ee;
+  color: #97a69b;
+  box-shadow: none;
+}
+
+.benefit-line-card .btn-square {
+  width: 30px;
+  min-height: 30px;
+  height: 30px;
+  border: 1px solid #e7ece8;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.benefit-line-card .btn-square:hover {
+  border-color: #f0cdd3;
+  background: #fff1f3;
+  color: #bf445b;
+}
+
+.benefit-form-body .badge {
+  height: auto;
+  min-height: 26px;
+  padding: 3px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.benefit-form-body .badge-ghost {
+  border: 1px solid #d8e9de;
+  border-radius: 999px;
+  background: #edf7f0;
+  color: #33734e;
+}
+
+/* ===== Calculation table ===== */
+.benefit-line-card .table {
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+  border: 1px solid #dce8df;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.benefit-line-card .table th {
+  padding: 10px 12px;
+  border-bottom: 1px solid #dce8df;
+  background: #edf6f0;
+  color: #587461;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.benefit-line-card .table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #edf2ee;
+  color: #3c5c48;
+  font-size: 14px;
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums;
+}
+
+.benefit-line-card .table tr:last-child td {
+  border-bottom: 0;
+}
+
+/* ===== Total: กระชับและตัวเลขขนาดพอดี ===== */
+.benefit-total-card {
+  flex-shrink: 0;
+  padding: 12px 18px;
+  border: 1px solid #c8e4d3;
+  border-radius: 18px;
+  background: #eaf6ee;
+}
+
+.benefit-total-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.benefit-total-label {
+  margin: 0;
+  color: #315d42;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.benefit-total-caption {
+  margin: 2px 0 0;
+  color: #728a79;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.benefit-total-amount {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+  text-align: right;
+}
+
+.benefit-total-amount strong {
+  color: #086b43;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.benefit-total-amount > span {
+  color: #6d8876;
+  font-size: 13px;
+}
+
+.benefit-total-note {
+  margin: 8px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid #d3e7da;
+  color: #6b8574;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+/* ===== Footer ===== */
+.benefit-form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-shrink: 0;
+  padding: 15px 24px;
+  border-top: 1px solid #dce7df;
+  background: #fff;
+}
+
+.benefit-footer-note {
+  color: #84958a;
+  font-size: 13px;
+}
+
+.benefit-footer-actions {
+  display: flex;
+  gap: 9px;
+  margin-left: auto;
+}
+
+.benefit-footer-actions .btn {
+  min-height: 44px;
+  height: auto;
+  padding: 10px 20px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.benefit-cancel-button {
+  border: 1px solid #dce6df;
+  background: #fff;
+  color: #6f8376;
+  box-shadow: none;
+}
+
+.benefit-cancel-button:hover {
+  background: #f2f6f3;
+}
+
+.benefit-save-button {
+  border: 1px solid var(--benefit-green);
+  background: var(--benefit-green);
+  color: #fff;
+  box-shadow: 0 4px 10px rgb(7 133 82 / 13%);
+}
+
+.benefit-save-button:hover:not(:disabled) {
+  border-color: #066e45;
+  background: #066e45;
+}
+
+.benefit-save-button:disabled {
+  border-color: #dce7df;
+  background: #e9efeb;
+  color: #93a399;
+  box-shadow: none;
+}
+
+.benefit-close-button:focus-visible,
+.benefit-form-footer .btn:focus-visible {
+  outline: 3px solid #70bd95;
+  outline-offset: 3px;
+}
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+  .benefit-form-modal > .modal-box {
+    width: calc(100% - 16px);
+    max-height: 94vh;
+    max-height: 94dvh;
+    border-radius: 23px;
+  }
+
+  .benefit-form-header {
+    gap: 10px;
+    padding: 15px;
+  }
+
+  .benefit-form-heading {
+    gap: 10px;
+  }
+
+  .benefit-form-heading h3 {
+    font-size: 18px;
+  }
+
+  .benefit-form-heading p {
+    font-size: 13px;
+  }
+
+  .benefit-form-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 14px;
+  }
+
+  .benefit-form-body {
+    gap: 14px;
+    padding: 15px;
+  }
+
+  .benefit-form-body > section {
+    padding: 15px;
+    border-radius: 19px;
+  }
+
+  .benefit-line-card {
+    padding: 14px;
+    border-radius: 17px;
+  }
+
+  .benefit-total-card {
+    padding: 12px 14px;
+    border-radius: 16px;
+  }
+
+  .benefit-total-main {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .benefit-total-amount {
+    margin-left: auto;
+  }
+
+  .benefit-total-amount strong {
+    font-size: 22px;
+  }
+
+  .benefit-form-footer {
+    padding: 13px 15px;
+  }
+
+  .benefit-footer-note {
+    display: none;
+  }
+
+  .benefit-footer-actions {
+    width: 100%;
+  }
+
+  .benefit-footer-actions .btn {
+    flex: 1;
+    padding: 11px 14px;
+  }
+} /* ===== ตารางแจกแจงรายละเอียดการคำนวณ ===== */
+.claim-breakdown {
+  margin: 4px 20px 20px;
+  overflow: hidden;
+  border: 1px solid #d7e5dc;
+  border-radius: 17px;
+  background: #fff;
+}
+
+.claim-breakdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 15px 18px;
+  border-bottom: 1px solid #dfeae3;
+  background: #fff;
+}
+
+.claim-breakdown-header h4 {
+  margin: 0;
+  color: #28513b;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.claim-breakdown-header p {
+  margin: 3px 0 0;
+  color: #75877c;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.claim-breakdown-count {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border: 1px solid #d7e7dc;
+  border-radius: 999px;
+  background: #f0f7f2;
+  color: #487257;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.claim-breakdown-scroll {
+  overflow-x: auto;
+}
+
+.claim-breakdown-table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+.claim-breakdown-table th,
+.claim-breakdown-table td {
+  padding: 13px 18px;
+  text-align: left;
+  vertical-align: middle;
+  line-height: 1.7;
+}
+
+.claim-breakdown-table thead th {
+  border-bottom: 1px solid #dce8e0;
+  background: #edf5f0;
+  color: #456a53;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.claim-breakdown-table thead th:first-child {
+  width: 34%;
+}
+
+.claim-breakdown-table thead th:nth-child(2) {
+  width: 16%;
+}
+
+.claim-breakdown-table thead th:nth-child(3),
+.claim-breakdown-table thead th:nth-child(4) {
+  width: 25%;
+}
+
+.claim-breakdown-table tbody td {
+  border-bottom: 1px solid #e8efe9;
+  color: #425d4c;
+  font-size: 14px;
+}
+
+.claim-breakdown-table tbody tr:nth-child(even) td {
+  background: #f8fbf9;
+}
+
+.claim-breakdown-table tbody tr:hover td {
+  background: #eff7f2;
+}
+
+.claim-breakdown-table .number-cell {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.claim-range-label {
+  display: inline-block;
+  color: #385d46;
+  font-weight: 500;
+}
+
+.claim-breakdown-table .breakdown-row-amount {
+  color: #17663e;
+  font-weight: 600;
+}
+
+.claim-breakdown-table tfoot th,
+.claim-breakdown-table tfoot td {
+  border-top: 1px solid #cce2d4;
+  background: #eaf5ee;
+  color: #205b38;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.claim-breakdown-table tfoot th {
+  text-align: right;
+}
+
+.breakdown-currency {
+  margin-left: 5px;
+  color: #718a79;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+@media (max-width: 640px) {
+  .claim-breakdown {
+    margin: 0 12px 15px;
+    border-radius: 14px;
+  }
+
+  .claim-breakdown-header {
+    gap: 10px;
+    padding: 13px 14px;
+  }
+
+  .claim-breakdown-header p {
+    max-width: 220px;
+  }
+
+  .claim-breakdown-table th,
+  .claim-breakdown-table td {
+    padding: 12px 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .benefit-form-modal *,
+  .benefit-form-modal :deep(*) {
+    transition: none;
+  }
+}

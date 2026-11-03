@@ -18,8 +18,6 @@ public class ApiKeyMiddleware
         _logger = logger;
         _expectedApiKey = configuration["SecurityHeaders:MySecretValue"] ?? string.Empty;
 
-        // Fail Fast — ถ้าลืมตั้งค่าตอน Deploy ระบบจะไม่ยอมเริ่มทำงานเลย
-        // ดีกว่าเริ่มได้แต่ไม่มีการป้องกันจริงโดยไม่มีใครรู้
         if (string.IsNullOrWhiteSpace(_expectedApiKey))
             throw new InvalidOperationException("SecurityHeaders:MySecretValue ยังไม่ได้ตั้งค่า");
     }

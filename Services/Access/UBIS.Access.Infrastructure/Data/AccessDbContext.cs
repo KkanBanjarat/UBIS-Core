@@ -16,9 +16,13 @@ public partial class AccessDbContext : DbContext
     {
     }
 
+    public virtual DbSet<TbMenu> TbMenus { get; set; }
+
     public virtual DbSet<TbPermission> TbPermissions { get; set; }
 
     public virtual DbSet<TbRole> TbRoles { get; set; }
+
+    public virtual DbSet<TbRoleMenu> TbRoleMenus { get; set; }
 
     public virtual DbSet<TbRolePermission> TbRolePermissions { get; set; }
 
@@ -31,6 +35,38 @@ public partial class AccessDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<TbMenu>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("tb_menu_pkey");
+
+            entity.ToTable("tb_menu");
+
+            entity.HasIndex(e => e.ParentId, "ix_tb_menu_parent_id");
+
+            entity.HasIndex(e => e.Code, "ux_tb_menu_code").IsUnique();
+
+            entity.Property(e => e.Id).HasDefaultValueSql("gen_random_uuid()");
+            entity.Property(e => e.Code).HasMaxLength(100);
+            entity.Property(e => e.ComponentPath).HasMaxLength(300);
+            entity.Property(e => e.CreatedAt).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+            entity.Property(e => e.DeletedAt).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.DeletedBy).HasMaxLength(100);
+            entity.Property(e => e.Icon).HasMaxLength(50);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.Label).HasMaxLength(200);
+            entity.Property(e => e.NodeType).HasMaxLength(20);
+            entity.Property(e => e.Path).HasMaxLength(200);
+            entity.Property(e => e.PermissionCode).HasMaxLength(100);
+            entity.Property(e => e.UpdatedAt).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+
+            entity.HasOne(d => d.Parent).WithMany(p => p.InverseParent)
+                .HasForeignKey(d => d.ParentId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("tb_menu_parent_id_fkey");
+        });
+
         modelBuilder.Entity<TbPermission>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("tb_permission_pkey");
@@ -67,6 +103,36 @@ public partial class AccessDbContext : DbContext
             entity.Property(e => e.Name).HasMaxLength(100);
             entity.Property(e => e.UpdatedAt).HasColumnType("timestamp without time zone");
             entity.Property(e => e.UpdatedBy).HasMaxLength(255);
+        });
+
+        modelBuilder.Entity<TbRoleMenu>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("tb_role_menu_pkey");
+
+            entity.ToTable("tb_role_menu");
+
+            entity.HasIndex(e => e.MenuId, "ix_tb_role_menu_menu");
+
+            entity.HasIndex(e => new { e.RoleId, e.MenuId }, "ux_tb_role_menu_role_menu")
+                .IsUnique()
+                .HasFilter("(\"IsDelete\" = false)");
+
+            entity.Property(e => e.Id).HasDefaultValueSql("gen_random_uuid()");
+            entity.Property(e => e.AccessLevel).HasDefaultValue((short)1);
+            entity.Property(e => e.CreatedAt).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+            entity.Property(e => e.DeletedAt).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.DeletedBy).HasMaxLength(100);
+            entity.Property(e => e.UpdatedAt).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+
+            entity.HasOne(d => d.Menu).WithMany(p => p.TbRoleMenus)
+                .HasForeignKey(d => d.MenuId)
+                .HasConstraintName("tb_role_menu_MenuId_fkey");
+
+            entity.HasOne(d => d.Role).WithMany(p => p.TbRoleMenus)
+                .HasForeignKey(d => d.RoleId)
+                .HasConstraintName("tb_role_menu_RoleId_fkey");
         });
 
         modelBuilder.Entity<TbRolePermission>(entity =>

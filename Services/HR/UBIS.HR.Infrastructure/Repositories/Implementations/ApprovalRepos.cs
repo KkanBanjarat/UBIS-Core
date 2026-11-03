@@ -28,14 +28,19 @@ public class ApprovalRepos : BaseRepos<TbTransApprove>, IApprovalRepos
             .MaxAsync(x => x.Round);
     }
 
-    public async Task<List<TbTransApprove>> GetPendingByApproverAsync(Guid approverId)
+    public async Task<List<TbTransApprove>> GetPendingByApproverAsync(Guid approverId, string? docType = null)
     {
-        return await _dbSet
-            .Where(x => x.ApproverId == approverId && x.Status == "WaitApprove")
+        var query = _dbSet.Where(x => x.ApproverId == approverId && x.Status == "WaitApprove");
+
+        if (!string.IsNullOrWhiteSpace(docType))
+            query = query.Where(x => x.DocType == docType);
+
+        return await query
             .OrderBy(x => x.CreatedAt)
             .AsNoTracking()
             .ToListAsync();
     }
+
     public async Task<TbTransApprove?> GetByIntIdAsync(int id)
     {
         return await _dbSet.FirstOrDefaultAsync(x => x.Id == id);

@@ -25,6 +25,8 @@ public partial class TbRole
 
     public DateTime? DeletedAt { get; set; }
 
+    public virtual ICollection<TbRoleMenu> TbRoleMenus { get; set; } = new List<TbRoleMenu>();
+
     public virtual ICollection<TbRolePermission> TbRolePermissions { get; set; } = new List<TbRolePermission>();
 
     public virtual ICollection<TbUserRole> TbUserRoles { get; set; } = new List<TbUserRole>();

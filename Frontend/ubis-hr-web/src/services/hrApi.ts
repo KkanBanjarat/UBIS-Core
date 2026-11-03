@@ -2,7 +2,8 @@ import axios from "axios";
 
 const hrApi = axios.create({
   baseURL: import.meta.env.VITE_HR_API_URL,
-  timeout: 15000,
+  //timeout: 15000,
+  timeout: import.meta.env.DEV ? 0 : 15000,
 });
 
 hrApi.interceptors.request.use((config) => {
@@ -23,9 +24,6 @@ hrApi.interceptors.response.use(
       localStorage.removeItem("employeeCode");
       localStorage.removeItem("permissions");
 
-      // ใช้ window.location แทน router เพื่อตัด Circular Dependency
-      // (services → router → views → stores → services)
-      // Token หมดอายุต้องเคลียร์ State ทั้งหมดอยู่แล้ว การ Reload เต็มหน้าจึงเหมาะสม
       if (window.location.pathname !== "/login") {
         window.location.href = "/login";
       }

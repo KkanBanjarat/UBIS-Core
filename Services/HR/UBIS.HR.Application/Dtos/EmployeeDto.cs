@@ -81,6 +81,7 @@ public class EmployeeDetailDto : EmployeeDto
 {
     public List<OrganizationUnitPathItemDto> OrganizationUnitPath { get; set; }
     public EmployeeOrgChartNodeDto? OrgChart { get; set; }
+    public List<ApprovalSummaryDto>? ApprovalSummary { get; set; }
 }
 
 public class EmployeeOrgChartNodeDto

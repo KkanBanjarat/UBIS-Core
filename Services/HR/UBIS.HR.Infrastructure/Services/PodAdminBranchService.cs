@@ -176,7 +176,7 @@ public class PodAdminBranchService : IPodAdminBranchService
         try
         {
             var raw = await _repos.GetAllWithBranchAsync();
-            var allBranches = await _branchRepos.GetAllAsync();
+            var allBranches = await _branchRepos.GetListAsync(w => w.IsActive == true);
 
             // ดึงชื่อพนักงานทีเดียว ไม่ N+1
             var employeeIds = raw

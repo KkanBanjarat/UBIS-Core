@@ -32,23 +32,29 @@ public class EmployeeRepos : BaseRepos<TbEmployee>, IEmployeeRepos
                 .ThenInclude(p => p!.TbBenefitPlanItems.Where(i => !i.IsDelete && i.Benefit.IsActive))
                 .ThenInclude(i => i.Benefit);
     }
-
+    private static string LikePattern(string term) =>
+    "%" + term.Trim()
+        .Replace("\\", "\\\\")
+        .Replace("%", "\\%")
+        .Replace("_", "\\_") + "%";
     public async Task<(IEnumerable<TbEmployee> Items, int TotalCount)> GetFilteredPagedAsync(EmployeeFilterDto filter)
     {
         var query = IncludeList()
             .AsNoTracking()
             .Where(w => w.IsDelete == false);
 
-        if (!string.IsNullOrEmpty(filter.Search))
+        if (!string.IsNullOrWhiteSpace(filter.Search))
         {
-            query = query.Where(w => w.FnameTh.Contains(filter.Search)
-                || w.LnameTh.Contains(filter.Search)
-                || w.FnameEn.Contains(filter.Search)
-                || w.LnameEn.Contains(filter.Search)
-                || w.EmpId.Contains(filter.Search)
-                || w.Email.Contains(filter.Search)
-                || w.Position.NameEn.Contains(filter.Search)
-                || w.Position.NameTh.Contains(filter.Search));
+            var pattern = LikePattern(filter.Search);
+            query = query.Where(w =>
+                EF.Functions.ILike(w.FnameTh, pattern)
+                || EF.Functions.ILike(w.LnameTh, pattern)
+                || EF.Functions.ILike(w.FnameEn, pattern)
+                || EF.Functions.ILike(w.LnameEn, pattern)
+                || EF.Functions.ILike(w.EmpId, pattern)
+                || EF.Functions.ILike(w.Email, pattern)
+                || EF.Functions.ILike(w.Position.NameEn, pattern)
+                || EF.Functions.ILike(w.Position.NameTh, pattern));
         }
 
         if (!string.IsNullOrEmpty(filter.Status))
@@ -106,7 +112,24 @@ public class EmployeeRepos : BaseRepos<TbEmployee>, IEmployeeRepos
             .AsNoTracking()
             .FirstOrDefaultAsync(w => w.EmpId == empId && w.IsDelete == false);
     }
+    public async Task<Dictionary<Guid, string>> GetEmailsByIdsAsync(List<Guid> ids)
+    {
+        return await _dbSet
+            .AsNoTracking()
+            .Where(x => ids.Contains(x.Id) && !x.IsDelete && x.Email != null && x.Email != "")
+            .Select(x => new { x.Id, x.Email })
+            .ToDictionaryAsync(x => x.Id, x => x.Email);
+    }
+    public async Task<(int Level, string? BankAccountNo, string? PhoneNo)?> GetClaimSnapshotAsync(Guid employeeId)
+    {
+        var row = await _dbSet
+            .AsNoTracking()
+            .Where(e => e.Id == employeeId && !e.IsDelete)
+            .Select(e => new { e.PositionLevel.Level, e.BankAccountNo, e.PhoneNo })
+            .FirstOrDefaultAsync();
 
+        return row == null ? null : (row.Level, row.BankAccountNo, row.PhoneNo);
+    }
     public async Task<List<EmployeeOrgChartNodeDto>> GetOrgChartFlatDataAsync()
     {
         return await _dbSet
@@ -144,13 +167,13 @@ public class EmployeeRepos : BaseRepos<TbEmployee>, IEmployeeRepos
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var search = request.Search.Trim().ToLower();
+            var pattern = LikePattern(request.Search);
             query = query.Where(e =>
-                e.FnameTh.ToLower().Contains(search) ||
-                e.LnameTh.ToLower().Contains(search) ||
-                e.EmpId.ToLower().Contains(search) ||
-                e.FnameEn.ToLower().Contains(search) ||
-                e.LnameEn.ToLower().Contains(search));
+                EF.Functions.ILike(e.FnameTh, pattern) ||
+                EF.Functions.ILike(e.LnameTh, pattern) ||
+                EF.Functions.ILike(e.EmpId, pattern) ||
+                EF.Functions.ILike(e.FnameEn, pattern) ||
+                EF.Functions.ILike(e.LnameEn, pattern));
         }
 
         var totalCount = await query.CountAsync();
@@ -180,5 +203,32 @@ public class EmployeeRepos : BaseRepos<TbEmployee>, IEmployeeRepos
             .Where(x => ids.Contains(x.Id))
             .Select(x => new { x.Id, FullNameTh = x.FnameTh + " " + x.LnameTh })
             .ToDictionaryAsync(x => x.Id, x => x.FullNameTh);
+    }
+
+    public async Task<Dictionary<Guid, string>> GetPositionNamesByIdsAsync(List<Guid> ids)
+    {
+        return await _dbSet
+            .Where(x => ids.Contains(x.Id) && x.Position != null)
+            .Select(x => new { x.Id, PositionNameTh = x.Position.NameTh })
+            .ToDictionaryAsync(x => x.Id, x => x.PositionNameTh);
+    }
+
+    public async Task<(string Name, string? Code)?> GetAffiliationAsync(Guid employeeId)
+    {
+        var ouId = await _dbSet
+            .AsNoTracking()
+            .Where(e => e.Id == employeeId)
+            .Select(e => e.DivisionId ?? e.DepartmentId)
+            .FirstOrDefaultAsync();
+
+        if (ouId == null || ouId == Guid.Empty) return null;
+
+        var ou = await _context.TbOrganizationUnits
+            .AsNoTracking()
+            .Where(o => o.Id == ouId && !o.IsDelete)
+            .Select(o => new { o.NameTh, o.Code })
+            .FirstOrDefaultAsync();
+
+        return ou == null ? null : (ou.NameTh, ou.Code);
     }
 }

@@ -63,6 +63,10 @@ public partial class TbEmployee
 
     public Guid? SectionId { get; set; }
 
+    public string? BankAccountNo { get; set; }
+
+    public string? PhoneNo { get; set; }
+
     public virtual TbBranch Branch { get; set; } = null!;
 
     public virtual TbCompany Company { get; set; } = null!;
@@ -85,7 +89,11 @@ public partial class TbEmployee
 
     public virtual TbOrganizationUnit? Section { get; set; }
 
+    public virtual ICollection<TbApprovalLimit> TbApprovalLimits { get; set; } = new List<TbApprovalLimit>();
+
+    public virtual ICollection<TbBenefitClaim> TbBenefitClaims { get; set; } = new List<TbBenefitClaim>();
+
     public virtual ICollection<TbEmployeeBenefitPlan> TbEmployeeBenefitPlans { get; set; } = new List<TbEmployeeBenefitPlan>();
 
-    public virtual ICollection<TbPrettyCashRequest> TbPrettyCashRequests { get; set; } = new List<TbPrettyCashRequest>();
+    public virtual ICollection<TbPettyCashRequest> TbPettyCashRequests { get; set; } = new List<TbPettyCashRequest>();
 }

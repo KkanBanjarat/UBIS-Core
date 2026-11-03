@@ -18,16 +18,18 @@
   const auth = useAuthStore()
   const isAuthReady = ref(false)
 
-  onMounted(async () => {
-    try {
-      const loggedIn = await auth.handleSsoRedirect()
-      const currentPath = router.currentRoute.value.path
+ onMounted(async () => {
+  try {
+    const loggedIn = await auth.handleSsoRedirect()
+    const currentPath = router.currentRoute.value.path
 
-      if (loggedIn && (currentPath === '/login' || currentPath === '/')) {
-        await router.replace('/dashboard')   // replace ดีกว่า push (ไม่ทิ้ง History ให้กด Back กลับมาหน้า Login ได้)
-      }
-    } finally {
-      isAuthReady.value = true   // ปลดล็อกให้เรนเดอร์หน้าจริงเมื่อ Auth เสร็จแล้วเท่านั้น
+    if (loggedIn && (currentPath === '/login' || currentPath === '/')) {
+      await router.replace('/dashboard')
     }
-  })
+  } catch (err) {
+    console.error('SSO init failed:', err)
+  } finally {
+    isAuthReady.value = true
+  }
+})
 </script>

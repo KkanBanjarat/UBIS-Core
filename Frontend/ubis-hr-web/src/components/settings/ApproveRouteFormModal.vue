@@ -43,7 +43,7 @@
                 v-model="form.docType"
                 type="text"
                 required
-                placeholder="เช่น PrettyCash"
+                placeholder="เช่น PettyCash"
                 class="input input-bordered h-10 w-full bg-base-100 text-sm focus:border-primary"
               />
             </div>

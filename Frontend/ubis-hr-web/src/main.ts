@@ -5,9 +5,11 @@ import router from "./router";
 import "./style.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { useAuthStore } from "./stores/authStore.ts";
+import { vDecimal } from "./directives/decimal.ts";
 // main.ts
 const app = createApp(App);
 app.use(createPinia());
+app.directive("decimal", vDecimal);
 
 // รอ MSAL เฉพาะตอนที่กลับมาจาก Microsoft Redirect จริงๆ เท่านั้น
 // (URL จะมี #code= หรือ #id_token= ติดมา) กรณีอื่นไม่ต้องรอ Mount ได้เลยทันที

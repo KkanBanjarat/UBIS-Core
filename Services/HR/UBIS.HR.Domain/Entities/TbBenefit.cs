@@ -27,7 +27,17 @@ public partial class TbBenefit
 
     public DateTime? DeletedAt { get; set; }
 
+    public int DocFormId { get; set; }
+
+    public string? CalcType { get; set; }
+
+    public string? Region { get; set; }
+
+    public virtual TbDocForm DocForm { get; set; } = null!;
+
+    public virtual ICollection<TbBenefitClaimLine> TbBenefitClaimLines { get; set; } = new List<TbBenefitClaimLine>();
+
     public virtual ICollection<TbBenefitPlanItem> TbBenefitPlanItems { get; set; } = new List<TbBenefitPlanItem>();
 
-    public virtual ICollection<TbPrettyCashLine> TbPrettyCashLines { get; set; } = new List<TbPrettyCashLine>();
+    public virtual ICollection<TbPettyCashLine> TbPettyCashLines { get; set; } = new List<TbPettyCashLine>();
 }
