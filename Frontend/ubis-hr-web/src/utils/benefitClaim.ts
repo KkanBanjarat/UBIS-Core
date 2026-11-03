@@ -1,4 +1,5 @@
 import type { BreakdownRow } from "../types/BenefitClaim";
+import { formatNumber } from "./number";
 
 export const tripTypeOptions = [
   { id: "Domestic", label: "ในประเทศ" },
@@ -17,4 +18,8 @@ export function tripTypeLabel(t: string | null | undefined) {
 export function rangeText(r: BreakdownRow) {
   if (r.from == null) return "-";
   return r.to == null ? `${r.from} ขึ้นไป` : `${r.from} - ${r.to}`;
+}
+
+export function fmt6(n: number | null | undefined) {
+  return n == null ? "-" : formatNumber(n);
 }

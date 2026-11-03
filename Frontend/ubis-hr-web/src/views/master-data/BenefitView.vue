@@ -242,6 +242,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatNumber } from '../../utils/number.ts'
 import { ref, computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useBenefitStore } from '../../stores/benefitStore.ts'
@@ -294,7 +295,7 @@ function planItemCount(planId: string) {
 }
 
 function formatCurrency(n: number) {
-  return n.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+  return formatNumber(n)
 }
 
 // ========================================

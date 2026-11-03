@@ -138,6 +138,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatNumber } from '../../utils/number.ts'
 import { ref ,computed} from 'vue'
 import { Printer, X } from 'lucide-vue-next'
 import type { BenefitClaim } from '../../types/BenefitClaim.ts'
@@ -197,7 +198,7 @@ function stepStatusText(s: string) {
     }
 }
 
-const money = (n?: number) => (n ?? 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })
+const money = (n?: number) => formatNumber(n)
 const fmtDate = (d: string) =>
     new Date(d).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })
 const fmtShort = (d: string) =>

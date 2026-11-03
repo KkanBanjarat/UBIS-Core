@@ -338,7 +338,7 @@
                       <span
                         class="shrink-0 rounded-md bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-600"
                       >
-                        {{ item.limitAmount.toLocaleString('th-TH') }}
+                        {{ formatNumber(item.limitAmount) }}
                         บาท
                       </span>
                     </div>
@@ -490,6 +490,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatNumber } from '../../utils/number.ts'
 import {
   ref,
   computed,

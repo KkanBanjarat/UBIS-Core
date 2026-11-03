@@ -21,7 +21,7 @@ public static class ExcelStyles
     public static readonly XLColor HeaderText = XLColor.White;
 
     // ===== Format =====
-    public const string MoneyFormat = "#,##0.00";
+    public const string MoneyFormat = "#,##0.000000";
     public const string IntFormat = "#,##0";
     public const string DateFormat = "dd/MM/yyyy";
 

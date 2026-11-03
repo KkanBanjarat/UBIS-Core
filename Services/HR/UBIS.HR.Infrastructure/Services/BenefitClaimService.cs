@@ -1,3 +1,4 @@
+using UBIS.HR.Application.Common;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
@@ -196,9 +197,9 @@ public class BenefitClaimService : IBenefitClaimService, IApprovalDocumentServic
 
                     var rate = await _repos.GetFuelRateAsync(DefaultFuelType, l.FuelPrice.Value, docDate)
                         ?? throw new InvalidOperationException(
-                            $"ไม่พบอัตราค่าน้ำมันที่ราคา {l.FuelPrice:N2} บาท/ลิตร");
+                            $"ไม่พบอัตราค่าน้ำมันที่ราคา {l.FuelPrice:N3} บาท/ลิตร");
 
-                    var fuelAmount = Math.Round(l.Qty * rate.RatePerKm, 2);
+                    var fuelAmount = DecimalPrecision.Round(l.Qty * rate.RatePerKm);
                     return new LineCalc(fuelAmount, l.Qty, rate.RatePerKm, b.Region,
                         new() { new() { Qty = l.Qty, Rate = rate.RatePerKm, Amount = fuelAmount } });
                 }
@@ -221,7 +222,7 @@ public class BenefitClaimService : IBenefitClaimService, IApprovalDocumentServic
                         var to = band.DayTo ?? int.MaxValue;
                         var overlap = Math.Min(days, to) - band.DayFrom + 1;
                         if (overlap <= 0) continue;
-                        var rowAmount = overlap * band.RatePerDay;
+                        var rowAmount = DecimalPrecision.Round(overlap * band.RatePerDay);
                         amount += rowAmount;
                         counted += overlap;
                         rows.Add(new BenefitClaimBreakdownDto
@@ -236,7 +237,7 @@ public class BenefitClaimService : IBenefitClaimService, IApprovalDocumentServic
                     if (counted != days)
                         throw new InvalidOperationException($"ตั้งค่าอัตราเบี้ยเลี้ยงของ '{b.NameTh}' ไม่ครอบคลุม {days} วัน");
 
-                    return new LineCalc(amount, days, Math.Round(amount / days, 2), b.Region, rows);
+                    return new LineCalc(amount, days, DecimalPrecision.Round(amount / days), b.Region, rows);
                 }
 
             case "Accommodation":
@@ -246,13 +247,13 @@ public class BenefitClaimService : IBenefitClaimService, IApprovalDocumentServic
                         ?? throw new InvalidOperationException($"ไม่พบอัตราค่าที่พักสำหรับระดับ L{level}");
 
                     var perNight = b.Region == "International" ? rate.InternationalRate : rate.DomesticRate;
-                    var accAmount = nights * perNight;
+                    var accAmount = DecimalPrecision.Round(nights * perNight);
                     return new LineCalc(accAmount, nights, perNight, b.Region,
                         new() { new() { Qty = nights, Rate = perNight, Amount = accAmount } });
                 }
 
             default: // Actual
-                return new LineCalc(l.Amount, l.Qty, null, b.Region);
+                return new LineCalc(DecimalPrecision.Round(l.Amount), l.Qty, null, b.Region);
         }
     }
 

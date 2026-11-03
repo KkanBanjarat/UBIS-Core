@@ -83,6 +83,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatNumber } from '../../utils/number.ts'
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { Printer } from 'lucide-vue-next'
@@ -106,7 +107,7 @@ function formatDate(d: string) {
 }
 
 function formatAmount(n: number | null | undefined) {
-  return Number(n || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return formatNumber(n)
 }
 
 function printPage() { window.print() }

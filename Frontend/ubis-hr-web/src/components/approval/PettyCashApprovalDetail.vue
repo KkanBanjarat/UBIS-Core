@@ -103,6 +103,7 @@
   </section>
 </template>
 <script setup lang="ts">
+import { formatNumber } from '../../utils/number.ts'
 import { ref, watch, onBeforeUnmount } from "vue";
 import { FileQuestion, FileText, ReceiptText } from "lucide-vue-next";
 import { usePettyCashStore } from "../../stores/pettyCashStore";
@@ -132,13 +133,7 @@ function formatDate(value: string | null | undefined, showTime = false) {
   }).format(date)}`;
 }
 function formatAmount(amount: number | null | undefined) {
-  const number = Number(amount ?? 0);
-  return Number.isFinite(number)
-    ? number.toLocaleString("th-TH", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })
-    : "-";
+  return formatNumber(amount);
 }
 async function loadDocument() {
   const id = ++requestId;

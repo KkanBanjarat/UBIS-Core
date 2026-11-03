@@ -1,3 +1,4 @@
+using UBIS.HR.Application.Common;
 using Microsoft.EntityFrameworkCore;
 using UBIS.HR.Application.Dtos;
 using UBIS.HR.Domain.Entities;
@@ -361,7 +362,7 @@ public class BenefitClaimRepos : BaseRepos<TbBenefitClaim>, IBenefitClaimRepos
     }
     public async Task<TbFuelRate?> GetFuelRateAsync(string fuelType, decimal price, DateTime date)
     {
-        var p = Math.Round(price, 2);
+        var p = DecimalPrecision.Round(price);
         var d = date.Date;
         return await _context.TbFuelRates
             .AsNoTracking()

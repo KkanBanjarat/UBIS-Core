@@ -40,9 +40,10 @@
             </label>
             <input
               v-model.number="formData.limitAmount"
+              v-decimal
               type="number"
               min="0"
-              step="0.01"
+              step="0.001"
               class="input input-bordered w-full text-sm"
               :class="errors.limitAmount && 'input-error'"
             />

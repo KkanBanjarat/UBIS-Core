@@ -42,6 +42,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatNumber } from '../utils/number.ts'
 import { computed, onMounted, ref, watch } from "vue";
 import { useAuthStore } from "../stores/authStore.ts";
 import { useRouter } from "vue-router";
@@ -158,7 +159,7 @@ const filteredPlans = computed(() => {
   })).filter(plan => !q || (plan.nameTh ?? "").toLocaleLowerCase().includes(q) || !!plan.items?.length);
 });
 function formatAmount(value: number | null | undefined) {
-  return value == null || !Number.isFinite(Number(value)) ? "-" : Number(value).toLocaleString("th-TH", { maximumFractionDigits: 2 });
+  return value == null ? "-" : formatNumber(value);
 }
 
 </script>

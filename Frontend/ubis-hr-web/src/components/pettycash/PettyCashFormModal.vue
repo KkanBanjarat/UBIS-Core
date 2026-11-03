@@ -125,7 +125,7 @@
                   <div>
                     <label class="block text-xs font-medium text-base-content/60 mb-1.5">ยอดเบิก</label>
                     <div class="relative">
-                      <input v-model.number="line.amount" type="number" min="0" step="0.01"
+                      <input v-model.number="line.amount" v-decimal type="number" min="0" step="0.001"
                         class="input input-bordered input-sm w-full pr-10 focus:border-primary" />
                       <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-base-content/35">บาท</span>
                     </div>
@@ -152,13 +152,13 @@
               <p class="text-xs text-base-content/50">ยอดรวมทั้งหมด</p>
               <p v-if="docLimit !== null" class="text-[11px] mt-0.5"
                 :class="isOverLimit ? 'text-error font-medium' : 'text-base-content/35'">
-                วงเงินต่อเอกสาร {{ docLimit.toLocaleString('th-TH') }} บาท
+                วงเงินต่อเอกสาร {{ formatNumber(docLimit) }} บาท
               </p>
               <p v-else class="text-[11px] text-base-content/35 mt-0.5">จำนวนเงินที่ขอเบิก</p>
             </div>
             <div class="text-right">
               <span class="text-xl font-bold" :class="isOverLimit ? 'text-error' : 'text-primary'">
-                {{ totalAmount.toLocaleString('th-TH') }}
+                {{ formatNumber(totalAmount) }}
               </span>
               <span class="text-xs text-base-content/50 ml-1">บาท</span>
             </div>
@@ -168,8 +168,8 @@
           <div v-if="isOverLimit"
             class="flex items-center gap-2 rounded-lg bg-error/10 text-error px-4 py-2.5 text-xs font-medium">
             <CircleAlert class="size-4 shrink-0" />
-            ยอดรวมเกินวงเงินเงินสดย่อย {{ (docLimit ?? 0).toLocaleString('th-TH') }} บาทต่อเอกสาร
-            (เกิน {{ (totalAmount - (docLimit ?? 0)).toLocaleString('th-TH') }} บาท) — บันทึกไม่ได้
+            ยอดรวมเกินวงเงินเงินสดย่อย {{ formatNumber(docLimit) }} บาทต่อเอกสาร
+            (เกิน {{ formatNumber(totalAmount - (docLimit ?? 0)) }} บาท) — บันทึกไม่ได้
           </div>
 
           <!-- Error Banner -->
@@ -202,6 +202,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatNumber, roundNum } from '../../utils/number.ts'
 import * as yup from 'yup'
 import { ref, computed, watch } from 'vue'
 import { X, Plus, Trash2, ReceiptText, FileText, CircleAlert } from 'lucide-vue-next'
@@ -254,7 +255,7 @@ const defaultForm = () => ({
 
 const formData = ref(defaultForm())
 
-const totalAmount = computed(() => formData.value.lines.reduce((sum, l) => sum + (l.amount || 0), 0))
+const totalAmount = computed(() => roundNum(formData.value.lines.reduce((sum, l) => sum + (l.amount || 0), 0)))
 
 // ---- วงเงินต่อเอกสาร (อ่านจากตาราง tb_doc_limit ผ่าน API) ----
 const docLimit = ref<number | null>(null)
@@ -358,11 +359,11 @@ const buildSchema = (limit: number | null) =>
       )
       .test('doc-limit', 'ยอดรวมเกินวงเงิน', function (lines) {
         if (limit === null) return true
-        const total = (lines ?? []).reduce((s, l: any) => s + (Number(l?.amount) || 0), 0)
+        const total = roundNum((lines ?? []).reduce((s, l: any) => s + (Number(l?.amount) || 0), 0))
         if (total <= limit) return true
         return this.createError({
           path: 'lines',
-          message: `ยอดรวมทั้งเอกสารต้องไม่เกิน ${limit.toLocaleString('th-TH')} บาท (ปัจจุบัน ${total.toLocaleString('th-TH')} บาท)`,
+          message: `ยอดรวมทั้งเอกสารต้องไม่เกิน ${formatNumber(limit)} บาท (ปัจจุบัน ${formatNumber(total)} บาท)`,
         })
       }),
   })

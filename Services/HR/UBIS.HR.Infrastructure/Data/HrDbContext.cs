@@ -117,12 +117,12 @@ public partial class HrDbContext : DbContext
             entity.Property(e => e.CreatedBy).HasMaxLength(100);
             entity.Property(e => e.DeletedAt).HasColumnType("timestamp without time zone");
             entity.Property(e => e.DeletedBy).HasMaxLength(100);
-            entity.Property(e => e.DomesticRate).HasPrecision(18, 2);
+            entity.Property(e => e.DomesticRate).HasPrecision(18, 3);
             entity.Property(e => e.EffectiveFrom)
                 .HasDefaultValueSql("CURRENT_DATE")
                 .HasColumnType("timestamp without time zone");
             entity.Property(e => e.EffectiveTo).HasColumnType("timestamp without time zone");
-            entity.Property(e => e.InternationalRate).HasPrecision(18, 2);
+            entity.Property(e => e.InternationalRate).HasPrecision(18, 3);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("now()")
@@ -136,8 +136,8 @@ public partial class HrDbContext : DbContext
 
             entity.ToTable("tb_approval_limit");
 
-            entity.Property(e => e.AmountFrom).HasPrecision(18, 2);
-            entity.Property(e => e.AmountTo).HasPrecision(18, 2);
+            entity.Property(e => e.AmountFrom).HasPrecision(18, 3);
+            entity.Property(e => e.AmountTo).HasPrecision(18, 3);
             entity.Property(e => e.ApproverType).HasMaxLength(30);
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("now()")
@@ -232,7 +232,7 @@ public partial class HrDbContext : DbContext
             entity.Property(e => e.DocDate).HasColumnType("timestamp without time zone");
             entity.Property(e => e.PhoneNo).HasMaxLength(20);
             entity.Property(e => e.ReturnAt).HasColumnType("timestamp without time zone");
-            entity.Property(e => e.TotalAmount).HasPrecision(18, 2);
+            entity.Property(e => e.TotalAmount).HasPrecision(18, 3);
             entity.Property(e => e.TripPurpose).HasMaxLength(500);
             entity.Property(e => e.TripType).HasMaxLength(30);
             entity.Property(e => e.UpdatedAt).HasColumnType("timestamp without time zone");
@@ -257,15 +257,15 @@ public partial class HrDbContext : DbContext
             entity.HasIndex(e => e.BenefitClaimId, "ix_tb_benefit_claim_line_claim");
 
             entity.Property(e => e.Id).HasDefaultValueSql("gen_random_uuid()");
-            entity.Property(e => e.Amount).HasPrecision(18, 2);
+            entity.Property(e => e.Amount).HasPrecision(18, 3);
             entity.Property(e => e.CalcBreakdown).HasColumnType("jsonb");
             entity.Property(e => e.CreatedAt).HasColumnType("timestamp without time zone");
             entity.Property(e => e.DeletedAt).HasColumnType("timestamp without time zone");
             entity.Property(e => e.EndDate).HasColumnType("timestamp without time zone");
-            entity.Property(e => e.FuelPrice).HasPrecision(18, 2);
-            entity.Property(e => e.LimitAmount).HasPrecision(18, 2);
-            entity.Property(e => e.Qty).HasPrecision(18, 2);
-            entity.Property(e => e.Rate).HasPrecision(18, 2);
+            entity.Property(e => e.FuelPrice).HasPrecision(18, 3);
+            entity.Property(e => e.LimitAmount).HasPrecision(18, 3);
+            entity.Property(e => e.Qty).HasPrecision(18, 3);
+            entity.Property(e => e.Rate).HasPrecision(18, 3);
             entity.Property(e => e.Region).HasMaxLength(30);
             entity.Property(e => e.Route).HasMaxLength(500);
             entity.Property(e => e.StartDate).HasColumnType("timestamp without time zone");
@@ -314,7 +314,7 @@ public partial class HrDbContext : DbContext
             entity.Property(e => e.CreatedBy).HasDefaultValueSql("'System'::text");
             entity.Property(e => e.DeletedAt).HasColumnType("timestamp without time zone");
             entity.Property(e => e.IsActive).HasDefaultValue(true);
-            entity.Property(e => e.LimitAmount).HasPrecision(18, 2);
+            entity.Property(e => e.LimitAmount).HasPrecision(18, 3);
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnType("timestamp without time zone");
@@ -425,7 +425,7 @@ public partial class HrDbContext : DbContext
             entity.Property(e => e.DocType).HasMaxLength(50);
             entity.Property(e => e.EffectiveFrom).HasColumnType("timestamp without time zone");
             entity.Property(e => e.IsActive).HasDefaultValue(true);
-            entity.Property(e => e.LimitAmount).HasPrecision(18, 2);
+            entity.Property(e => e.LimitAmount).HasPrecision(18, 3);
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnType("timestamp without time zone");
@@ -623,9 +623,9 @@ public partial class HrDbContext : DbContext
             entity.Property(e => e.EffectiveTo).HasColumnType("timestamp without time zone");
             entity.Property(e => e.FuelType).HasMaxLength(50);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
-            entity.Property(e => e.MaxPrice).HasPrecision(18, 2);
-            entity.Property(e => e.MinPrice).HasPrecision(18, 2);
-            entity.Property(e => e.RatePerKm).HasPrecision(18, 2);
+            entity.Property(e => e.MaxPrice).HasPrecision(18, 3);
+            entity.Property(e => e.MinPrice).HasPrecision(18, 3);
+            entity.Property(e => e.RatePerKm).HasPrecision(18, 3);
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnType("timestamp without time zone");
@@ -681,7 +681,7 @@ public partial class HrDbContext : DbContext
                 .HasColumnType("timestamp without time zone");
             entity.Property(e => e.EffectiveTo).HasColumnType("timestamp without time zone");
             entity.Property(e => e.IsActive).HasDefaultValue(true);
-            entity.Property(e => e.RatePerDay).HasPrecision(18, 2);
+            entity.Property(e => e.RatePerDay).HasPrecision(18, 3);
             entity.Property(e => e.Region).HasMaxLength(30);
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("now()")
@@ -698,15 +698,15 @@ public partial class HrDbContext : DbContext
             entity.HasIndex(e => e.PettyCashId, "idx_pcline_request");
 
             entity.Property(e => e.Id).HasDefaultValueSql("gen_random_uuid()");
-            entity.Property(e => e.Amount).HasPrecision(18, 2);
+            entity.Property(e => e.Amount).HasPrecision(18, 3);
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnType("timestamp without time zone");
             entity.Property(e => e.CreatedBy).HasDefaultValueSql("'System'::text");
             entity.Property(e => e.DeletedAt).HasColumnType("timestamp without time zone");
-            entity.Property(e => e.LimitAmount).HasPrecision(18, 2);
+            entity.Property(e => e.LimitAmount).HasPrecision(18, 3);
             entity.Property(e => e.Qty)
-                .HasPrecision(18, 2)
+                .HasPrecision(18, 3)
                 .HasDefaultValue(1m);
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("now()")
@@ -747,7 +747,7 @@ public partial class HrDbContext : DbContext
             entity.Property(e => e.DeletedAt).HasColumnType("timestamp without time zone");
             entity.Property(e => e.DocDate).HasColumnType("timestamp without time zone");
             entity.Property(e => e.DocStatus).HasDefaultValueSql("'Draft'::text");
-            entity.Property(e => e.TotalAmount).HasPrecision(18, 2);
+            entity.Property(e => e.TotalAmount).HasPrecision(18, 3);
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnType("timestamp without time zone");

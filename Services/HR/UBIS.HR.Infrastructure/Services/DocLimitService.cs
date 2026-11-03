@@ -25,6 +25,6 @@ public class DocLimitService : IDocLimitService
         var limit = await GetEffectiveAsync(docType, docDate);
         if (limit.LimitAmount.HasValue && totalAmount > limit.LimitAmount.Value)
             throw new InvalidOperationException(
-                $"ยอดรวมทั้งเอกสารต้องไม่เกิน {limit.LimitAmount.Value:N2} บาท (ยอดปัจจุบัน {totalAmount:N2} บาท)");
+                $"ยอดรวมทั้งเอกสารต้องไม่เกิน {limit.LimitAmount.Value:N3} บาท (ยอดปัจจุบัน {totalAmount:N3} บาท)");
     }
 }

@@ -1,3 +1,4 @@
+using UBIS.HR.Application.Common;
 //EmailTemplates.cs
 using System.Globalization;
 using System.Net;
@@ -53,7 +54,7 @@ public static class EmailTemplates
         Row(rows, "เลขที่เอกสาร", d.DocNumber);
         Row(rows, "ผู้ขอ", d.RequesterName);
         if (d.Amount.HasValue)
-            Row(rows, "จำนวนเงิน", d.Amount.Value.ToString("N2", CultureInfo.InvariantCulture) + " บาท");
+            Row(rows, "จำนวนเงิน", d.Amount.Value.ToString(DecimalPrecision.Format, CultureInfo.InvariantCulture) + " บาท");
         if (!string.IsNullOrWhiteSpace(d.StepName)) Row(rows, "ขั้นตอน", d.StepName!);
         if (showActor && !string.IsNullOrWhiteSpace(d.ActorName)) Row(rows, "ผู้ดำเนินการ", d.ActorName!);
         if (showRemark && !string.IsNullOrWhiteSpace(d.Remark)) Row(rows, "เหตุผล", d.Remark!);

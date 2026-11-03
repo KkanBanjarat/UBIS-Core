@@ -539,6 +539,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatNumber } from '../../utils/number.ts'
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useBenefitClaimStore } from "../../stores/benefitClaimStore";
 import type { BenefitClaimDetailRow, EmployeeSummary } from "../../types/BenefitClaim";
@@ -685,11 +686,7 @@ onMounted(load);
 
 // ---- ข้อมูลแสดงผล ----
 const s = computed(() => store.summary);
-const money = (n: number) =>
-  n.toLocaleString("th-TH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+const money = (n: number) => formatNumber(n);
 const fmtDate = (d: string) => new Date(d).toLocaleDateString("en-GB");
 
 const companies = computed(() => s.value?.byCompany ?? []);

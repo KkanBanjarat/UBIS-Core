@@ -118,7 +118,7 @@
 
                   <!-- ยอดรวม -->
                   <td class="text-right">
-                    <span class="font-semibold text-sm">{{ item.totalAmount.toLocaleString('th-TH') }}</span>
+                    <span class="font-semibold text-sm">{{ formatNumber(item.totalAmount) }}</span>
                     <span class="text-[11px] text-base-content/35 ml-1">บาท</span>
                   </td>
 
@@ -219,7 +219,7 @@
                             <div class="sm:text-right">
                               <p class="text-xs text-base-content/40 mb-0.5">ยอดเบิก</p>
                               <p class="text-sm font-semibold">
-                                {{ line.amount?.toLocaleString('th-TH') ?? 0 }}
+                                {{ formatNumber(line.amount) }}
                                 <span class="text-[11px] font-normal text-base-content/40">บาท</span>
                               </p>
                             </div>
@@ -297,6 +297,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatNumber } from '../../utils/number.ts'
 import { storeToRefs } from 'pinia'
 import { ref, reactive, watch, onMounted, computed } from 'vue'
 import { usePettyCashStore } from '../../stores/pettyCashStore.ts'
